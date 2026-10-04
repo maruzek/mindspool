@@ -1,33 +1,21 @@
 # Capability Map: Repository Setup
 
-Status: proposed for review.
+Status: implemented for the approved library foundation; verification recorded in
+[the implementation report](docs/verification/library-foundation.md).
 
-Continue the README's foundation phase by establishing authenticated ownership,
-the core knowledge model, and repeatable sample content.
+## Implemented Modules
 
-## Current State
+| Module id        | Responsibility                                                                                                                                       | Depends on     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `identity`       | Existing Clerk development application linked to Convex, verified client gating, server-derived ownership, anonymous/cross-owner tests.              | —              |
+| `core-library`   | Owned Items, Labels as collections, manual include/exclude membership, paginated navigation, internal processing history and concurrency protection. | `identity`     |
+| `sample-content` | Authenticated opt-in development examples, shared labels, screenshot references, and versioned starting label guidelines.                            | `core-library` |
 
-- The pnpm/Turborepo monorepo and web, mobile, and extension shells exist.
-- Clerk providers and sign-in controls exist in all three apps. The web app can
-  pass Clerk identity to Convex when configured.
-- Convex has JWT provider configuration, but its schema has no application tables
-  and there are no application functions.
-- The shared schema package contains only capture-source and decision-provider
-  identifiers. There is no test runner or application test suite yet.
-- App and backend `.env.local` files are absent. Live authentication has not been
-  verified; the previous foundation plan records compilation and shell checks.
+The web implements URL/text capture, owned inbox/detail views, label creation and
+assignment, and both navigation directions. Generated Convex imports are tracked;
+`pnpm check` includes the local backend and web regression suites.
 
-## Proposed Modules
-
-| Module id        | Responsibility                                                                                                                                                                                                            | Depends on     |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `identity`       | Clerk-to-Convex identity contract, reusable server-side authentication and ownership checks, configuration guidance, and tests proving anonymous and cross-user access is rejected.                                       | —              |
-| `core-library`   | Shared core concepts, Convex schema, and minimal authenticated data functions for Items, Labels, item-label assignments, and Processing Runs; capture/enrichment states and manual edits separate from model suggestions. | `identity`     |
-| `sample-content` | Repeatable, user-owned development examples, including image/screenshot references, a starting label vocabulary, and versioned sorting rubrics for later decision experiments.                                            | `core-library` |
-
-Build order: `identity` → `core-library` → `sample-content`.
-
-## Assumptions for Review
+## Accepted Contracts
 
 - Each Clerk user owns a private workspace. Collaboration, organizations, and
   public sharing can be specified separately when needed.
@@ -52,12 +40,8 @@ Build order: `identity` → `core-library` → `sample-content`.
 
 ## Later Roadmap Work
 
-The full inbox UI, retrieval/search, decision-provider adapters, Android share
-receiver, extension capture, spatial boards, network graphs, and archiving workers
-remain subsequent roadmap phases. This setup establishes the contracts they use.
-
-## Next Review Artifact
-
-After reviewing module boundaries, dependencies, and assumptions, write
-`SPEC-identity.md` first. Each later module gets its own specification under its
-stable module id, covering its contracts, acceptance criteria, and verification.
+Search, deletion/export, asynchronous extraction and image storage, provider
+adapters, Android share receiver, extension capture, spatial boards, and network
+graphs remain subsequent phases. The source of scope and acceptance criteria is
+[the approved plan](tasks/plan.md); a separate specification is appropriate when
+starting the next provider or capture module.

@@ -1,6 +1,6 @@
 # Implementation Plan: Authenticated Library Foundation
 
-Status: approved by the user; implementation in progress.
+Status: complete on `feature/library-foundation`; all 14 tasks verified.
 
 ## Overview
 
@@ -11,13 +11,14 @@ Processing Run and sample-content foundations for later decision experiments.
 Requirements come from [README.md](../README.md), the user's clarification that
 Labels serve as collections, and [CAPABILITIES.md](../CAPABILITIES.md). This plan
 follows the user's explicit request for planning against those requirements;
-separate module specifications have not yet been written or approved. Proposed
-design choices below are part of this review, not settled implementation facts.
+the user approved this plan and instructed implementation directly. Separate
+module specifications were not a prerequisite for this approved increment.
+Implementation evidence is recorded in [the verification report](../docs/verification/library-foundation.md).
 
 Tasks and verification checkpoints are tracked in [todo.md](todo.md). No existing
 `tasks/plan.md` or `tasks/todo.md` was present when this plan was created.
 
-## Existing Foundation
+## Foundation at Planning Time
 
 - Web, mobile, extension, shared packages, and root checks already exist.
 - Clerk UI is wired; the web entrypoint supports `ConvexProviderWithClerk`.
@@ -36,7 +37,7 @@ Search, content deduplication across independent captures, export, full deletion
 workflows, mobile/extension capture, boards, and graphs remain later roadmap work.
 They are not prerequisites for verifying this setup increment.
 
-## Architecture Decisions for Review
+## Accepted Architecture Decisions
 
 ### Identity
 

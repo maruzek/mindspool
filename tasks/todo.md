@@ -1,22 +1,33 @@
 # Tasks: Authenticated Library Foundation
 
-Status: approved by the user; implementation in progress.
+Status: complete on `feature/library-foundation`; verification and fixture cleanup recorded below.
 
 ## Execution Notes
 
 - Working branch: `feature/library-foundation`.
-- Clerk CLI 3.4.0 was checked on the host: no login, no linked application, and no
-  local environment files. An existing Clerk application must be selected before
-  live configuration; do not initialize a replacement application.
-- Convex has account credentials on this machine, but this repository has no
-  selected deployment. Resolve the development target before deployment commands.
-- Prepare independently testable local work while configuration is pending; live
-  checks and dependent tasks remain unchecked until they actually pass.
-- Convex project discovery found `MindSpool` (`mindspool`) under `martin-ruzek`.
-  Clerk login/application selection was requested asynchronously.
-- Local backend definitions were bootstrapped using the inspected Convex 1.46.0
-  CLI local-codegen branch. No deployment was selected or changed. Cloud
-  generation and live authentication remain pending.
+- The user selected the existing **MindSpool** Clerk application and Convex
+  project. Clerk CLI 3.4.0 is authenticated and linked; development JWT/issuer
+  configuration and ignored web environment files are in place.
+- Convex target: personal **development** deployment `graceful-stork-346`, project
+  `martin-ruzek/mindspool`, `eu-west-1`. Production was not changed.
+- Official generated definitions are tracked and synced through the selected
+  development deployment. Clean-checkout checks require no runtime secrets.
+- Backend behavior has 39 tests; six additional web regressions cover capture
+  drafts, retry keys, reload, authentication outages, and account/session cleanup.
+- An isolated checkout at `892d69f` passed frozen installation and `pnpm check`
+  without environment files. Browser evidence covers real sign-in, two private
+  accounts, captures, multi-label navigation, pagination, and reconnect/save.
+- Anonymous and forged-token rejection were checked through the public endpoint;
+  the browser authentication-failure path was exercised by an expired token
+  during a network outage. A deliberately changed issuer was not configured.
+- The user approved temporary test users and their cleanup. Clerk accounts and
+  their owned backend fixtures are removed; temporary helpers are excluded from
+  the final implementation.
+- Review found reactive pagination bounds and draft persistence defects. Focused
+  regressions reproduce them and pass after the fixes. The final follow-up review
+  found no remaining required correctness or privacy fixes.
+- Detailed results and remaining platform work are recorded in
+  [the verification report](../docs/verification/library-foundation.md).
 
 Design and scope: [plan.md](plan.md). Follow the task order and checkpoints. Write
 behavioral tests before implementation where applicable. Regenerate backend
@@ -31,10 +42,10 @@ publishable key and deployment URL; record reproducible setup instructions.
 
 **Acceptance criteria:**
 
-- [ ] The selected target is documented as development; production is untouched.
-- [ ] Clerk's Convex integration and issuer match the selected deployment, with
+- [x] The selected target is documented as development; production is untouched.
+- [x] Clerk's Convex integration and issuer match the selected deployment, with
       credentials kept in ignored files/provider configuration.
-- [ ] The web shell displays real Clerk sign-in controls, and missing configuration
+- [x] The web shell displays real Clerk sign-in controls, and missing configuration
       still produces setup guidance.
 
 **Verification:** Start with `pnpm --filter @mindspool/backend setup`, then
@@ -55,9 +66,9 @@ and expose typed API imports through the backend package for app consumers.
 
 **Acceptance criteria:**
 
-- [ ] Official generated API/server/data-model definitions exist and are tracked.
-- [ ] Backend package exports expose the generated API without app-relative imports.
-- [ ] Clean-clone typechecking works without Clerk or deployment secrets, and
+- [x] Official generated API/server/data-model definitions exist and are tracked.
+- [x] Backend package exports expose the generated API without app-relative imports.
+- [x] Clean-clone typechecking works without Clerk or deployment secrets, and
       generated files stay excluded from manual formatting.
 
 **Verification:** `pnpm --filter @mindspool/backend codegen`, `pnpm typecheck`,
@@ -78,11 +89,11 @@ ownership only from verified Convex identity. Put these tests in the root check.
 
 **Acceptance criteria:**
 
-- [ ] Anonymous calls fail; authenticated ownership comes from `tokenIdentifier`,
+- [x] Anonymous calls fail; authenticated ownership comes from `tokenIdentifier`,
       including distinct identities with the same subject but different issuers.
-- [ ] Vitest/convex-test exercise actual helper behavior with mocked identities;
+- [x] Vitest/convex-test exercise actual helper behavior with mocked identities;
       the test environment matches the documented backend setup.
-- [ ] The backend `test` script uses `vitest run`, and `pnpm check` invokes it.
+- [x] The backend `test` script uses `vitest run`, and `pnpm check` invokes it.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/auth.test.ts`
 and `pnpm check`; prove the tests fail against a deliberately missing/incorrect
@@ -99,9 +110,9 @@ mechanical `pnpm-lock.yaml` update.
 
 ## Checkpoint: Identity Foundation (Tasks 1–3)
 
-- [ ] Backend tests and `pnpm check` pass without runtime credentials.
-- [ ] Generated imports are reproducible and no secrets are tracked.
-- [ ] Review configuration and ownership contract before library work.
+- [x] Backend tests and `pnpm check` pass without runtime credentials.
+- [x] Generated imports are reproducible and no secrets are tracked.
+- [x] Review configuration and ownership contract before library work.
 
 ## Task 4: Gate the Web Workspace on Convex Authentication
 
@@ -110,11 +121,11 @@ validated identity query. Keep data hooks inactive until Convex verifies sign-in
 
 **Acceptance criteria:**
 
-- [ ] Missing settings, signed-out state, and authentication loading/failure have
+- [x] Missing settings, signed-out state, and authentication loading/failure have
       clear feedback; library hooks do not run outside an authenticated provider.
-- [ ] A Clerk-signed-in user reaches the workspace only after Convex accepts their
+- [x] A Clerk-signed-in user reaches the workspace only after Convex accepts their
       token; the identity query rejects anonymous callers.
-- [ ] Sign-out hides the workspace and clears user-specific selection state.
+- [x] Sign-out hides the workspace and clears user-specific selection state.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/identity.test.ts`,
 `pnpm typecheck`, `pnpm --filter @mindspool/web build`; browser checks for valid
@@ -135,11 +146,11 @@ functions. Preserve original URL/text input independently of future enrichment.
 
 **Acceptance criteria:**
 
-- [ ] Bounded valid URL/text input creates an owned Item with original input,
+- [x] Bounded valid URL/text input creates an owned Item with original input,
       capture source, separate optional canonical URL, and explicit processing state.
-- [ ] Anonymous and forged-owner requests fail; foreign and nonexistent ids have
+- [x] Anonymous and forged-owner requests fail; foreign and nonexistent ids have
       the same response, and invalid input writes nothing.
-- [ ] Repeating the same capture key and payload returns the existing Item;
+- [x] Repeating the same capture key and payload returns the existing Item;
       reusing the key with different input fails. Independent saves remain distinct.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/items.test.ts`
@@ -161,10 +172,10 @@ function. Establish the web's declared backend workspace dependency.
 
 **Acceptance criteria:**
 
-- [ ] A signed-in user saves a URL or text and receives a visible success or error.
-- [ ] Pending submission prevents accidental repeat clicks; retries reuse the same
+- [x] A signed-in user saves a URL or text and receives a visible success or error.
+- [x] Pending submission prevents accidental repeat clicks; retries reuse the same
       capture key, and failed submission preserves the user's input.
-- [ ] Missing backend configuration never presents a working save form.
+- [x] Missing backend configuration never presents a working save form.
 
 **Verification:** `pnpm typecheck` and `pnpm --filter @mindspool/web build`;
 browser-save URL and text, simulate a failed request, and retry it successfully.
@@ -179,10 +190,10 @@ mechanical `pnpm-lock.yaml` update.
 
 ## Checkpoint: First Save (Tasks 4–6)
 
-- [ ] Tests and builds pass; development backend accepts schema/functions.
-- [ ] Real sign-in → save URL/text → sign-out works in the browser.
-- [ ] Anonymous access and incorrect identity configuration cannot save content.
-- [ ] Review the first working path before expanding the library.
+- [x] Tests and builds pass; development backend accepts schema/functions.
+- [x] Real sign-in → save URL/text → sign-out works in the browser.
+- [x] Anonymous access and incorrect identity configuration cannot save content.
+- [x] Review the first working path before expanding the library.
 
 ## Task 7: Browse Owned Items
 
@@ -191,11 +202,11 @@ panel so users can verify what they saved and reopen it after reload.
 
 **Acceptance criteria:**
 
-- [ ] The inbox lists only the current owner's Items with stable newest-first
+- [x] The inbox lists only the current owner's Items with stable newest-first
       pagination; Item detail preserves original content and shows current status.
-- [ ] A second owner sees neither the first owner's list entries nor their detail;
+- [x] A second owner sees neither the first owner's list entries nor their detail;
       page-boundary and unknown-id cases are tested.
-- [ ] The web handles loading, empty, failure, and load-more states, and saved Items
+- [x] The web handles loading, empty, failure, and load-more states, and saved Items
       remain visible after reload and a new session for the same user.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/items.test.ts`,
@@ -217,10 +228,10 @@ web control to create and browse available Labels.
 
 **Acceptance criteria:**
 
-- [ ] Nonblank trimmed names create owned Labels; case-insensitive duplicates
+- [x] Nonblank trimmed names create owned Labels; case-insensitive duplicates
       reuse the same Label for that user, while another owner can use that name.
-- [ ] Anonymous access fails and paginated Label listing never crosses owners.
-- [ ] The web can create a Label and shows empty, pending, and failed states.
+- [x] Anonymous access fails and paginated Label listing never crosses owners.
+- [x] The web can create a Label and shows empty, pending, and failed states.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/labels.test.ts`,
 `pnpm typecheck`, and web build; create duplicate names and test two owners.
@@ -240,11 +251,11 @@ controls to Item details, retaining explicit manual decisions.
 
 **Acceptance criteria:**
 
-- [ ] One Item can have multiple Labels and one Label can contain multiple Items;
+- [x] One Item can have multiple Labels and one Label can contain multiple Items;
       repeated attach/remove calls are idempotent, with one relationship per pair.
-- [ ] Both Item and Label ownership are verified; mixed-owner assignments fail
+- [x] Both Item and Label ownership are verified; mixed-owner assignments fail
       atomically and change no membership.
-- [ ] Removal hides membership without deleting either endpoint and retains a
+- [x] Removal hides membership without deleting either endpoint and retains a
       manual exclusion; the web shows pending/errors and final persisted Labels.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/itemLabels.test.ts`,
@@ -262,10 +273,10 @@ a second Item, remove/reassign, and reload.
 
 ## Checkpoint: Library Membership (Tasks 7–9)
 
-- [ ] Full backend tests, typechecks, and builds pass.
-- [ ] Save → open Item → assign several Labels → remove one → reload works.
-- [ ] Cross-owner relationship and duplicate membership tests pass.
-- [ ] Review membership semantics before navigation and processing work.
+- [x] Full backend tests, typechecks, and builds pass.
+- [x] Save → open Item → assign several Labels → remove one → reload works.
+- [x] Cross-owner relationship and duplicate membership tests pass.
+- [x] Review membership semantics before navigation and processing work.
 
 ## Task 10: Browse the Library in Both Directions
 
@@ -274,11 +285,11 @@ workspace. Connect Item Labels to their corresponding Label views.
 
 **Acceptance criteria:**
 
-- [ ] Opening a Label lists its assigned Items with pagination; opening an Item
+- [x] Opening a Label lists its assigned Items with pagination; opening an Item
       shows its assigned Labels and allows navigation to those Label views.
-- [ ] Removed memberships disappear from both directions; empty Labels remain
+- [x] Removed memberships disappear from both directions; empty Labels remain
       valid, and querying foreign ids reveals no data.
-- [ ] Pagination handles an Item under several Labels without duplicating it
+- [x] Pagination handles an Item under several Labels without duplicating it
       within a single Label view; the user can return to the full inbox.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/itemLabels.test.ts`,
@@ -300,11 +311,11 @@ and an authenticated history query, without calling decision providers.
 
 **Acceptance criteria:**
 
-- [ ] Runs preserve Item ownership, attempt status, versioned rubric/question
+- [x] Runs preserve Item ownership, attempt status, versioned rubric/question
       references, optional provider/model/modality/results/measurements, and failures.
-- [ ] Public callers cannot fabricate worker results or a Run owner; the history
+- [x] Public callers cannot fabricate worker results or a Run owner; the history
       query is indexed/paginated and rejects foreign Items.
-- [ ] Failed or absent processing does not remove original saved content; optional
+- [x] Failed or absent processing does not remove original saved content; optional
       measurements remain absent unless actually available.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/processingRuns.test.ts`
@@ -327,11 +338,11 @@ additions and manual exclusions. Expose history/status in Item detail.
 
 **Acceptance criteria:**
 
-- [ ] Recording later suggestions never overwrites or reattaches a manually
+- [x] Recording later suggestions never overwrites or reattaches a manually
       excluded Label; manual additions survive suggestions that omit that Label.
-- [ ] Suggestions reference only the Run owner's Labels; wrong-owner results and
+- [x] Suggestions reference only the Run owner's Labels; wrong-owner results and
       attempts to mutate another user's Run fail without partial writes.
-- [ ] Item detail distinguishes current manual Labels from suggested Labels and
+- [x] Item detail distinguishes current manual Labels from suggested Labels and
       pending/failed processing; no model execution or automatic application occurs.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/processingRuns.test.ts`,
@@ -349,10 +360,10 @@ and prove membership remains unchanged across successive Runs.
 
 ## Checkpoint: Core Flow (Tasks 10–12)
 
-- [ ] The signed-in save → multi-label → browse-both-directions flow works.
-- [ ] All public read/write paths have anonymous and cross-owner coverage.
-- [ ] Suggestions and failed Runs preserve original content and manual decisions.
-- [ ] Review the core concepts before inserting sample content.
+- [x] The signed-in save → multi-label → browse-both-directions flow works.
+- [x] All public read/write paths have anonymous and cross-owner coverage.
+- [x] Suggestions and failed Runs preserve original content and manual decisions.
+- [x] Review the core concepts before inserting sample content.
 
 ## Task 13: Seed Repeatable Development Examples
 
@@ -363,11 +374,11 @@ seeding is enabled; the mutation enforces the same flag independently of the UI.
 
 **Acceptance criteria:**
 
-- [ ] Repeating the seed for one owner does not duplicate Items, Labels, or links;
+- [x] Repeating the seed for one owner does not duplicate Items, Labels, or links;
       seeding a second owner creates a separate private set.
-- [ ] Fixtures include image/screenshot references and multi-label examples, while
+- [x] Fixtures include image/screenshot references and multi-label examples, while
       clearly distinguishing references from uploaded/available image binaries.
-- [ ] Seeding is disabled unless explicitly enabled on the development target;
+- [x] Seeding is disabled unless explicitly enabled on the development target;
       it performs no remote scraping/model calls and preserves existing edits.
 
 **Verification:** `pnpm --filter @mindspool/backend test -- convex/seed.test.ts`
@@ -389,11 +400,11 @@ concept documentation, and record actual evidence plus any remaining limitations
 
 **Acceptance criteria:**
 
-- [ ] `pnpm check` and the Firefox compatibility build pass; clean-clone checks
+- [x] `pnpm check` and the Firefox compatibility build pass; clean-clone checks
       work without runtime credentials and no generated definitions are stale.
-- [ ] Real-browser tests cover sign-in/out, account switching, saving, multiple
+- [x] Real-browser tests cover sign-in/out, account switching, saving, multiple
       Labels, both navigation directions, failures, and persistence after reload.
-- [ ] Documentation describes implemented behavior accurately; unresolved live
+- [x] Documentation describes implemented behavior accurately; unresolved live
       checks remain explicitly incomplete rather than reported as verified.
 
 **Verification:** `pnpm check`,
@@ -410,7 +421,7 @@ here become focused follow-up tasks before the final checkpoint is checked.
 
 ## Checkpoint: Complete (Tasks 13–14)
 
-- [ ] Every task's acceptance criteria and required verification passed.
-- [ ] Sample content and rubrics are available for the next experiment phase.
-- [ ] No production data or settings changed; all credentials stay untracked.
-- [ ] Review final behavior and evidence before integrating the change.
+- [x] Every task's acceptance criteria and required verification passed.
+- [x] Sample content and rubrics are available for the next experiment phase.
+- [x] No production data or settings changed; all credentials stay untracked.
+- [x] Review final behavior and evidence before integrating the change.

@@ -14,7 +14,7 @@ MindSpool is also a personal playground for experimenting with typed AI decision
 - **Database & Backend:** Convex (Cloud). Handles real-time WebSockets, database schema, and serverless background Actions.
 - **Web App:** React + Vite.
 - **Mobile App:** React Native (Expo) - functioning primarily as a native Android share target.
-- **Authentication:** Clerk, using the React, Expo, and Chrome extension SDKs. Convex verifies Clerk JWTs; each future data function must enforce ownership server-side.
+- **Authentication:** Clerk, using the React, Expo, and Chrome extension SDKs. Convex verifies Clerk JWTs; every library function enforces ownership server-side.
 - **Sorting & Labeling:** Experiment with [Jev (TypeSafe AI)](https://docs.typesafe.ai/introduction), [Clef](https://developers.cloudflare.com/workers-ai/models/clef/), and [Clef-flash](https://developers.cloudflare.com/workers-ai/models/clef-flash/). They support System One typed questions: Choice for category selection, Noul for independent label membership, and Score for ranking against explicit rubrics. Keep provider-specific calls and input capabilities behind a small shared interface.
 - **Visual Decisions (Workers AI):** Clef and Clef-flash accept image inputs alongside the state, enabling classification of saved images, screenshots, and thumbnails. Call Workers AI through its REST API from Convex Actions, or use a Worker with an AI binding if useful. The current image API accepts up to four embedded PNG/JPEG/WebP images per request, with documented size limits; remote image URLs must be fetched and converted before submission.
 - **Future Decision Provider:** OpenAI Decisions API, as an intended integration with no public release date known to the project. Its capabilities and request/response contract remain unverified; implement the adapter when documentation and access become available.
@@ -68,7 +68,7 @@ pnpm install
 pnpm dev
 ```
 
-The web app runs at `http://localhost:5173`. App shells build without credentials and display a sign-in setup message until Clerk is configured. The initial backend schema has no application tables or functions.
+The web app runs at `http://localhost:5173`. App shells build without credentials and display a sign-in setup message until Clerk is configured. The backend contains owned Items, Labels, item-label assignments, and Processing Runs. The web app supports saving URL/text, paginated browsing, manual multi-label assignment, and navigation in both directions. See [core concepts](docs/core-concepts.md) and [verification](docs/verification/library-foundation.md).
 
 | Command                                            | Purpose                                                                    |
 | -------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -81,7 +81,7 @@ The web app runs at `http://localhost:5173`. App shells build without credential
 | `pnpm build`                                       | Bundle web, extension, and Android JavaScript (not a native APK)           |
 | `pnpm --filter @mindspool/extension build:firefox` | Check Firefox bundle compatibility                                         |
 | `pnpm format`                                      | Format application/configuration/docs files                                |
-| `pnpm check`                                       | Run formatting, typechecking, and builds                                   |
+| `pnpm check`                                       | Run formatting, backend/web tests, typechecking, and builds                |
 
 ### Clerk and Convex
 
@@ -106,4 +106,54 @@ pnpm dev:backend
 
 Set `VITE_CONVEX_URL` in `apps/web/.env.local` to the selected deployment URL. The web app's `ConvexProviderWithClerk` passes Clerk identity to Convex. A deployment with no issuer configured has no accepted JWT providers; set the issuer before testing authenticated calls. `EXPO_PUBLIC_CONVEX_URL` is reserved for the mobile data client in the next roadmap phase.
 
-The monorepo foundation includes SDK wiring and compilation checks. End-to-end authentication still needs your Clerk instance, Convex development deployment, registered extension origin, and a mobile development build.
+The web foundation is connected to the existing **MindSpool** Clerk development
+application and Convex personal development deployment **graceful-stork-346** in
+`martin-ruzek/mindspool` (`eu-west-1`). Native and extension authentication still
+require their platform configuration and runtime checks.
+
+To restore web keys for this existing Clerk application, authenticate with the
+CLI on your host and run the following from `apps/web`:
+
+```sh
+pnpm dlx clerk@latest auth login
+pnpm dlx clerk@latest env pull --app app_3KDcmIpsctFQskbj1jENpIL2BPi --instance dev
+```
+
+The web uses only the publishable key; the CLI also writes an ignored secret key.
+Set `VITE_CONVEX_URL=https://graceful-stork-346.eu-west-1.convex.cloud` in
+`apps/web/.env.local`. To select the existing backend without creating a new
+project:
+
+```sh
+pnpm --filter @mindspool/backend exec convex deployment select martin-ruzek:mindspool:dev
+pnpm dev:backend
+```
+
+### Generated definitions and local checks
+
+Official Convex definitions are tracked under `packages/backend/convex/_generated`.
+The web imports them through `@mindspool/backend/api` and
+`@mindspool/backend/data-model`. A clean checkout needs no runtime credentials to
+run `pnpm check`. After changing backend contracts, regenerate against your
+selected development deployment with `pnpm --filter @mindspool/backend codegen`.
+
+### Development examples
+
+Examples are disabled by default. Enable them explicitly on your selected
+**development** deployment, after checking the target:
+
+```sh
+pnpm --filter @mindspool/backend exec convex env set MINDSPOOL_ENVIRONMENT development
+pnpm --filter @mindspool/backend exec convex env set MINDSPOOL_ENABLE_DEV_SEED true
+```
+
+Sign in, then click **Load examples**. Loading again preserves existing saves and
+manual label removals. Examples include URL/text saves, two shared labels, and an
+illustrative screenshot reference; the image binary is not downloaded. Versioned
+starting label guidelines live in
+[the sample definitions](packages/backend/convex/sampleContent.ts). These are
+fixtures for later experiments, and no provider is called. Both flags are enabled
+on the current development deployment. Remove either flag to disable the loader.
+
+Search, deletion/export, enrichment jobs, AI adapters, native/extension capture,
+and spatial views remain future roadmap work.
