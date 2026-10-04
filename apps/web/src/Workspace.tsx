@@ -6,6 +6,7 @@ import { api } from "@mindspool/backend/api";
 import { ItemList } from "./ItemList";
 import { ItemDetail } from "./ItemDetail";
 import { LabelList } from "./LabelList";
+import { LoadExamples } from "./LoadExamples";
 
 export function Workspace() {
   const [itemId, setItemId] = useState<Id<"items"> | null>(null);
@@ -26,6 +27,7 @@ export function Workspace() {
   return (
     <>
       <SaveItemForm onSaved={setItemId} />
+      <LoadExamples />
       <div className="library-layout">
         <LabelList selectedId={label?._id ?? null} onSelect={selectLabel} />
         <div>
