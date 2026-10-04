@@ -1,5 +1,51 @@
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/react";
 import { WorkspaceShell } from "@mindspool/ui";
+import { useConvexAuth } from "convex/react";
+import { Component } from "react";
+import type { ReactNode } from "react";
+import { Workspace } from "./Workspace";
+
+class LibraryBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed)
+      return (
+        <section role="alert">
+          <p>Your library could not load. Try reconnecting.</p>
+          <button onClick={() => window.location.reload()}>Reconnect</button>
+        </section>
+      );
+    return this.props.children;
+  }
+}
+
+function AuthenticatedLibrary() {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  const { isLoaded, isSignedIn, userId, sessionId } = useAuth();
+  if (!isLoaded || isLoading)
+    return <p role="status">Connecting to your library…</p>;
+  if (!isSignedIn) return <p>Sign in to save and organize your items.</p>;
+  if (!isAuthenticated)
+    return (
+      <p role="alert">
+        Your session could not connect to your library. Try signing out and back
+        in.
+      </p>
+    );
+  // Convex must verify the token before any data hook mounts.
+  // https://docs.convex.dev/auth/clerk
+  return (
+    <LibraryBoundary key={`${userId}:${sessionId}`}>
+      <Workspace />
+    </LibraryBoundary>
+  );
+}
 
 function AuthControls() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -18,7 +64,13 @@ function AuthControls() {
   );
 }
 
-export function App({ authConfigured }: { authConfigured: boolean }) {
+export function App({
+  authConfigured,
+  backendConfigured,
+}: {
+  authConfigured: boolean;
+  backendConfigured: boolean;
+}) {
   return (
     <WorkspaceShell>
       {authConfigured ? (
@@ -26,10 +78,17 @@ export function App({ authConfigured }: { authConfigured: boolean }) {
       ) : (
         <p>Sign-in is not configured for this environment.</p>
       )}
-      <section className="empty-state">
-        <h2>Your collection starts here.</h2>
-        <p>A home for the links, images, and ideas you want to keep.</p>
-      </section>
+      {authConfigured && backendConfigured ? (
+        <AuthenticatedLibrary />
+      ) : (
+        <section className="empty-state">
+          <h2>Your library starts here.</h2>
+          <p>A home for the links, images, and ideas you want to keep.</p>
+          {authConfigured && !backendConfigured && (
+            <p>Library connection is not configured for this environment.</p>
+          )}
+        </section>
+      )}
     </WorkspaceShell>
   );
 }

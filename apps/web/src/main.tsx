@@ -9,7 +9,12 @@ import "./style.css";
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : undefined;
-const app = <App authConfigured={Boolean(publishableKey)} />;
+const app = (
+  <App
+    authConfigured={Boolean(publishableKey)}
+    backendConfigured={Boolean(convex)}
+  />
+);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
