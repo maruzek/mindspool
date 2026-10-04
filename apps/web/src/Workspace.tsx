@@ -7,8 +7,17 @@ import { ItemList } from "./ItemList";
 import { ItemDetail } from "./ItemDetail";
 import { LabelList } from "./LabelList";
 import { LoadExamples } from "./LoadExamples";
+import type { CaptureDraft } from "./captureDraft";
 
-export function Workspace() {
+export function Workspace({
+  draft,
+  onDraftChange,
+  onCaptured,
+}: {
+  draft: CaptureDraft;
+  onDraftChange: (draft: CaptureDraft) => void;
+  onCaptured: (key: string) => void;
+}) {
   const [itemId, setItemId] = useState<Id<"items"> | null>(null);
   const [label, setLabel] = useState<Doc<"labels"> | null>(null);
   const allItems = usePaginatedQuery(api.items.list, label ? "skip" : {}, {
@@ -26,7 +35,12 @@ export function Workspace() {
   }
   return (
     <>
-      <SaveItemForm onSaved={setItemId} />
+      <SaveItemForm
+        draft={draft}
+        onDraftChange={onDraftChange}
+        onCaptured={onCaptured}
+        onSaved={setItemId}
+      />
       <LoadExamples />
       <div className="library-layout">
         <LabelList selectedId={label?._id ?? null} onSelect={selectLabel} />

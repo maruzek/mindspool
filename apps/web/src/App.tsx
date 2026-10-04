@@ -1,50 +1,19 @@
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/react";
 import { WorkspaceShell } from "@mindspool/ui";
-import { useConvexAuth } from "convex/react";
-import { Component } from "react";
-import type { ReactNode } from "react";
-import { Workspace } from "./Workspace";
-
-class LibraryBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    if (this.state.failed)
-      return (
-        <section role="alert">
-          <p>Your library could not load. Try reconnecting.</p>
-          <button onClick={() => window.location.reload()}>Reconnect</button>
-        </section>
-      );
-    return this.props.children;
-  }
-}
+import { CaptureSession } from "./CaptureSession";
+import { useEffect } from "react";
+import { clearOtherDrafts } from "./captureDraft";
 
 function AuthenticatedLibrary() {
-  const { isLoading, isAuthenticated } = useConvexAuth();
   const { isLoaded, isSignedIn, userId, sessionId } = useAuth();
-  if (!isLoaded || isLoading)
-    return <p role="status">Connecting to your library…</p>;
+  const sessionKey = isSignedIn ? `${userId}:${sessionId}` : null;
+  useEffect(() => {
+    if (isLoaded) clearOtherDrafts(sessionKey);
+  }, [isLoaded, sessionKey]);
+  if (!isLoaded) return <p role="status">Connecting to your library…</p>;
   if (!isSignedIn) return <p>Sign in to save and organize your items.</p>;
-  if (!isAuthenticated)
-    return (
-      <p role="alert">
-        Your session could not connect to your library. Try signing out and back
-        in.
-      </p>
-    );
-  // Convex must verify the token before any data hook mounts.
-  // https://docs.convex.dev/auth/clerk
-  return (
-    <LibraryBoundary key={`${userId}:${sessionId}`}>
-      <Workspace />
-    </LibraryBoundary>
-  );
+  if (!sessionKey) return null;
+  return <CaptureSession key={sessionKey} sessionKey={sessionKey} />;
 }
 
 function AuthControls() {

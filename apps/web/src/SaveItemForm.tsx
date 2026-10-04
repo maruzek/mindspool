@@ -1,36 +1,32 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@mindspool/backend/api";
-import type { ItemInputType } from "@mindspool/schema";
 import type { Id } from "@mindspool/backend/data-model";
 import { errorMessage } from "./errors";
+import type { CaptureDraft } from "./captureDraft";
 
 export function SaveItemForm({
   onSaved,
+  draft,
+  onDraftChange,
+  onCaptured,
 }: {
   onSaved: (id: Id<"items">) => void;
+  draft: CaptureDraft;
+  onDraftChange: (draft: CaptureDraft) => void;
+  onCaptured: (key: string) => void;
 }) {
   const create = useMutation(api.items.create);
-  const [inputType, setInputType] = useState<ItemInputType>("url");
-  const [input, setInput] = useState("");
+  const { inputType, originalInput: input } = draft;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const attempt = useRef<{
-    input: string;
-    type: ItemInputType;
-    key: string;
-  } | null>(null);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || !input.trim()) return;
-    if (
-      attempt.current?.input !== input ||
-      attempt.current.type !== inputType
-    ) {
-      attempt.current = { input, type: inputType, key: crypto.randomUUID() };
-    }
+    const captureKey = draft.captureKey ?? crypto.randomUUID();
+    onDraftChange({ ...draft, captureKey });
     setPending(true);
     setError("");
     setSuccess(false);
@@ -39,10 +35,9 @@ export function SaveItemForm({
         inputType,
         originalInput: input,
         captureSource: "web",
-        captureKey: attempt.current.key,
+        captureKey,
       });
-      setInput("");
-      attempt.current = null;
+      onCaptured(captureKey);
       setSuccess(true);
       onSaved(id);
     } catch (cause) {
@@ -67,7 +62,9 @@ export function SaveItemForm({
               type="radio"
               name="inputType"
               checked={inputType === "url"}
-              onChange={() => setInputType("url")}
+              onChange={() =>
+                onDraftChange({ ...draft, inputType: "url", captureKey: null })
+              }
             />{" "}
             Link
           </label>
@@ -76,7 +73,9 @@ export function SaveItemForm({
               type="radio"
               name="inputType"
               checked={inputType === "text"}
-              onChange={() => setInputType("text")}
+              onChange={() =>
+                onDraftChange({ ...draft, inputType: "text", captureKey: null })
+              }
             />{" "}
             Text or idea
           </label>
@@ -95,7 +94,11 @@ export function SaveItemForm({
             inputType === "url" ? "https://…" : "An idea, quote, or note…"
           }
           onChange={(event) => {
-            setInput(event.target.value);
+            onDraftChange({
+              ...draft,
+              originalInput: event.target.value,
+              captureKey: null,
+            });
             setSuccess(false);
           }}
         />

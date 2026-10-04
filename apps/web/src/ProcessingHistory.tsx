@@ -24,8 +24,12 @@ export function ProcessingHistory({ itemId }: { itemId: Id<"items"> }) {
                 {run.status}
               </strong>
               <p className="muted">
-                {run.model || run.provider || "Metadata processing"} ·{" "}
-                {run.questionVersion}
+                {run.model ||
+                  run.provider ||
+                  (run.kind === "enrichment"
+                    ? "Metadata processing"
+                    : "Provider not recorded")}{" "}
+                · {run.questionVersion}
                 {run.rubricVersion && ` · ${run.rubricVersion}`}
               </p>
               {run.error && <p>{run.error}</p>}
