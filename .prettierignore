@@ -1,0 +1,14 @@
+pnpm-lock.yaml
+node_modules/
+.pnpm-store/
+.turbo/
+.superpowers/
+dist/
+.output/
+.wxt/
+.expo/
+.agents/
+.claude/
+agent/
+skills-lock.json
+packages/backend/convex/_generated/

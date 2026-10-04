@@ -1,0 +1,30 @@
+{
+  "name": "@mindspool/extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@clerk/chrome-extension": "3.1.90",
+    "@mindspool/ui": "workspace:*",
+    "@mindspool/schema": "workspace:*",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@mindspool/typescript-config": "workspace:*",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.7",
+    "@types/node": "26.6.4",
+    "@wxt-dev/module-react": "1.2.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.2",
+    "wxt": "0.21.4"
+  }
+}

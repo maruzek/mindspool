@@ -1,0 +1,46 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #24221e;
+  background: #faf8f3;
+  font-synthesis: none;
+}
+body {
+  margin: 0;
+}
+.workspace {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+.eyebrow {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #746b59;
+}
+h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  letter-spacing: -0.04em;
+}
+nav {
+  display: flex;
+  gap: 12px;
+}
+button {
+  font: inherit;
+  border: 1px solid #c9c3b8;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: white;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 3px solid #685dba;
+  outline-offset: 3px;
+}
+.empty-state {
+  margin-top: 48px;
+  border: 1px dashed #c9c3b8;
+  border-radius: 16px;
+  padding: 32px;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@mindspool/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.2.3"
+  },
+  "devDependencies": {
+    "@mindspool/typescript-config": "workspace:*",
+    "@types/react": "19.2.4",
+    "react": "19.2.3",
+    "typescript": "6.0.3"
+  }
+}

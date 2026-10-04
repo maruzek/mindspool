@@ -1,0 +1,29 @@
+{
+  "name": "@mindspool/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/react": "6.17.5",
+    "@mindspool/schema": "workspace:*",
+    "@mindspool/ui": "workspace:*",
+    "convex": "1.46.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@mindspool/typescript-config": "workspace:*",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.7",
+    "@types/node": "26.6.4",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.2"
+  }
+}

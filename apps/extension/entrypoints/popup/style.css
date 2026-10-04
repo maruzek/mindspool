@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  width: 400px;
+  min-height: 300px;
+  font-family: system-ui, sans-serif;
+  background: #faf8f3;
+  color: #24221e;
+}
+.workspace {
+  padding: 24px;
+}
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #746b59;
+}
+h1 {
+  font-size: 28px;
+}
+button {
+  font: inherit;
+  border: 1px solid #c9c3b8;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: white;
+  cursor: pointer;
+}

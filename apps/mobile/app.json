@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "MindSpool",
+    "slug": "mindspool",
+    "version": "0.0.1",
+    "scheme": "mindspool",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.mindspool.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.mindspool.app"
+    },
+    "plugins": ["expo-secure-store", "@clerk/expo"]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": [
+    "@mindspool/typescript-config/react.json",
+    "./.wxt/tsconfig.json"
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
+  },
+  "include": ["entrypoints", "wxt.config.ts", "env.d.ts", ".wxt/wxt.d.ts"]
+}

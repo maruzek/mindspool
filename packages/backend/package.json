@@ -1,0 +1,20 @@
+{
+  "name": "@mindspool/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "setup": "convex dev --configure",
+    "typecheck": "tsc --noEmit",
+    "codegen": "convex codegen"
+  },
+  "dependencies": {
+    "convex": "1.46.0"
+  },
+  "devDependencies": {
+    "@mindspool/typescript-config": "workspace:*",
+    "@types/node": "26.6.4",
+    "typescript": "6.0.3"
+  }
+}

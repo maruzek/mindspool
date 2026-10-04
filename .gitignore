@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.turbo/
+.superpowers/
+dist/
+.output/
+.wxt/
+.expo/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+android/
+ios/
+.DS_Store
+*.log

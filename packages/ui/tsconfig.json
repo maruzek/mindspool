@@ -1,0 +1,4 @@
+{
+  "extends": "@mindspool/typescript-config/react.json",
+  "include": ["src"]
+}
