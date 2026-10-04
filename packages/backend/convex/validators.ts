@@ -1,4 +1,7 @@
-import { paginationOptsValidator } from "convex/server";
+import {
+  paginationOptsValidator,
+  paginationResultValidator,
+} from "convex/server";
 import { ConvexError, v } from "convex/values";
 
 export const captureSource = v.union(
@@ -59,18 +62,16 @@ export const itemDoc = v.object({
   _creationTime: v.number(),
   ...itemFields,
 });
-export const itemPage = v.object({
-  page: v.array(itemDoc),
-  isDone: v.boolean(),
-  continueCursor: v.string(),
-  splitCursor: v.optional(v.union(v.string(), v.null())),
-  pageStatus: v.optional(
-    v.union(
-      v.literal("SplitRecommended"),
-      v.literal("SplitRequired"),
-      v.null(),
-    ),
-  ),
+export const itemPage = paginationResultValidator(itemDoc);
+export const labelFields = {
+  ownerId: v.string(),
+  name: v.string(),
+  normalizedName: v.string(),
+};
+export const labelDoc = v.object({
+  _id: v.id("labels"),
+  _creationTime: v.number(),
+  ...labelFields,
 });
 export { paginationOptsValidator };
 

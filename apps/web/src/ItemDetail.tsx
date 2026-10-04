@@ -1,13 +1,16 @@
 import { useQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
-import type { Id } from "@mindspool/backend/data-model";
+import type { Doc, Id } from "@mindspool/backend/data-model";
+import { ItemLabelControls } from "./ItemLabelControls";
 
 export function ItemDetail({
   id,
   onClose,
+  onLabelSelect,
 }: {
   id: Id<"items">;
   onClose: () => void;
+  onLabelSelect: (label: Doc<"labels">) => void;
 }) {
   const item = useQuery(api.items.get, { id });
   if (!item) return <p role="status">Loading item…</p>;
@@ -26,6 +29,7 @@ export function ItemDetail({
         </a>
       )}
       <p>Enrichment: {item.enrichmentStatus.replaceAll("_", " ")}</p>
+      <ItemLabelControls itemId={id} onLabelSelect={onLabelSelect} />
     </section>
   );
 }

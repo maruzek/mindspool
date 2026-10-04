@@ -15,7 +15,9 @@ import type {
 } from "convex/server";
 import type * as auth from "../auth.js";
 import type * as identity from "../identity.js";
+import type * as itemLabels from "../itemLabels.js";
 import type * as items from "../items.js";
+import type * as labels from "../labels.js";
 import type * as validators from "../validators.js";
 
 /**
@@ -29,7 +31,9 @@ import type * as validators from "../validators.js";
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   identity: typeof identity;
+  itemLabels: typeof itemLabels;
   items: typeof items;
+  labels: typeof labels;
   validators: typeof validators;
 }>;
 export declare const api: FilterApi<
