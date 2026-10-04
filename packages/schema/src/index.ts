@@ -7,3 +7,5 @@ export type ItemInputType = "url" | "text";
 export type EnrichmentStatus =
   "not_started" | "pending" | "succeeded" | "failed";
 export type ManualLabelDecision = "include" | "exclude";
+export type ProcessingRunStatus = "pending" | "succeeded" | "failed";
+export type InputModality = "text" | "image" | "text_image";

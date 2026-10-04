@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
 import type { Doc, Id } from "@mindspool/backend/data-model";
 import { ItemLabelControls } from "./ItemLabelControls";
+import { ProcessingHistory } from "./ProcessingHistory";
 
 export function ItemDetail({
   id,
@@ -29,7 +30,30 @@ export function ItemDetail({
         </a>
       )}
       <p>Enrichment: {item.enrichmentStatus.replaceAll("_", " ")}</p>
+      {item.imageAssets.length > 0 && (
+        <section aria-labelledby="images-heading">
+          <h3 id="images-heading">Image references</h3>
+          <ul>
+            {item.imageAssets.map((asset, index) => (
+              <li key={index}>
+                {asset.kind === "external" ? (
+                  <a href={asset.url} target="_blank" rel="noreferrer">
+                    {asset.purpose} reference ↗
+                  </a>
+                ) : (
+                  <span>{asset.purpose} stored asset</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="muted">
+            References describe images; they do not confirm an image has been
+            downloaded.
+          </p>
+        </section>
+      )}
       <ItemLabelControls itemId={id} onLabelSelect={onLabelSelect} />
+      <ProcessingHistory itemId={id} />
     </section>
   );
 }

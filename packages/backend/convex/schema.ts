@@ -1,8 +1,12 @@
 import { defineSchema, defineTable } from "convex/server";
-import { itemFields, labelFields } from "./validators";
+import { itemFields, labelFields, runFields } from "./validators";
 import { v } from "convex/values";
 
 export default defineSchema({
+  processingRuns: defineTable(runFields).index("by_owner_item", [
+    "ownerId",
+    "itemId",
+  ]),
   items: defineTable(itemFields)
     .index("by_owner", ["ownerId"])
     .index("by_owner_capture_key", ["ownerId", "captureKey"]),

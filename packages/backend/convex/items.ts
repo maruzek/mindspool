@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
+import type { Doc } from "./_generated/dataModel";
 import {
   captureSource,
   inputType,
@@ -68,10 +69,23 @@ export const list = query({
   handler: async (ctx, { paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
     validatePagination(paginationOpts);
-    return ctx.db
+    const page = await ctx.db
       .query("items")
       .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
       .order("desc")
-      .paginate(paginationOpts);
+      .paginate({ ...paginationOpts, maximumBytesRead: 1024 * 1024 });
+    return { ...page, page: page.page.map(previewItem) };
   },
 });
+
+export function previewItem(item: Doc<"items">) {
+  return {
+    _id: item._id,
+    _creationTime: item._creationTime,
+    inputType: item.inputType,
+    originalInput: item.originalInput.slice(0, 160),
+    ...(item.sourceMetadata?.title
+      ? { sourceMetadata: { title: item.sourceMetadata.title.slice(0, 512) } }
+      : {}),
+  };
+}

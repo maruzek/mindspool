@@ -4,7 +4,10 @@ export function ItemList({
   items,
   onOpen,
 }: {
-  items: Doc<"items">[];
+  items: Pick<
+    Doc<"items">,
+    "_id" | "_creationTime" | "inputType" | "originalInput" | "sourceMetadata"
+  >[];
   onOpen: (id: Id<"items">) => void;
 }) {
   if (!items.length)

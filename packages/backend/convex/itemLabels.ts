@@ -4,8 +4,9 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireOwned, requireOwner } from "./auth";
+import { previewItem } from "./items";
 import {
-  itemDoc,
+  itemPreview,
   labelDoc,
   paginationOptsValidator,
   validatePagination,
@@ -78,7 +79,7 @@ export const listForItem = query({
 
 export const listItemsForLabel = query({
   args: { labelId: v.id("labels"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(itemDoc),
+  returns: paginationResultValidator(itemPreview),
   handler: async (ctx, { labelId, paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
     requireOwned(await ctx.db.get(labelId), ownerId);
@@ -92,12 +93,16 @@ export const listItemsForLabel = query({
           .eq("manualDecision", "include"),
       )
       .order("desc")
-      .paginate(paginationOpts);
+      .paginate({
+        ...paginationOpts,
+        numItems: Math.min(paginationOpts.numItems, 10),
+        maximumRowsRead: 10,
+      });
     return {
       ...page,
       page: await Promise.all(
         page.page.map(async (link) =>
-          requireOwned(await ctx.db.get(link.itemId), ownerId),
+          previewItem(requireOwned(await ctx.db.get(link.itemId), ownerId)),
         ),
       ),
     };

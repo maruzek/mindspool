@@ -12,6 +12,25 @@ const capture = {
 };
 
 describe("owned Item capture", () => {
+  it("returns bounded list previews while preserving full original content in detail", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+    });
+    const originalInput = "A".repeat(100000);
+    const id = await alice.mutation(api.items.create, {
+      ...capture,
+      inputType: "text",
+      originalInput,
+    });
+    const page = await alice.query(api.items.list, {
+      paginationOpts: { numItems: 20, cursor: null },
+    });
+    expect(page.page[0]!.originalInput).toBe(originalInput.slice(0, 160));
+    expect(page.page[0]).not.toHaveProperty("imageAssets");
+    expect((await alice.query(api.items.get, { id })).originalInput).toBe(
+      originalInput,
+    );
+  });
   it("paginates only the owner's newest Items", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });

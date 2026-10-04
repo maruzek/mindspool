@@ -56,13 +56,21 @@ export const itemFields = {
   extractedText: v.optional(v.string()),
   imageAssets: v.array(asset),
   updatedAt: v.number(),
+  pendingEnrichmentRunId: v.optional(v.id("processingRuns")),
 };
 export const itemDoc = v.object({
   _id: v.id("items"),
   _creationTime: v.number(),
   ...itemFields,
 });
-export const itemPage = paginationResultValidator(itemDoc);
+export const itemPreview = v.object({
+  _id: v.id("items"),
+  _creationTime: v.number(),
+  inputType,
+  originalInput: v.string(),
+  sourceMetadata: v.optional(v.object({ title: v.optional(v.string()) })),
+});
+export const itemPage = paginationResultValidator(itemPreview);
 export const labelFields = {
   ownerId: v.string(),
   name: v.string(),
@@ -72,6 +80,55 @@ export const labelDoc = v.object({
   _id: v.id("labels"),
   _creationTime: v.number(),
   ...labelFields,
+});
+export const sourceMetadata = itemFields.sourceMetadata;
+export const enrichment = v.object({
+  canonicalUrl: v.optional(v.string()),
+  sourceMetadata,
+  extractedText: v.optional(v.string()),
+  imageAssets: v.optional(v.array(asset)),
+});
+export const suggestion = v.object({
+  labelId: v.id("labels"),
+  confidence: v.optional(v.number()),
+});
+export const runFields = {
+  ownerId: v.string(),
+  itemId: v.id("items"),
+  kind: v.union(v.literal("enrichment"), v.literal("decision")),
+  status: v.union(
+    v.literal("pending"),
+    v.literal("succeeded"),
+    v.literal("failed"),
+  ),
+  provider: v.optional(
+    v.union(
+      v.literal("jev"),
+      v.literal("clef"),
+      v.literal("clef-flash"),
+      v.literal("openai-decisions"),
+    ),
+  ),
+  model: v.optional(v.string()),
+  modality: v.union(
+    v.literal("text"),
+    v.literal("image"),
+    v.literal("text_image"),
+  ),
+  questionVersion: v.string(),
+  rubricVersion: v.optional(v.string()),
+  suggestions: v.array(suggestion),
+  category: v.optional(v.string()),
+  rankingScore: v.optional(v.number()),
+  error: v.optional(v.string()),
+  latencyMs: v.optional(v.number()),
+  costUsd: v.optional(v.number()),
+  finishedAt: v.optional(v.number()),
+};
+export const runDoc = v.object({
+  _id: v.id("processingRuns"),
+  _creationTime: v.number(),
+  ...runFields,
 });
 export { paginationOptsValidator };
 
