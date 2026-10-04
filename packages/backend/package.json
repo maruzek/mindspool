@@ -3,18 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./api": "./convex/_generated/api.js",
+    "./data-model": "./convex/_generated/dataModel.d.ts"
+  },
   "scripts": {
     "dev": "convex dev",
     "setup": "convex dev --configure",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "codegen": "convex codegen"
   },
   "dependencies": {
     "convex": "1.46.0"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "5.0.0",
     "@mindspool/typescript-config": "workspace:*",
     "@types/node": "26.6.4",
-    "typescript": "6.0.3"
+    "convex-test": "0.0.60",
+    "typescript": "6.0.3",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
   }
 }

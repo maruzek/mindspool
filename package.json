@@ -15,9 +15,10 @@
     "dev:backend": "pnpm --filter @mindspool/backend dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
+    "test": "pnpm --filter @mindspool/backend test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm typecheck && pnpm build"
+    "check": "pnpm format:check && pnpm test && pnpm typecheck && pnpm build"
   },
   "devDependencies": {
     "turbo": "2.11.7",
