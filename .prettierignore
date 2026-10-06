@@ -12,3 +12,4 @@ dist/
 agent/
 skills-lock.json
 packages/backend/convex/_generated/
+apps/web/src/routeTree.gen.ts
