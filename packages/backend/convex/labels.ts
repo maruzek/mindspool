@@ -45,3 +45,15 @@ export const list = query({
       .paginate(paginationOpts);
   },
 });
+
+/** Foreign, missing, and malformed ids all read as null, so ids reveal nothing. */
+export const get = query({
+  args: { id: v.string() },
+  returns: v.union(labelDoc, v.null()),
+  handler: async (ctx, { id }) => {
+    const ownerId = await requireOwner(ctx);
+    const labelId = ctx.db.normalizeId("labels", id);
+    const label = labelId ? await ctx.db.get(labelId) : null;
+    return label && label.ownerId === ownerId ? label : null;
+  },
+});

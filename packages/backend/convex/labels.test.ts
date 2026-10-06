@@ -66,4 +66,26 @@ describe("owned Labels", () => {
       }),
     ).rejects.toThrow("Page size");
   });
+  it("returns a label to its owner and null for foreign, missing, or malformed ids", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const bob = t.withIdentity({ subject: "bob" });
+    const id = await alice.mutation(api.labels.create, { name: "Recipes" });
+    expect(await alice.query(api.labels.get, { id })).toMatchObject({
+      _id: id,
+      name: "Recipes",
+    });
+    expect(await bob.query(api.labels.get, { id })).toBeNull();
+    expect(await alice.query(api.labels.get, { id: "not-an-id" })).toBeNull();
+    const itemId = await alice.mutation(api.items.create, {
+      captureKey: "k1",
+      inputType: "text",
+      originalInput: "note",
+      captureSource: "web",
+    });
+    expect(await alice.query(api.labels.get, { id: itemId })).toBeNull();
+    await expect(t.query(api.labels.get, { id })).rejects.toThrow(
+      "Authentication required",
+    );
+  });
 });
