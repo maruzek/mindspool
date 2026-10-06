@@ -11,8 +11,12 @@ Status: implemented for the approved library foundation; verification recorded i
 | `core-library`   | Owned Items, Labels as collections, manual include/exclude membership, paginated navigation, internal processing history and concurrency protection. | `identity`     |
 | `sample-content` | Authenticated opt-in development examples, shared labels, screenshot references, and versioned starting label guidelines.                            | `core-library` |
 
-The web implements URL/text capture, owned inbox/detail views, label creation and
-assignment, and both navigation directions. Generated Convex imports are tracked;
+The web previously implemented URL/text capture, owned inbox/detail views, label
+assignment, and both navigation directions. During the Modernist redesign
+([capability map](CAPABILITY-MAP-web-redesign.md)) that UI was removed; the new
+`web-shell` provides the frame, routing, auth gate, and label navigation, and
+`library-view` and `item-inspector` restore capture and item views. The backend
+contracts above are unchanged, plus a read-only `labels.get`. Generated Convex imports are tracked;
 `pnpm check` includes the local backend and web regression suites.
 
 ## Accepted Contracts
@@ -43,5 +47,5 @@ assignment, and both navigation directions. Generated Convex imports are tracked
 Search, deletion/export, asynchronous extraction and image storage, provider
 adapters, Android share receiver, extension capture, spatial boards, and network
 graphs remain subsequent phases. The source of scope and acceptance criteria is
-[the approved plan](tasks/plan.md); a separate specification is appropriate when
+[the approved plan](tasks/archive/library-foundation-plan.md); a separate specification is appropriate when
 starting the next provider or capture module.

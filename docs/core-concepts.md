@@ -29,12 +29,27 @@ saves use new keys and remain distinct. This does not deduplicate equal URLs
 saved intentionally on separate occasions.
 
 Unsaved drafts belong to the signed-in Clerk session, outside the Convex query
-boundary. Authentication refresh can hide the library without discarding the
+boundary (a `CaptureDraftProvider` mounted above the Convex auth gate). Authentication refresh can hide the library without discarding the
 input or capture key. Drafts use best-effort browser session storage to survive a
 Reconnect/page reload, and are removed on sign-out or account/session changes.
 Stale drafts are purged once Clerk resolves the current session. A late result
 from an older save cannot clear a newer draft. If session storage is unavailable,
 in-memory retention works but restoration across page reload is unavailable.
+
+## Web shell
+
+The web app is a Vite single-page app using TanStack Router file routes
+(`apps/web/src/routes`, generated tree committed). The root route runs the auth gate
+(Clerk loaded and signed in, then Convex-verified) before any data hook mounts; it
+shows distinct states for loading, signed out, connecting, auth failure, load
+error, and missing configuration. Two layouts sit inside the gate: `_app`, the
+240px dark sidebar with Inbox, Library, labels, and the account menu, and `_rail`,
+a 60px icon rail for the full-bleed Boards and Graph canvases. Below 768px the
+sidebar becomes a sheet. Label pages live at `/labels/$labelId`; `labels.get`
+returns null for foreign, missing, and malformed ids, so the page shows the same
+"Not found" for all three. Boards, Graph, Inbox, and Library content are
+placeholders until their modules land. The sidebar and rail share a scoped dark
+palette (`.dark-sidebar`) without a global dark mode.
 
 ## Processing and image references
 

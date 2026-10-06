@@ -1,427 +1,103 @@
-# Tasks: Authenticated Library Foundation
+# Tasks: web-shell
+
+Plan: [plan.md](plan.md). Spec: [SPEC-web-shell.md](../SPEC-web-shell.md). Follow task order and checkpoints.
+Focused test: `pnpm --filter @mindspool/web test`. Typecheck: `pnpm --filter @mindspool/web typecheck`. Full: `pnpm check`.
+Adding dependencies (T1) is pre-approved by the spec approval; any others need a question first.
+
+## Phase 1: Foundation
+
+- [x] **T1: Router foundation** (S)
+  - Install `@tanstack/react-router` and `@tanstack/router-plugin` (pinned); add the plugin to `vite.config.ts` and
+    `vitest.config.ts`; create `routes/__root.tsx`, `routes/index.tsx` (redirect to `/library`), `routes/library.tsx`
+    (placeholder heading); mount `RouterProvider` in `main.tsx` inside the existing Clerk/Convex providers; commit
+    `routeTree.gen.ts`.
+  - Acceptance: `pnpm dev:web` shows "Library" at `/library`; `/` redirects; unknown path shows a not-found component;
+    a test renders the route tree with memory history.
+  - Verify: `pnpm --filter @mindspool/web test && ... typecheck && ... build`.
+  - Files: `package.json`, `vite.config.ts`, `vitest.config.ts`, `src/main.tsx`, `src/routes/*`, `src/routeTree.gen.ts`.
+
+- [x] **T2: Auth gate, draft provider, old gate removed** (M)
+  - Move `captureDraft.ts` (+ tests) to `src/capture/`; add `CaptureDraftProvider`; create `shell/AuthGate.tsx` with states:
+    Clerk loading, signed out (Clerk modal sign-in/up), Convex connecting, auth failure (Reconnect + retained input), error
+    boundary, auth-not-configured, backend-not-configured; wire into root route. Port every `App.test.tsx` draft/auth test to
+    the new structure **before** deleting `App.tsx`, `CaptureSession.tsx`, `Workspace.tsx`, `App.test.tsx`.
+  - Acceptance: state matrix tests green; draft survives auth failure, reload, session change, stale purge (existing cases);
+    each state has distinct announced text.
+  - Verify: tests + typecheck + build.
+  - Files: `src/capture/*`, `src/shell/AuthGate.tsx`, `src/shell/StateNotice.tsx`, `src/routes/__root.tsx`, `src/shell/AuthGate.test.tsx`.
+
+- [x] **T3: Sidebar primitives and dark tokens** (M)
+  - `shadcn add sidebar sheet dropdown-menu skeleton breadcrumb collapsible` into `packages/ui` (hooks under
+    `@mindspool/ui/hooks`); add `--sidebar-*` tokens mapped to semantic tokens; add `.dark-sidebar` override in `globals.css`
+    using the design values (`#1a0b33`, `#240f45`, `#f1ecfb`, `#3d2370`, `#b69cff`); fix imports to `@mindspool/ui/*`.
+  - Acceptance: packages/ui typechecks; no hex outside the token definitions; zero radius preserved.
+  - Verify: `pnpm typecheck && pnpm --filter @mindspool/web build`.
+  - Files: `packages/ui/src/components/{sidebar,sheet,dropdown-menu,skeleton,breadcrumb,collapsible}.tsx`, `src/hooks/use-mobile.ts`, `globals.css`, `package.json`.
+
+### Checkpoint: Foundation
+
+- [ ] `pnpm check` green; app boots through the gate; primitives compile. Review with human.
+
+## Phase 2: Frame
+
+- [x] **T4: Sidebar frame with navigation** (M)
+  - `routes/_app.tsx` layout with `AppSidebar`: brand mark (two-square mark from the design), disabled search with tooltip,
+    Inbox/Library/Boards/Graph nav (active from URL, `aria-current`), user footer with Clerk `UserButton`/menu including
+    "Load examples" (port `LoadExamples` logic using `api.seed.availability`/`load`). Routes `/inbox`, `/library` under it.
+  - Acceptance: visually matches design section 02 sidebar at 1440px (colors, 2px rule, zero radius, Archivo); active item
+    follows back/forward; examples item hidden unless `seed.availability` allows it.
+  - Verify: tests for active-nav mapping and examples visibility; manual side-by-side with design.
+  - Files: `routes/_app.tsx`, `shell/AppSidebar.tsx`, `shell/UserMenu.tsx`, `shell/LoadExamples.tsx`, test.
+
+- [x] **T5: Labels in sidebar and label route** (M)
+  - Labels section from `api.labels.list`; `+` opens a dialog using `api.labels.create` (trim, 80 chars, case-insensitive
+    duplicates surfaced); `routes/_app/labels.$labelId.tsx` shows the label name heading; invalid/foreign id → shared
+    Not-found state. Skeleton while loading, empty state when none.
+  - Acceptance: create label appears in sidebar and is selectable; wrong id shows "Not found" with no existence leak.
+  - Verify: tests (dialog validation, not-found, loading/empty); manual with dev Convex.
+  - Files: `shell/LabelsNav.tsx`, `shell/CreateLabelDialog.tsx`, `routes/_app/labels.$labelId.tsx`, `shell/NotFound.tsx`, tests.
+  - Depends on: T4.
+
+- [x] **T6: Icon-rail frame, Boards and Graph placeholders** (S)
+  - `routes/_rail.tsx` with the 60px rail (brand mark + four icons, active highlight, tooltips); `/boards`, `/boards/$boardId`,
+    `/graph` render the "Not built yet" state. Sidebar nav links reach them.
+  - Acceptance: switching between `_app` and `_rail` routes keeps the gate mounted (no auth flash); rail matches design 03/04.
+  - Verify: route tests; manual.
+  - Files: `routes/_rail.tsx`, `shell/IconRail.tsx`, `routes/_rail/{boards,graph}.tsx`.
+  - Depends on: T4.
+
+### Checkpoint: Desktop navigation
+
+- [ ] `pnpm check` green; full navigation works against dev Clerk/Convex; compared to the design. Review with human.
+
+## Phase 3: Polish and close
+
+- [x] **T7: Mobile sheet and accessibility** (S)
+  - Below 768px the sidebar is an off-canvas sheet behind a menu button; rail hides its labels; skip-to-main link; focus
+    ring uses `:focus-visible`; headings/landmarks (`nav`, `main`) labelled.
+  - Acceptance: 390px has no horizontal scroll; sheet opens/closes by button, Escape, and route change; axe has no serious issues.
+  - Verify: tests for sheet toggle; manual at 390px; axe/Lighthouse on `/library`.
+  - Files: `shell/AppSidebar.tsx`, `routes/_app.tsx`, `routes/__root.tsx`, tests.
+  - Depends on: T4, T6.
+
+- [x] **T8: Remove remaining old UI** (S)
+  - Deleted `SaveItemForm`, `ItemList`, `ItemDetail`, `ItemLabelControls`, `LabelList`, `ProcessingHistory` from
+    `apps/web/src` (`style.css`, `LoadExamples` and the old gate went in T2/T4). Their behavior is re-specified by
+    `library-view`/`item-inspector`.
+  - Kept on purpose: `WorkspaceShell` in `packages/ui` (the browser-extension popup still uses it; `capture-clients`
+    is out of scope) and `packages/ui/.../mindspool/*` (unused for now; `library-view`'s spec decides reuse or removal,
+    per the capability map).
+  - Acceptance met: no imports of removed files; no `style.css`; no raw hex in `apps/web/src`; extension still builds.
+  - Verify: `pnpm test`, `pnpm typecheck`, web and extension builds.
+  - Depends on: T4.
+
+- [ ] **T9: Verification record and docs** (S) — report and docs written; manual browser checks pending (criteria 2, 3 visual, 6, 8 in `docs/verification/web-shell.md`)
+  - Write `docs/verification/web-shell.md` (commands, 1440px/390px comparison notes, a11y results); update
+    `README.md`/`docs/core-concepts.md` (routes, shell, how drafts work) and `CAPABILITY-MAP-web-redesign.md` status.
+  - Acceptance: every spec success criterion is checked with evidence; open questions updated with decisions taken.
+  - Verify: `pnpm check` and manual run.
+  - Depends on: T1–T8.
+
+### Checkpoint: Complete
 
-Status: complete on `feature/library-foundation`; verification and fixture cleanup recorded below.
-
-## Execution Notes
-
-- Working branch: `feature/library-foundation`.
-- The user selected the existing **MindSpool** Clerk application and Convex
-  project. Clerk CLI 3.4.0 is authenticated and linked; development JWT/issuer
-  configuration and ignored web environment files are in place.
-- Convex target: personal **development** deployment `graceful-stork-346`, project
-  `martin-ruzek/mindspool`, `eu-west-1`. Production was not changed.
-- Official generated definitions are tracked and synced through the selected
-  development deployment. Clean-checkout checks require no runtime secrets.
-- Backend behavior has 39 tests; six additional web regressions cover capture
-  drafts, retry keys, reload, authentication outages, and account/session cleanup.
-- An isolated checkout at `892d69f` passed frozen installation and `pnpm check`
-  without environment files. Browser evidence covers real sign-in, two private
-  accounts, captures, multi-label navigation, pagination, and reconnect/save.
-- Anonymous and forged-token rejection were checked through the public endpoint;
-  the browser authentication-failure path was exercised by an expired token
-  during a network outage. A deliberately changed issuer was not configured.
-- The user approved temporary test users and their cleanup. Clerk accounts and
-  their owned backend fixtures are removed; temporary helpers are excluded from
-  the final implementation.
-- Review found reactive pagination bounds and draft persistence defects. Focused
-  regressions reproduce them and pass after the fixes. The final follow-up review
-  found no remaining required correctness or privacy fixes.
-- Detailed results and remaining platform work are recorded in
-  [the verification report](../docs/verification/library-foundation.md).
-
-Design and scope: [plan.md](plan.md). Follow the task order and checkpoints. Write
-behavioral tests before implementation where applicable. Regenerate backend
-definitions whenever a schema or function contract changes; generated outputs
-are additional mechanical files beyond the handwritten files listed below.
-
-## Task 1: Configure Development Identity
-
-**Description:** Select the existing Clerk development instance and intended
-Convex development deployment. Configure the issuer/JWT integration and the web
-publishable key and deployment URL; record reproducible setup instructions.
-
-**Acceptance criteria:**
-
-- [x] The selected target is documented as development; production is untouched.
-- [x] Clerk's Convex integration and issuer match the selected deployment, with
-      credentials kept in ignored files/provider configuration.
-- [x] The web shell displays real Clerk sign-in controls, and missing configuration
-      still produces setup guidance.
-
-**Verification:** Start with `pnpm --filter @mindspool/backend setup`, then
-`pnpm dev:backend` and `pnpm dev:web`; complete Clerk sign-in in the browser.
-Run `pnpm --filter @mindspool/web build`. Convex data access is verified at Task 4.
-
-**Dependencies:** None; requires the user's instance/project selection.
-
-**Files likely touched:** `README.md`, `packages/backend/convex/auth.config.ts`,
-ignored `packages/backend/.env.local`, ignored `apps/web/.env.local`.
-
-**Estimated scope:** Medium: four files, plus provider configuration.
-
-## Task 2: Establish Reproducible Backend Imports
-
-**Description:** Generate the backend definitions, retain them in version control,
-and expose typed API imports through the backend package for app consumers.
-
-**Acceptance criteria:**
-
-- [x] Official generated API/server/data-model definitions exist and are tracked.
-- [x] Backend package exports expose the generated API without app-relative imports.
-- [x] Clean-clone typechecking works without Clerk or deployment secrets, and
-      generated files stay excluded from manual formatting.
-
-**Verification:** `pnpm --filter @mindspool/backend codegen`, `pnpm typecheck`,
-and `pnpm build`; inspect tracked generated output and repeat checks in an
-isolated clean checkout with no `.env.local` files.
-
-**Dependencies:** Task 1.
-
-**Files likely touched:** `packages/backend/package.json`, `.gitignore`;
-mechanical outputs in `packages/backend/convex/_generated/`.
-
-**Estimated scope:** Small: two handwritten files, plus generated definitions.
-
-## Task 3: Prove Server-Side Identity
-
-**Description:** Add the backend test harness and a reusable helper that derives
-ownership only from verified Convex identity. Put these tests in the root check.
-
-**Acceptance criteria:**
-
-- [x] Anonymous calls fail; authenticated ownership comes from `tokenIdentifier`,
-      including distinct identities with the same subject but different issuers.
-- [x] Vitest/convex-test exercise actual helper behavior with mocked identities;
-      the test environment matches the documented backend setup.
-- [x] The backend `test` script uses `vitest run`, and `pnpm check` invokes it.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/auth.test.ts`
-and `pnpm check`; prove the tests fail against a deliberately missing/incorrect
-identity check before completing the helper.
-
-**Dependencies:** Task 2.
-
-**Files likely touched:** `packages/backend/package.json`,
-`packages/backend/vitest.config.ts`, `packages/backend/convex/auth.ts`,
-`packages/backend/convex/auth.test.ts`, root `package.json`;
-mechanical `pnpm-lock.yaml` update.
-
-**Estimated scope:** Medium: five handwritten files, plus lockfile.
-
-## Checkpoint: Identity Foundation (Tasks 1–3)
-
-- [x] Backend tests and `pnpm check` pass without runtime credentials.
-- [x] Generated imports are reproducible and no secrets are tracked.
-- [x] Review configuration and ownership contract before library work.
-
-## Task 4: Gate the Web Workspace on Convex Authentication
-
-**Description:** Introduce a minimal authenticated workspace boundary and a
-validated identity query. Keep data hooks inactive until Convex verifies sign-in.
-
-**Acceptance criteria:**
-
-- [x] Missing settings, signed-out state, and authentication loading/failure have
-      clear feedback; library hooks do not run outside an authenticated provider.
-- [x] A Clerk-signed-in user reaches the workspace only after Convex accepts their
-      token; the identity query rejects anonymous callers.
-- [x] Sign-out hides the workspace and clears user-specific selection state.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/identity.test.ts`,
-`pnpm typecheck`, `pnpm --filter @mindspool/web build`; browser checks for valid
-sign-in, sign-out, missing configuration, and a rejected issuer/token.
-
-**Dependencies:** Task 3.
-
-**Files likely touched:** `apps/web/src/main.tsx`, `apps/web/src/App.tsx`,
-`apps/web/src/Workspace.tsx`, `packages/backend/convex/identity.ts`,
-`packages/backend/convex/identity.test.ts`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 5: Save an Owned Item
-
-**Description:** Introduce Item validators/schema and authenticated create/detail
-functions. Preserve original URL/text input independently of future enrichment.
-
-**Acceptance criteria:**
-
-- [x] Bounded valid URL/text input creates an owned Item with original input,
-      capture source, separate optional canonical URL, and explicit processing state.
-- [x] Anonymous and forged-owner requests fail; foreign and nonexistent ids have
-      the same response, and invalid input writes nothing.
-- [x] Repeating the same capture key and payload returns the existing Item;
-      reusing the key with different input fails. Independent saves remain distinct.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/items.test.ts`
-and `pnpm typecheck`; cover retries, invalid schemes, input limits, and two owners.
-Validate the development schema with `pnpm dev:backend`.
-
-**Dependencies:** Task 3.
-
-**Files likely touched:** `packages/schema/src/index.ts`,
-`packages/backend/convex/schema.ts`, `packages/backend/convex/validators.ts`,
-`packages/backend/convex/items.ts`, `packages/backend/convex/items.test.ts`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 6: Save an Item from the Web
-
-**Description:** Connect a small accessible URL/text save form to the owned create
-function. Establish the web's declared backend workspace dependency.
-
-**Acceptance criteria:**
-
-- [x] A signed-in user saves a URL or text and receives a visible success or error.
-- [x] Pending submission prevents accidental repeat clicks; retries reuse the same
-      capture key, and failed submission preserves the user's input.
-- [x] Missing backend configuration never presents a working save form.
-
-**Verification:** `pnpm typecheck` and `pnpm --filter @mindspool/web build`;
-browser-save URL and text, simulate a failed request, and retry it successfully.
-
-**Dependencies:** Tasks 4 and 5.
-
-**Files likely touched:** `apps/web/package.json`, `apps/web/src/Workspace.tsx`,
-`apps/web/src/SaveItemForm.tsx`, `apps/web/src/style.css`;
-mechanical `pnpm-lock.yaml` update.
-
-**Estimated scope:** Medium: four handwritten files, plus lockfile.
-
-## Checkpoint: First Save (Tasks 4–6)
-
-- [x] Tests and builds pass; development backend accepts schema/functions.
-- [x] Real sign-in → save URL/text → sign-out works in the browser.
-- [x] Anonymous access and incorrect identity configuration cannot save content.
-- [x] Review the first working path before expanding the library.
-
-## Task 7: Browse Owned Items
-
-**Description:** Add indexed, paginated Item listing and a minimal Item detail
-panel so users can verify what they saved and reopen it after reload.
-
-**Acceptance criteria:**
-
-- [x] The inbox lists only the current owner's Items with stable newest-first
-      pagination; Item detail preserves original content and shows current status.
-- [x] A second owner sees neither the first owner's list entries nor their detail;
-      page-boundary and unknown-id cases are tested.
-- [x] The web handles loading, empty, failure, and load-more states, and saved Items
-      remain visible after reload and a new session for the same user.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/items.test.ts`,
-`pnpm typecheck`, and web build; browser-save several Items, reload, open details,
-and switch accounts.
-
-**Dependencies:** Task 6.
-
-**Files likely touched:** `packages/backend/convex/items.ts`,
-`packages/backend/convex/items.test.ts`, `apps/web/src/Workspace.tsx`,
-`apps/web/src/ItemList.tsx`, `apps/web/src/ItemDetail.tsx`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 8: Create a Label
-
-**Description:** Add owned Labels and indexed label-name lookup, with a minimal
-web control to create and browse available Labels.
-
-**Acceptance criteria:**
-
-- [x] Nonblank trimmed names create owned Labels; case-insensitive duplicates
-      reuse the same Label for that user, while another owner can use that name.
-- [x] Anonymous access fails and paginated Label listing never crosses owners.
-- [x] The web can create a Label and shows empty, pending, and failed states.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/labels.test.ts`,
-`pnpm typecheck`, and web build; create duplicate names and test two owners.
-
-**Dependencies:** Task 7.
-
-**Files likely touched:** `packages/backend/convex/schema.ts`,
-`packages/backend/convex/labels.ts`, `packages/backend/convex/labels.test.ts`,
-`apps/web/src/Workspace.tsx`, `apps/web/src/LabelList.tsx`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 9: Manage Multiple Labels on an Item
-
-**Description:** Introduce item-label relationships and connect attachment/removal
-controls to Item details, retaining explicit manual decisions.
-
-**Acceptance criteria:**
-
-- [x] One Item can have multiple Labels and one Label can contain multiple Items;
-      repeated attach/remove calls are idempotent, with one relationship per pair.
-- [x] Both Item and Label ownership are verified; mixed-owner assignments fail
-      atomically and change no membership.
-- [x] Removal hides membership without deleting either endpoint and retains a
-      manual exclusion; the web shows pending/errors and final persisted Labels.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/itemLabels.test.ts`,
-`pnpm typecheck`, and web build; assign two Labels to one Item, share a Label with
-a second Item, remove/reassign, and reload.
-
-**Dependencies:** Task 8.
-
-**Files likely touched:** `packages/backend/convex/schema.ts`,
-`packages/backend/convex/itemLabels.ts`,
-`packages/backend/convex/itemLabels.test.ts`, `apps/web/src/ItemDetail.tsx`,
-`apps/web/src/ItemLabelControls.tsx`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Checkpoint: Library Membership (Tasks 7–9)
-
-- [x] Full backend tests, typechecks, and builds pass.
-- [x] Save → open Item → assign several Labels → remove one → reload works.
-- [x] Cross-owner relationship and duplicate membership tests pass.
-- [x] Review membership semantics before navigation and processing work.
-
-## Task 10: Browse the Library in Both Directions
-
-**Description:** Add indexed relationship queries and label selection in the web
-workspace. Connect Item Labels to their corresponding Label views.
-
-**Acceptance criteria:**
-
-- [x] Opening a Label lists its assigned Items with pagination; opening an Item
-      shows its assigned Labels and allows navigation to those Label views.
-- [x] Removed memberships disappear from both directions; empty Labels remain
-      valid, and querying foreign ids reveals no data.
-- [x] Pagination handles an Item under several Labels without duplicating it
-      within a single Label view; the user can return to the full inbox.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/itemLabels.test.ts`,
-`pnpm typecheck`, and web build; browser-check both navigation directions, empty
-Labels, multiple pages, and account switching.
-
-**Dependencies:** Task 9.
-
-**Files likely touched:** `packages/backend/convex/itemLabels.ts`,
-`packages/backend/convex/itemLabels.test.ts`, `apps/web/src/Workspace.tsx`,
-`apps/web/src/LabelList.tsx`, `apps/web/src/ItemDetail.tsx`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 11: Record Processing History
-
-**Description:** Introduce Processing Runs with internal attempt/result writes
-and an authenticated history query, without calling decision providers.
-
-**Acceptance criteria:**
-
-- [x] Runs preserve Item ownership, attempt status, versioned rubric/question
-      references, optional provider/model/modality/results/measurements, and failures.
-- [x] Public callers cannot fabricate worker results or a Run owner; the history
-      query is indexed/paginated and rejects foreign Items.
-- [x] Failed or absent processing does not remove original saved content; optional
-      measurements remain absent unless actually available.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/processingRuns.test.ts`
-and `pnpm typecheck`; drive internal functions through convex-test with fixed
-fixtures and check success/failure history and owner isolation.
-
-**Dependencies:** Task 10.
-
-**Files likely touched:** `packages/schema/src/index.ts`,
-`packages/backend/convex/schema.ts`, `packages/backend/convex/validators.ts`,
-`packages/backend/convex/processingRuns.ts`,
-`packages/backend/convex/processingRuns.test.ts`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Task 12: Protect Manual Label Decisions
-
-**Description:** Prove that recording new model suggestions preserves both manual
-additions and manual exclusions. Expose history/status in Item detail.
-
-**Acceptance criteria:**
-
-- [x] Recording later suggestions never overwrites or reattaches a manually
-      excluded Label; manual additions survive suggestions that omit that Label.
-- [x] Suggestions reference only the Run owner's Labels; wrong-owner results and
-      attempts to mutate another user's Run fail without partial writes.
-- [x] Item detail distinguishes current manual Labels from suggested Labels and
-      pending/failed processing; no model execution or automatic application occurs.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/processingRuns.test.ts`,
-`pnpm typecheck`, and web build; inspect fixed suggestion fixtures in development
-and prove membership remains unchanged across successive Runs.
-
-**Dependencies:** Task 11.
-
-**Files likely touched:** `packages/backend/convex/processingRuns.ts`,
-`packages/backend/convex/processingRuns.test.ts`,
-`packages/backend/convex/itemLabels.test.ts`, `apps/web/src/ItemDetail.tsx`,
-`apps/web/src/ProcessingHistory.tsx`.
-
-**Estimated scope:** Medium: five handwritten files.
-
-## Checkpoint: Core Flow (Tasks 10–12)
-
-- [x] The signed-in save → multi-label → browse-both-directions flow works.
-- [x] All public read/write paths have anonymous and cross-owner coverage.
-- [x] Suggestions and failed Runs preserve original content and manual decisions.
-- [x] Review the core concepts before inserting sample content.
-
-## Task 13: Seed Repeatable Development Examples
-
-**Description:** Add an explicitly invoked, authenticated development seeder with
-varied URL/text/image-reference examples, Labels, and versioned sorting rubrics.
-Expose a "Load examples" control only when the backend reports that development
-seeding is enabled; the mutation enforces the same flag independently of the UI.
-
-**Acceptance criteria:**
-
-- [x] Repeating the seed for one owner does not duplicate Items, Labels, or links;
-      seeding a second owner creates a separate private set.
-- [x] Fixtures include image/screenshot references and multi-label examples, while
-      clearly distinguishing references from uploaded/available image binaries.
-- [x] Seeding is disabled unless explicitly enabled on the development target;
-      it performs no remote scraping/model calls and preserves existing edits.
-
-**Verification:** `pnpm --filter @mindspool/backend test -- convex/seed.test.ts`
-and `pnpm typecheck`; invoke twice on development, verify isolation and disabled
-behavior, and inspect sample Items through the web Label views.
-
-**Dependencies:** Task 12.
-
-**Files likely touched:** `packages/backend/convex/sampleContent.ts`,
-`packages/backend/convex/seed.ts`, `packages/backend/convex/seed.test.ts`,
-`apps/web/src/Workspace.tsx`.
-
-**Estimated scope:** Medium: four handwritten files.
-
-## Task 14: Verify the Completed Foundation
-
-**Description:** Review and exercise the complete increment, update setup/core
-concept documentation, and record actual evidence plus any remaining limitations.
-
-**Acceptance criteria:**
-
-- [x] `pnpm check` and the Firefox compatibility build pass; clean-clone checks
-      work without runtime credentials and no generated definitions are stale.
-- [x] Real-browser tests cover sign-in/out, account switching, saving, multiple
-      Labels, both navigation directions, failures, and persistence after reload.
-- [x] Documentation describes implemented behavior accurately; unresolved live
-      checks remain explicitly incomplete rather than reported as verified.
-
-**Verification:** `pnpm check`,
-`pnpm --filter @mindspool/extension build:firefox`, clean-checkout verification,
-Chrome DevTools browser checks, and final diff/security review. Fixes discovered
-here become focused follow-up tasks before the final checkpoint is checked.
-
-**Dependencies:** Task 13.
-
-**Files likely touched:** `README.md`, `docs/core-concepts.md`, `tasks/plan.md`,
-`tasks/todo.md`, `docs/verification/library-foundation.md`.
-
-**Estimated scope:** Medium: five documentation files; verification is read-only.
-
-## Checkpoint: Complete (Tasks 13–14)
-
-- [x] Every task's acceptance criteria and required verification passed.
-- [x] Sample content and rubrics are available for the next experiment phase.
-- [x] No production data or settings changed; all credentials stay untracked.
-- [x] Review final behavior and evidence before integrating the change.
+- [ ] All SPEC-web-shell success criteria met; human review; then write `SPEC-library-view.md`.

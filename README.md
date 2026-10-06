@@ -68,7 +68,7 @@ pnpm install
 pnpm dev
 ```
 
-The web app runs at `http://localhost:5173`. App shells build without credentials and display a sign-in setup message until Clerk is configured. The backend contains owned Items, Labels, item-label assignments, and Processing Runs. The web app supports saving URL/text, paginated browsing, manual multi-label assignment, and navigation in both directions. See [core concepts](docs/core-concepts.md) and [verification](docs/verification/library-foundation.md).
+The web app runs at `http://localhost:5173`. App shells build without credentials and display a sign-in setup message until Clerk is configured. The backend contains owned Items, Labels, item-label assignments, and Processing Runs. The web app is being rebuilt to the Modernist design. Today it provides the sidebar and icon-rail frame, routing, the authenticated gate, label creation and navigation, and placeholders for Inbox, Library, Boards, and Graph; saving and browsing items return with the `library-view` module (see [the capability map](CAPABILITY-MAP-web-redesign.md)). See [core concepts](docs/core-concepts.md) and the verification reports for the [library foundation](docs/verification/library-foundation.md) and the [web shell](docs/verification/web-shell.md).
 
 | Command                                            | Purpose                                                                    |
 | -------------------------------------------------- | -------------------------------------------------------------------------- |
