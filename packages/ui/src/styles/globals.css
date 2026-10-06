@@ -71,9 +71,62 @@
   --invert: var(--ms-neutral-900);
   --invert-foreground: var(--ms-neutral-100);
 
+  /* Night palette: the sidebar and icon rail stay dark in the light theme. */
+  --ms-night-bg: #1a0b33;
+  --ms-night-surface: #240f45;
+  --ms-night-text: #f1ecfb;
+  --ms-night-divider: #3d2370;
+  --ms-night-accent: #b69cff;
+  --ms-night-accent-100: #3a2070;
+  --ms-night-accent-700: #e6dcff;
+
+  --sidebar: var(--ms-night-surface);
+  --sidebar-foreground: var(--ms-night-text);
+  --sidebar-primary: var(--ms-night-accent);
+  --sidebar-primary-foreground: var(--ms-night-bg);
+  --sidebar-accent: color-mix(in srgb, var(--ms-night-accent) 14%, transparent);
+  --sidebar-accent-foreground: var(--ms-night-accent-700);
+  --sidebar-border: var(--ms-night-divider);
+  --sidebar-ring: var(--ms-night-accent);
+
   --shadow-hard-sm: 3px 3px 0 var(--ms-accent-300);
   --shadow-hard-md: 4px 4px 0 var(--ms-accent-400);
   --shadow-hard-lg: 6px 6px 0 var(--ms-accent-800);
+}
+
+/*
+ * Put on the sidebar/rail element: re-points the semantic tokens at the night
+ * palette so nested shadcn parts (input, button, avatar) render dark too.
+ * Portaled menus and tooltips stay light.
+ */
+.dark-sidebar {
+  --ms-text: var(--ms-night-text);
+  --ms-bg: var(--ms-night-bg);
+  --ms-surface: var(--ms-night-surface);
+  --ms-divider: var(--ms-night-divider);
+  --ms-accent: var(--ms-night-accent);
+  --ms-accent-100: var(--ms-night-accent-100);
+  --ms-accent-700: var(--ms-night-accent-700);
+  --ms-accent-800: var(--ms-night-text);
+
+  --background: var(--ms-night-bg);
+  --foreground: var(--ms-night-text);
+  --card: var(--ms-night-surface);
+  --card-foreground: var(--ms-night-text);
+  --popover: var(--ms-night-surface);
+  --popover-foreground: var(--ms-night-text);
+  --primary: var(--ms-night-accent);
+  --primary-foreground: var(--ms-night-bg);
+  --secondary: var(--ms-night-accent-100);
+  --secondary-foreground: var(--ms-night-text);
+  --muted: var(--ms-night-accent-100);
+  --muted-foreground: color-mix(in srgb, var(--ms-night-text) 62%, transparent);
+  --accent: var(--ms-night-accent-100);
+  --accent-foreground: var(--ms-night-text);
+  --border: var(--ms-night-divider);
+  --input: var(--ms-night-divider);
+  --ring: var(--ms-night-accent);
+  color: var(--ms-night-text);
 }
 
 @theme inline {
@@ -104,6 +157,15 @@
   --color-info: var(--info);
   --color-success-foreground: var(--success-foreground);
   --color-success: var(--success);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
   /* tonal ramps → bg-ms-accent-300, text-ms-neutral-700, … */
   --color-ms-accent-100: var(--ms-accent-100);
