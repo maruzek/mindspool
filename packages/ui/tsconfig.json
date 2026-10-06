@@ -1,4 +1,9 @@
 {
   "extends": "@mindspool/typescript-config/react.json",
+  "compilerOptions": {
+    "paths": {
+      "@mindspool/ui/*": ["./src/*"]
+    }
+  },
   "include": ["src"]
 }

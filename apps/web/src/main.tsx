@@ -4,6 +4,7 @@ import { ClerkProvider, useAuth } from "@clerk/react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { App } from "./App";
+import "@mindspool/ui/globals.css";
 import "./style.css";
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "../../packages/ui/src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@mindspool/ui/components",
+    "utils": "@mindspool/ui/lib/utils",
+    "hooks": "@mindspool/ui/hooks",
+    "lib": "@mindspool/ui/lib",
+    "ui": "@mindspool/ui/components"
+  },
+  "registries": {
+    "@reui": {
+      "url": "https://reui.io/r/{style}/{name}.json",
+      "headers": { "Authorization": "Bearer ${REUI_LICENSE_KEY}" }
+    }
+  }
+}

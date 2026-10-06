@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/archivo";
+
+@source "../**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Mindspool — "Modernist" theme (Claude Design: Mindspool Base Modernist v3).
+ * Flat, architectural, zero radius, strong 2px rules, hard offset shadows.
+ *
+ * The raw palette lives in --ms-* (design tokens, 100–900 ramps). The shadcn
+ * semantic tokens below point at it. NB shadcn's `accent` is a neutral hover
+ * surface; the brand accent is `primary`.
+ */
+:root {
+  --ms-bg: #ece7f4;
+  --ms-surface: #f8f6fb;
+  --ms-text: #1e1330;
+  --ms-accent: #5b2fc9;
+  --ms-divider: #3b2a5e;
+
+  --ms-accent-100: #efe9fb;
+  --ms-accent-200: #ddd0f7;
+  --ms-accent-300: #c3aff0;
+  --ms-accent-400: #a78be6;
+  --ms-accent-500: #7c55d6;
+  --ms-accent-600: #4e25b0;
+  --ms-accent-700: #3f1d91;
+  --ms-accent-800: #2e1469;
+  --ms-accent-900: #1f0d47;
+
+  --ms-neutral-100: #f4f1f8;
+  --ms-neutral-200: #e6e1ee;
+  --ms-neutral-300: #d3cce0;
+  --ms-neutral-400: #b3aac6;
+  --ms-neutral-500: #8d82a3;
+  --ms-neutral-600: #6c6182;
+  --ms-neutral-700: #4f4563;
+  --ms-neutral-800: #352b47;
+  --ms-neutral-900: #221a31;
+
+  --background: var(--ms-bg);
+  --foreground: var(--ms-text);
+  --card: var(--ms-surface);
+  --card-foreground: var(--ms-text);
+  --popover: var(--ms-surface);
+  --popover-foreground: var(--ms-text);
+  --primary: var(--ms-accent);
+  --primary-foreground: #fff;
+  --secondary: var(--ms-neutral-100);
+  --secondary-foreground: var(--ms-text);
+  --muted: var(--ms-neutral-200);
+  --muted-foreground: color-mix(in srgb, var(--ms-text) 62%, transparent);
+  --accent: var(--ms-accent-100);
+  --accent-foreground: var(--ms-accent-800);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: var(--color-red-800);
+  --border: var(--ms-divider);
+  --input: var(--ms-divider);
+  --ring: var(--ms-accent);
+  --radius: 0px;
+
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-900);
+  --info: var(--color-violet-500);
+  --info-foreground: var(--color-violet-900);
+  --warning: var(--color-yellow-500);
+  --warning-foreground: var(--color-yellow-900);
+  --invert: var(--ms-neutral-900);
+  --invert-foreground: var(--ms-neutral-100);
+
+  --shadow-hard-sm: 3px 3px 0 var(--ms-accent-300);
+  --shadow-hard-md: 4px 4px 0 var(--ms-accent-400);
+  --shadow-hard-lg: 6px 6px 0 var(--ms-accent-800);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-invert-foreground: var(--invert-foreground);
+  --color-invert: var(--invert);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-info-foreground: var(--info-foreground);
+  --color-info: var(--info);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
+
+  /* tonal ramps → bg-ms-accent-300, text-ms-neutral-700, … */
+  --color-ms-accent-100: var(--ms-accent-100);
+  --color-ms-accent-200: var(--ms-accent-200);
+  --color-ms-accent-300: var(--ms-accent-300);
+  --color-ms-accent-400: var(--ms-accent-400);
+  --color-ms-accent-500: var(--ms-accent-500);
+  --color-ms-accent-600: var(--ms-accent-600);
+  --color-ms-accent-700: var(--ms-accent-700);
+  --color-ms-accent-800: var(--ms-accent-800);
+  --color-ms-accent-900: var(--ms-accent-900);
+  --color-ms-neutral-100: var(--ms-neutral-100);
+  --color-ms-neutral-200: var(--ms-neutral-200);
+  --color-ms-neutral-300: var(--ms-neutral-300);
+  --color-ms-neutral-800: var(--ms-neutral-800);
+
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --font-heading: "Archivo Variable", system-ui, sans-serif;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
+  --shadow-xs: var(--shadow-hard-sm);
+  --shadow-sm: var(--shadow-hard-sm);
+  --shadow-md: var(--shadow-hard-md);
+  --shadow-lg: var(--shadow-hard-lg);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-[15px] leading-[1.55] text-foreground;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading font-extrabold tracking-tight;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ms-accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--ms-accent) 30%, transparent);
+  }
+}
