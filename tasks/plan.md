@@ -1,91 +1,93 @@
-# Implementation Plan: item-inspector
+# Implementation Plan: clef-labeling
 
-Spec: [SPEC-item-inspector.md](../SPEC-item-inspector.md) (approved, including the proposed defaults for its open
-questions). Capability map: [CAPABILITY-MAP-web-redesign.md](../CAPABILITY-MAP-web-redesign.md), module 3 of 7. The
-library-view plan and tasks are archived in `tasks/archive/library-view-*.md` (its manual 390px, Lighthouse and
-offline-retry checks are still pending in `docs/verification/library-view.md`). Tasks: [todo.md](todo.md).
+Spec: [SPEC-clef-labeling.md](../SPEC-clef-labeling.md) (approved; open questions resolved: run fields `labelsAsked` /
+`labelsTotal` OK, Keep retains `origin: "model"`, web-only toast OK, no retries). Capability map:
+[CAPABILITY-MAP-web-redesign.md](../CAPABILITY-MAP-web-redesign.md), replaces `label-suggestions`. Tasks:
+[todo.md](todo.md). The item-inspector plan is archived in `tasks/archive/item-inspector-*.md` (its manual checks remain in
+`docs/verification/item-inspector.md`).
 
 ## Overview
 
-Open one saved item from the library in a right-hand panel built on the shadcn `sidebar` primitive (ReUI `c-sidebar-4`):
-source header, preview, title, saved line, confirmed labels with remove and an add-label popover, the latest
-processing-run facts, and delete. The panel mounts into the 380px column that `library-view` reserved, driven by `?item`.
-Backend first: `items.detail` (safe read), `items.remove` (bounded delete) and the 10-row clamps on item-scoped label
-joins, then the panel from the outside in.
+Classify saved items with Cloudflare Clef / Clef-flash. One `noul` question per label (64 most recent, label description as
+`criteria.true`); labels with probability >= 0.5 are attached with model attribution, 0.5 to 0.65 flagged "Unsure" with
+Keep/Remove. Runs automatically after capture and manually from the inspector with a model picker. Backend first
+(pure mapping, schema, apply/confirm, action, scheduling), then a real-API check, then the web UI from the inspector outward.
 
 ## Architecture Decisions
 
-- **Backend before UI, in two independent tasks.** `detail` and the clamps (T1) unblock every read; `remove` (T2) is only
-  needed by delete (T9). Neither touches schema or indexes.
-- **Reads go through `items.detail` only.** It takes a string id and returns `null` for foreign, missing, malformed and
-  deleted ids, so a bad `?item` can never reach the error boundary. `itemLabels` and `processingRuns` queries mount only
-  after `detail` returns an item (their typed ids come from its `_id`).
-- **Delete is atomic and capped** (spec decision): one transaction removes the item, up to 500 `itemLabels` rows and 100
-  runs, and refuses with `CONFLICT` past that, so no orphan can break `itemLabels.listItemsForLabel`.
-- **Frame spike first, then content.** T3 installs `c-sidebar-4`, mounts the frame in `LibraryView` and records what the
-  primitive actually does (see Risks). Content tasks build on whatever T3 settles, so the uncertain part fails early.
-- **Own `SidebarProvider`** for the inspector so its state is independent of the left navigation. Its open state is
-  controlled from the URL (`?item` present = open), on desktop through `open` and on mobile through `setOpenMobile`.
-- **Grid follows container width** (T5, independent) so opening the inline panel turns three columns into two instead of
-  squeezing them.
-- **Lazy label picker.** `availableLabels` is subscribed only while the popover is open.
-- **Not in this module:** suggested labels, accept/reject, reprocess (`label-suggestions`), Add to board (`boards`), title
-  editing, creating labels from the picker, image fetching.
+- **Pure core first.** Question building, state building, answer parsing, threshold/unsure split and cost live in
+  `decisionProvider.ts` with no Convex or network, so most logic is tested cheaply and the provider interface (`DecisionProvider`)
+  is ready for Jev later.
+- **Schema once, early (T2).** `itemLabels` (+ `origin`, `provider`, `model`, `confidence`, `runId`, `confirmedAt`), `labels.description`,
+  `processingRuns` (+ `labelsAsked`, `labelsTotal`). All optional, so no migration and existing rows stay valid. Approved in the spec.
+  `manualDecision` keeps its name; model rows are `"include"` with `origin: "model"` (renaming is a migration, deferred).
+- **One completion mutation.** Run completion and label application happen in a single internal mutation (`decisions.complete`) built on
+  a helper extracted from `processingRuns.finish`, so a run can never be "succeeded" without its labels. `finish` keeps its behavior.
+- **Manual wins, enforced in one place.** The apply step inserts a row only when none exists for the pair. Nothing else writes `origin: "model"`.
+- **Real API checked before UI (T6).** The action is built against the published schemas with a mocked `fetch`; one manual call
+  confirms them before any web work, so a wrong assumption costs backend tasks only.
+- **Automatic run is best-effort.** `items.create` schedules the action after insert (idempotent capture returns early, so a retried capture
+  never schedules twice); a scheduling or provider failure never fails the save.
+- **Web reads existing paths.** `itemLabels.listForItem` is extended to return attribution; `processingRuns.listForItem` already streams run state,
+  which drives "Labeling…" and the toast reactively. No polling.
+- **Not in this module:** images, Jev/OpenAI providers, retries/backoff, choice/score questions, email/push, cron reprocessing.
 
 ## Dependency Graph
 
 ```
-T1 items.detail + join clamps ──┬─ T3 panel frame (spike) ─┬─ T4 header + preview ─┬─ T6 labels list/remove ─ T7 add-label popover
-                                │                          │                       ├─ T8 run card
-T2 items.remove ────────────────┼──────────────────────────┤                       └─ T9 delete dialog (also needs T2)
-                                │                          └─ T5 container-width grid
-                                                                          T10 focus, keyboard, a11y ─ T11 docs + verification
+T1 pure mapping ─┐
+                 ├─ T3 apply/confirm/complete ── T4 classify action ── T5 auto-run on capture
+T2 schema ───────┘                                   │
+                                                     └─ T6 live check (manual) ── T8 classify control ── T9 labels: AI / unsure / Keep
+T2 ── T7 label description UI                                                     └─ T10 library row + toast ── T11 close-out
 ```
 
-T1 and T2 are independent. After T4, T5, T6, T8 and T9 are independent of each other (T7 follows T6). T10 needs T4–T9.
+T7 is independent of T3 to T6 and may be done in any order after T2.
+
+## Task List
+
+### Phase 1: Backend
+
+- [x] T1 Pure decision mapping
+- [x] T2 Schema additions and label descriptions API
+- [x] T3 Apply model labels, Keep, and run completion
+
+### Checkpoint: Backend core
+
+- [ ] `pnpm --filter @mindspool/backend test` and `pnpm typecheck` green; reviewed with human
+
+- [x] T4 Classify action and mutation (mocked provider)
+- [x] T5 Automatic run on capture
+- [ ] T6 Live check against Workers AI (manual, needs credentials)
+
+### Checkpoint: Backend verified against the real API
+
+- [ ] One real item classified end to end; verification doc started; spec updated if the response differed
+
+### Phase 2: Web
+
+- [x] T7 Label description UI
+- [x] T8 Inspector Classify control and run card
+- [x] T9 Inspector labels: AI marker, unsure, Keep and Remove
+- [x] T10 Library row state and unsure toast
+
+### Checkpoint: Complete
+
+- [x] T11 Verification doc, capability map, `pnpm check`; all SPEC success criteria met; ready for review
 
 ## Risks and Mitigations
 
-| Risk                                                                                                                                                                                                                                         | Impact | Mitigation                                                                                                                                                                                                                 |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The shadcn `sidebar` is a `fixed`, full-height panel with a width-reserving gap and a Sheet below 768px; the spec wants an overlay between 768 and 1280px and an inline column above. Whether `c-sidebar-4` docks or floats is not known yet | High   | T3 is a spike with a report: install, mount, record behavior at 1440, 1024, 390px. Close gaps with the primitive's props (`variant`, `collapsible`, gap width). If a plain `sheet` is needed, stop and ask before building |
-| Second `SidebarProvider`: Ctrl/Cmd+B toggles every provider and each writes the `sidebar_state` cookie, so the shortcut would also toggle the inspector                                                                                      | Med    | Controlled `open`; T3 adds a small local opt-out to the copied `sidebar.tsx` (we own it) if the shortcut still reaches the inspector. The cookie is not read by the app                                                    |
-| Mobile mode ignores `open` and uses `openMobile`                                                                                                                                                                                             | Med    | Sync `?item` to `setOpenMobile` in an effect; test with a mocked media query                                                                                                                                               |
-| Delete leaves a stale `?item`, so the panel flashes "Not found"                                                                                                                                                                              | Low    | Remove `item` from the URL right after the mutation resolves, before announcing; test it                                                                                                                                   |
-| Over-cap delete or partial writes                                                                                                                                                                                                            | High   | Single transaction, caps checked before the first delete, tests prove nothing is deleted when refused                                                                                                                      |
-| Clamping `listForItem`/`availableLabels` to 10 breaks existing tests or callers                                                                                                                                                              | Med    | T1 greps consumers (only tests today) and updates assertions deliberately; web uses 10 per page with "Show more"                                                                                                           |
-| Existing shared mocks only know the library queries                                                                                                                                                                                          | Low    | Extend `test-utils/mocks.ts` in the first task that needs each query (T3 detail, T6 labels, T7 available, T8 runs, T9 remove)                                                                                              |
-| Rendering up to 100,000 characters of note text                                                                                                                                                                                              | Low    | Plain text in a scroll region, `whitespace-pre-wrap`, never HTML; manual check in T11                                                                                                                                      |
-| Focus handling across inline and overlay modes                                                                                                                                                                                               | Med    | One dedicated task (T10) with explicit tests: focus stays on the row when inline, is trapped in overlay, returns to the row on close                                                                                       |
-
-## Checkpoints
-
-- After T5: panel opens from `?item` with header, title, saved line and preview; inline at 1440px, overlay below 1280px;
-  grid becomes two columns with the panel open. Review with human (visual).
-- After T9: labels, run card and delete all work against dev Convex; deleting removes the item from list and label views.
-  Review with human.
-- After T11: all spec success criteria met; manual 1440px, 1024px and 390px checks recorded.
+| Risk                                                    | Impact | Mitigation                                                                                                                |
+| ------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Real response differs from the published schema         | Med    | T1 parser is strict and isolated; T6 checks it before any web work                                                        |
+| Cloudflare token or account id missing/wrong            | Med    | Clear `failed` run with bounded error; T6 documents the exact env commands                                                |
+| Action on capture slows or fails the save               | High   | Scheduled (not awaited) after insert; test that save succeeds when the action throws                                      |
+| Race: two classify requests, or reprocess during delete | Med    | One pending decision run per item (`CONFLICT`); apply step re-checks item and label exist in the same transaction         |
+| Model re-adds a label the user removed                  | High   | Apply inserts only when no pair row exists; covered by a dedicated test                                                   |
+| Large item text exceeds the context window              | Low    | Fixed character budget on state; tested                                                                                   |
+| Prompt injection from saved page text                   | Med    | Model output only maps to known label ids and numbers in [0,1]; nothing from the model is executed or stored as free text |
+| Cost surprise on bulk imports                           | Low    | Auto-run is one call per new item; cost recorded per run; no retries                                                      |
 
 ## Open Questions
 
-None blocking. Carried defaults from the spec: atomic capped delete, no create-label in the picker, overlay below
-1280px, container-width grid. The spike (T3) may change the overlay mechanism; it will be reported before it is built.
-
-## Spike findings
-
-Found from the source of `c-sidebar-4` and `sidebar.tsx` and from jsdom tests; the three widths have **not** been looked
-at in a browser yet (open manual check, T3/T11).
-
-- `c-sidebar-4` is a demo composed from the installed `sidebar` primitive (`side="right"`, `collapsible="offcanvas"`), so
-  nothing was installed. The desktop branch is a `fixed inset-y-0 h-svh` container at the viewport's right edge, beside
-  a `sidebar-gap` spacer that reserves `--sidebar-width` in flow while open. That is the inline column at 1280px and up
-  (the spacer sits at the end of `LibraryView`'s flex row).
-- Overlay below 1280px: the same container, with the spacer collapsed by `max-xl:[&_[data-slot=sidebar-gap]]:w-0` on the
-  provider, so the panel floats over the list instead of pushing it.
-- Below 768px (`useIsMobile`) the primitive swaps to a `Sheet` driven by `openMobile`, not `open`. Mobile width was
-  hard-coded to 18rem.
-- Changes to our copy of `sidebar.tsx` (all opt-in, defaults unchanged): `openMobile`/`onOpenMobileChange` on the provider
-  (controlled sheet), `keyboardShortcut={false}` (Ctrl/Cmd+B opt-out), `mobileWidth` on `Sidebar` (the inspector uses
-  `100vw`). The uncontrolled path keeps the plain state setter: wrapping it in a changing callback stopped the left
-  navigation sheet from unmounting on close in tests.
-- The sheet still renders its own `sr-only` "Close" button (hidden by CSS only), next to ours.
+- None blocking. Threshold values (0.5 / 0.65) are constants and can change without migration.
