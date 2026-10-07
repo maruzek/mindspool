@@ -13,6 +13,7 @@ import {
 } from "./itemState";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+  asset,
   captureSource,
   inputType,
   itemDetail,
@@ -20,7 +21,9 @@ import {
   itemPage,
   paginationOptsValidator,
   sourceKind,
+  sourceMetadata,
   validateCapture,
+  validateClipContent,
   validatePagination,
   validateSearchQuery,
 } from "./validators";
@@ -31,11 +34,15 @@ export const create = mutation({
     inputType,
     captureSource,
     captureKey: v.string(),
+    sourceMetadata: sourceMetadata,
+    extractedText: v.optional(v.string()),
+    imageAssets: v.optional(v.array(asset)),
   },
   returns: v.id("items"),
   handler: async (ctx, args) => {
     const ownerId = await requireOwner(ctx);
     validateCapture(args);
+    validateClipContent(args);
     const existing = await ctx.db
       .query("items")
       .withIndex("by_owner_capture_key", (q) =>
@@ -61,7 +68,7 @@ export const create = mutation({
       ...(args.inputType === "url" ? { originalUrl: args.originalInput } : {}),
       captureStatus: "captured",
       enrichmentStatus: "not_started",
-      imageAssets: [],
+      imageAssets: args.imageAssets ?? [],
       updatedAt: Date.now(),
       sourceKind: sourceKindOf({
         inputType: args.inputType,
@@ -116,6 +123,8 @@ export const detail = query({
       captureSource: item.captureSource,
       enrichmentStatus: item.enrichmentStatus,
       ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
+      ...(item.extractedText ? { extractedText: item.extractedText } : {}),
+      ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
     };
   },
 });

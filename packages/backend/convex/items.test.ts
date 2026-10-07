@@ -240,6 +240,36 @@ describe("items.detail", () => {
       originalInput: capture.originalInput,
     });
   });
+  it("returns extracted text and image assets when present", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+    });
+    const imageAssets = [
+      {
+        kind: "external" as const,
+        url: "https://pbs.twimg.com/media/a.jpg",
+        purpose: "image" as const,
+      },
+    ];
+    const id = await alice.mutation(api.items.create, {
+      ...capture,
+      extractedText: "tweet text",
+      imageAssets,
+    });
+    expect(await alice.query(api.items.detail, { id })).toMatchObject({
+      extractedText: "tweet text",
+      imageAssets,
+    });
+  });
+  it("omits extracted text and image assets when there are none", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+    });
+    const id = await alice.mutation(api.items.create, capture);
+    const detail = await alice.query(api.items.detail, { id });
+    expect(detail).not.toHaveProperty("extractedText");
+    expect(detail).not.toHaveProperty("imageAssets");
+  });
   it("returns null for foreign, missing and malformed ids", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });
@@ -490,5 +520,139 @@ describe("denormalized search state", () => {
       .mutation(api.items.create, { ...capture, captureKey: "b" });
     expect(await stats(t, "alice")).toMatchObject({ total: 1 });
     expect(await stats(t, "bob")).toMatchObject({ total: 1 });
+  });
+});
+
+describe("items.create with extracted content", () => {
+  const tweet = {
+    ...capture,
+    originalInput: "https://x.com/jane/status/123",
+    captureSource: "extension" as const,
+    captureKey: "x:123",
+    sourceMetadata: {
+      title: "Jane (@jane)",
+      author: "Jane",
+      siteName: "X",
+    },
+    extractedText: "Fresh sourdough starter, day three",
+    imageAssets: [
+      {
+        kind: "external" as const,
+        url: "https://pbs.twimg.com/media/a.jpg?name=large",
+        purpose: "image" as const,
+      },
+    ],
+  };
+  const setup = () => {
+    const t = convexTest(schema, modules);
+    return { t, alice: t.withIdentity({ subject: "alice" }) };
+  };
+
+  it("stores the fields, classifies the source as x and makes the text searchable", async () => {
+    const { alice } = setup();
+    const id = await alice.mutation(api.items.create, tweet);
+    const item = await alice.query(api.items.get, { id });
+    expect(item).toMatchObject({
+      sourceKind: "x",
+      sourceMetadata: tweet.sourceMetadata,
+      extractedText: tweet.extractedText,
+      imageAssets: tweet.imageAssets,
+    });
+    const found = await alice.query(api.items.search, {
+      query: "sourdough",
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(found.page.map((i) => i._id)).toEqual([id]);
+  });
+  it("starts a labeling run on the stored item when the owner has labels", async () => {
+    const { t, alice } = setup();
+    await alice.mutation(api.labels.create, { name: "Baking" });
+    await alice.mutation(api.items.create, tweet);
+    const runs = await t.run((ctx) => ctx.db.query("processingRuns").collect());
+    expect(runs).toHaveLength(1);
+  });
+  it("returns the stored item unchanged for a repeated key", async () => {
+    const { alice } = setup();
+    const id = await alice.mutation(api.items.create, tweet);
+    const again = await alice.mutation(api.items.create, {
+      ...tweet,
+      extractedText: "edited later",
+    });
+    expect(again).toBe(id);
+    expect((await alice.query(api.items.get, { id })).extractedText).toBe(
+      tweet.extractedText,
+    );
+  });
+  it("keeps the item private to its owner", async () => {
+    const { t, alice } = setup();
+    const id = await alice.mutation(api.items.create, tweet);
+    await expect(
+      t.withIdentity({ subject: "bob" }).query(api.items.get, { id }),
+    ).rejects.toThrow();
+  });
+  it.each([
+    ["long title", { sourceMetadata: { title: "t".repeat(301) } }],
+    ["long author", { sourceMetadata: { author: "a".repeat(301) } }],
+    ["long description", { sourceMetadata: { description: "d".repeat(1001) } }],
+    ["long siteName", { sourceMetadata: { siteName: "s".repeat(301) } }],
+    ["long text", { extractedText: "x".repeat(100001) }],
+    [
+      "too many images",
+      {
+        imageAssets: Array.from({ length: 11 }, (_, i) => ({
+          kind: "external" as const,
+          url: `https://pbs.twimg.com/media/${i}.jpg`,
+          purpose: "image" as const,
+        })),
+      },
+    ],
+    [
+      "http image",
+      {
+        imageAssets: [
+          {
+            kind: "external" as const,
+            url: "http://a.test/a.jpg",
+            purpose: "image" as const,
+          },
+        ],
+      },
+    ],
+    [
+      "long image url",
+      {
+        imageAssets: [
+          {
+            kind: "external" as const,
+            url: `https://a.test/${"a".repeat(2048)}`,
+            purpose: "image" as const,
+          },
+        ],
+      },
+    ],
+  ])("rejects %s without writing", async (_name, bad) => {
+    const { t, alice } = setup();
+    await expect(
+      alice.mutation(api.items.create, { ...tweet, ...bad }),
+    ).rejects.toMatchObject({ data: { code: "INVALID_INPUT" } });
+    expect(await t.run((ctx) => ctx.db.query("items").collect())).toEqual([]);
+  });
+  it("rejects stored assets from a client", async () => {
+    const { t, alice } = setup();
+    const storageId = await t.run((ctx) => ctx.storage.store(new Blob(["x"])));
+    await expect(
+      alice.mutation(api.items.create, {
+        ...tweet,
+        imageAssets: [{ kind: "stored", storageId, purpose: "image" }],
+      }),
+    ).rejects.toMatchObject({ data: { code: "INVALID_INPUT" } });
+  });
+  it("leaves plain captures as before", async () => {
+    const { alice } = setup();
+    const id = await alice.mutation(api.items.create, capture);
+    const item = await alice.query(api.items.get, { id });
+    expect(item.imageAssets).toEqual([]);
+    expect(item).not.toHaveProperty("extractedText");
+    expect(item).not.toHaveProperty("sourceMetadata");
   });
 });

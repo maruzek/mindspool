@@ -111,6 +111,9 @@ export const itemDetail = v.object({
   captureSource,
   enrichmentStatus: itemFields.enrichmentStatus,
   sourceMetadata: itemFields.sourceMetadata,
+  extractedText: itemFields.extractedText,
+  /** Omitted when empty. */
+  imageAssets: v.optional(v.array(asset)),
 });
 export const itemPage = paginationResultValidator(itemPreview);
 export const LABEL_DESCRIPTION_MAX = 500;
@@ -234,6 +237,45 @@ export function validateCapture(input: {
     throw new ConvexError({ code: "INVALID_INPUT", message: "Invalid input" });
   }
   if (input.inputType === "url") validateUrl(input.originalInput);
+}
+
+const invalidInput = (message = "Invalid input") =>
+  new ConvexError({ code: "INVALID_INPUT", message });
+
+/** Bounds for content a client scraped itself (the extension); see `items.create`. */
+export function validateClipContent(input: {
+  sourceMetadata?: {
+    title?: string;
+    description?: string;
+    author?: string;
+    siteName?: string;
+  };
+  extractedText?: string;
+  imageAssets?: { kind: "external" | "stored"; url?: string }[];
+}) {
+  const meta = input.sourceMetadata;
+  if (
+    (meta?.title?.length ?? 0) > 300 ||
+    (meta?.author?.length ?? 0) > 300 ||
+    (meta?.siteName?.length ?? 0) > 300 ||
+    (meta?.description?.length ?? 0) > 1000 ||
+    (input.extractedText?.length ?? 0) > 100000
+  )
+    throw invalidInput();
+  const images = input.imageAssets ?? [];
+  if (images.length > 10) throw invalidInput("Too many images");
+  for (const image of images) {
+    // Clients may only reference external images; stored assets are ours to create.
+    if (image.kind !== "external" || !image.url || image.url.length > 2048)
+      throw invalidInput("Invalid image");
+    let url: URL;
+    try {
+      url = new URL(image.url);
+    } catch {
+      throw invalidInput("Invalid image");
+    }
+    if (url.protocol !== "https:") throw invalidInput("Invalid image");
+  }
 }
 
 export function validateUrl(value: string) {
