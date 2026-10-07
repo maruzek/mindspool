@@ -9,3 +9,8 @@ export type EnrichmentStatus =
 export type ManualLabelDecision = "include" | "exclude";
 export type ProcessingRunStatus = "pending" | "succeeded" | "failed";
 export type InputModality = "text" | "image" | "text_image";
+export type LabelOrigin = "manual" | "model";
+
+/** Keep in sync with `LABEL_THRESHOLD`/`UNSURE_THRESHOLD`/`MAX_QUESTIONS` in backend `decisionProvider.ts`. */
+export const UNSURE_THRESHOLD = 0.65;
+export const MAX_LABEL_QUESTIONS = 64;

@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
 
@@ -401,5 +401,49 @@ describe("items.remove", () => {
     );
     expect(await t.run((ctx) => ctx.db.get(id))).not.toBeNull();
     expect(labelId).toBeDefined();
+  });
+});
+
+describe("labeling state in previews", () => {
+  it("flags a pending decision run and unsure model labels, then clears them", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const recipes = await alice.mutation(api.labels.create, {
+      name: "Recipes",
+    });
+    const quick = await alice.mutation(api.labels.create, { name: "Quick" });
+    const itemId = await alice.mutation(api.items.create, {
+      ...capture,
+      inputType: "text",
+      originalInput: "a recipe",
+    });
+    const list = async () =>
+      (
+        await alice.query(api.items.list, {
+          paginationOpts: { numItems: 20, cursor: null },
+        })
+      ).page[0]!;
+    // Capture started the automatic decision run.
+    expect(await list()).toMatchObject({ labeling: true });
+    const [run] = await t.run((ctx) =>
+      ctx.db.query("processingRuns").collect(),
+    );
+    await t.mutation(internal.decisions.complete, {
+      runId: run!._id,
+      itemId,
+      suggestions: [
+        { labelId: recipes, confidence: 0.9 },
+        { labelId: quick, confidence: 0.55 },
+      ],
+    });
+    const done = await list();
+    expect(done.labeling).toBeUndefined();
+    expect(done.unsureCount).toBe(1);
+    expect(done.labels.find((l) => l._id === quick)?.unsure).toBe(true);
+    expect(done.labels.find((l) => l._id === recipes)?.unsure).toBeUndefined();
+    await alice.mutation(api.itemLabels.confirm, { itemId, labelId: quick });
+    const kept = await list();
+    expect(kept.unsureCount).toBeUndefined();
+    expect(kept.labels.every((l) => l.unsure === undefined)).toBe(true);
   });
 });

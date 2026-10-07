@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
 
@@ -339,5 +339,80 @@ describe("item previews with labels", () => {
     expect(page.page).toHaveLength(10);
     expect(page.isDone).toBe(false);
     expect(page.page[0]!.originalInput).toHaveLength(160);
+  });
+});
+
+describe("Keep (confirm) and attribution", () => {
+  async function modelLabel() {
+    const f = await fixture();
+    const runId = await f.t.mutation(internal.processingRuns.start, {
+      itemId: f.itemId,
+      kind: "decision",
+      provider: "clef",
+      model: "clef",
+      modality: "text",
+      questionVersion: "label-noul-v1",
+    });
+    await f.t.mutation(internal.decisions.complete, {
+      runId,
+      itemId: f.itemId,
+      suggestions: [{ labelId: f.labelId, confidence: 0.55 }],
+    });
+    const list = async () =>
+      (
+        await f.alice.query(api.itemLabels.listForItem, {
+          itemId: f.itemId,
+          paginationOpts,
+        })
+      ).page;
+    return { ...f, list };
+  }
+
+  it("Keep sets confirmedAt and retains model attribution", async () => {
+    const { alice, itemId, labelId, list } = await modelLabel();
+    expect((await list())[0]?.confirmedAt).toBeUndefined();
+    await alice.mutation(api.itemLabels.confirm, { itemId, labelId });
+    expect((await list())[0]).toMatchObject({
+      origin: "model",
+      provider: "clef",
+      model: "clef",
+      confidence: 0.55,
+      confirmedAt: expect.any(Number),
+    });
+  });
+
+  it("Keep is a no-op for manual rows and Not found for foreign ids", async () => {
+    const { alice, bob, itemId, secondLabelId, labelId, foreignItemId, list } =
+      await modelLabel();
+    await alice.mutation(api.itemLabels.attach, {
+      itemId,
+      labelId: secondLabelId,
+    });
+    await alice.mutation(api.itemLabels.confirm, {
+      itemId,
+      labelId: secondLabelId,
+    });
+    const manual = (await list()).find((l) => l._id === secondLabelId);
+    expect(manual?.confirmedAt).toBeUndefined();
+    expect(manual?.origin).toBeUndefined();
+    await expect(
+      bob.mutation(api.itemLabels.confirm, { itemId, labelId }),
+    ).rejects.toThrow("Not found");
+    await expect(
+      alice.mutation(api.itemLabels.confirm, {
+        itemId: foreignItemId,
+        labelId,
+      }),
+    ).rejects.toThrow("Not found");
+  });
+
+  it("Remove excludes a model label and re-attach is manual", async () => {
+    const { alice, itemId, labelId, list } = await modelLabel();
+    await alice.mutation(api.itemLabels.remove, { itemId, labelId });
+    expect(await list()).toEqual([]);
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    const [label] = await list();
+    expect(label?.origin).toBe("manual");
+    expect(label?.confidence).toBeUndefined();
   });
 });

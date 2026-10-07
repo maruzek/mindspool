@@ -1,5 +1,6 @@
 import { paginationResultValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import type { Infer } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -74,87 +75,105 @@ const measurements = {
   latencyMs: v.optional(v.number()),
   costUsd: v.optional(v.number()),
 };
+const finishResult = v.union(
+  v.object({
+    status: v.literal("succeeded"),
+    suggestions: v.array(suggestion),
+    category: v.optional(v.string()),
+    rankingScore: v.optional(v.number()),
+    enrichment: v.optional(enrichment),
+    ...measurements,
+  }),
+  v.object({
+    status: v.literal("failed"),
+    error: v.string(),
+    ...measurements,
+  }),
+);
 export const finish = internalMutation({
   args: {
     runId: v.id("processingRuns"),
     itemId: v.id("items"),
-    result: v.union(
-      v.object({
-        status: v.literal("succeeded"),
-        suggestions: v.array(suggestion),
-        category: v.optional(v.string()),
-        rankingScore: v.optional(v.number()),
-        enrichment: v.optional(enrichment),
-        ...measurements,
-      }),
-      v.object({
-        status: v.literal("failed"),
-        error: v.string(),
-        ...measurements,
-      }),
-    ),
+    result: finishResult,
   },
   returns: v.null(),
-  handler: async (ctx, { runId, itemId, result }) => {
-    const item = await workerItem(ctx, itemId);
-    const run = requireOwned(await ctx.db.get(runId), item.ownerId);
-    if (run.itemId !== itemId)
-      throw new ConvexError({ code: "NOT_FOUND", message: "Not found" });
-    if (run.status !== "pending")
-      throw new ConvexError({
-        code: "CONFLICT",
-        message: "Run already finished",
-      });
-    measurement(result.latencyMs);
-    measurement(result.costUsd);
-    if (result.status === "failed") {
-      bounded(result.error, 2000);
-      await ctx.db.patch(runId, { ...result, finishedAt: Date.now() });
-    } else {
-      if (
-        result.suggestions.length > 100 ||
-        new Set(result.suggestions.map((s) => s.labelId)).size !==
-          result.suggestions.length
-      )
-        invalid();
-      for (const suggestion of result.suggestions) {
-        measurement(suggestion.confidence, 1);
-        requireOwned(await ctx.db.get(suggestion.labelId), item.ownerId);
-      }
-      bounded(result.category, 128);
-      if (
-        result.rankingScore !== undefined &&
-        !Number.isFinite(result.rankingScore)
-      )
-        invalid();
-      const { enrichment: content, ...record } = result;
-      if (content) {
-        if (run.kind !== "enrichment") invalid();
-        if (content.canonicalUrl) validateUrl(content.canonicalUrl);
-        bounded(content.extractedText, 200000);
-        for (const value of Object.values(content.sourceMetadata ?? {}))
-          bounded(value, 20000);
-        if ((content.imageAssets?.length ?? 0) > 20) invalid();
-        for (const asset of content.imageAssets ?? []) {
-          if (asset.kind === "external") validateUrl(asset.url);
-          // Do not expose a storage id from another Item as owned media.
-          if (asset.kind === "stored") invalid();
-        }
-      }
-      await ctx.db.patch(runId, { ...record, finishedAt: Date.now() });
-      if (content && item.pendingEnrichmentRunId === runId)
-        await ctx.db.patch(itemId, content);
-    }
-    if (run.kind === "enrichment" && item.pendingEnrichmentRunId === runId) {
-      await ctx.db.patch(itemId, {
-        enrichmentStatus: result.status,
-        pendingEnrichmentRunId: undefined,
-        updatedAt: Date.now(),
-      });
-    }
+  handler: async (ctx, args) => {
+    await finishRun(ctx, args);
     return null;
   },
 });
+
+/** Shared by `finish` and `decisions.complete`, so both validate identically. */
+export async function finishRun(
+  ctx: MutationCtx,
+  {
+    runId,
+    itemId,
+    result,
+  }: {
+    runId: Id<"processingRuns">;
+    itemId: Id<"items">;
+    result: Infer<typeof finishResult>;
+  },
+) {
+  const item = await workerItem(ctx, itemId);
+  const run = requireOwned(await ctx.db.get(runId), item.ownerId);
+  if (run.itemId !== itemId)
+    throw new ConvexError({ code: "NOT_FOUND", message: "Not found" });
+  if (run.status !== "pending")
+    throw new ConvexError({
+      code: "CONFLICT",
+      message: "Run already finished",
+    });
+  measurement(result.latencyMs);
+  measurement(result.costUsd);
+  if (result.status === "failed") {
+    bounded(result.error, 2000);
+    await ctx.db.patch(runId, { ...result, finishedAt: Date.now() });
+  } else {
+    if (
+      result.suggestions.length > 100 ||
+      new Set(result.suggestions.map((s) => s.labelId)).size !==
+        result.suggestions.length
+    )
+      invalid();
+    for (const suggestion of result.suggestions) {
+      measurement(suggestion.confidence, 1);
+      requireOwned(await ctx.db.get(suggestion.labelId), item.ownerId);
+    }
+    bounded(result.category, 128);
+    if (
+      result.rankingScore !== undefined &&
+      !Number.isFinite(result.rankingScore)
+    )
+      invalid();
+    const { enrichment: content, ...record } = result;
+    if (content) {
+      if (run.kind !== "enrichment") invalid();
+      if (content.canonicalUrl) validateUrl(content.canonicalUrl);
+      bounded(content.extractedText, 200000);
+      for (const value of Object.values(content.sourceMetadata ?? {}))
+        bounded(value, 20000);
+      if ((content.imageAssets?.length ?? 0) > 20) invalid();
+      for (const asset of content.imageAssets ?? []) {
+        if (asset.kind === "external") validateUrl(asset.url);
+        // Do not expose a storage id from another Item as owned media.
+        if (asset.kind === "stored") invalid();
+      }
+    }
+    await ctx.db.patch(runId, { ...record, finishedAt: Date.now() });
+    if (content && item.pendingEnrichmentRunId === runId)
+      await ctx.db.patch(itemId, content);
+  }
+  if (run.kind === "enrichment" && item.pendingEnrichmentRunId === runId) {
+    await ctx.db.patch(itemId, {
+      enrichmentStatus: result.status,
+      pendingEnrichmentRunId: undefined,
+      updatedAt: Date.now(),
+    });
+  }
+  return { item, run };
+}
 
 export const listForItem = query({
   args: { itemId: v.id("items"), paginationOpts: paginationOptsValidator },

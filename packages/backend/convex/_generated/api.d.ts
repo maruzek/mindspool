@@ -9,6 +9,9 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as clef from "../clef.js";
+import type * as decisionProvider from "../decisionProvider.js";
+import type * as decisions from "../decisions.js";
 import type * as identity from "../identity.js";
 import type * as itemLabels from "../itemLabels.js";
 import type * as items from "../items.js";
@@ -26,6 +29,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  clef: typeof clef;
+  decisionProvider: typeof decisionProvider;
+  decisions: typeof decisions;
   identity: typeof identity;
   itemLabels: typeof itemLabels;
   items: typeof items;

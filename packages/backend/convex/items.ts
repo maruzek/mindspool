@@ -2,6 +2,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
+import { UNSURE_THRESHOLD } from "./decisionProvider";
+import { startDecision } from "./decisions";
 import type { Doc } from "./_generated/dataModel";
 import {
   captureSource,
@@ -44,7 +46,7 @@ export const create = mutation({
       }
       return existing._id;
     }
-    return ctx.db.insert("items", {
+    const itemId = await ctx.db.insert("items", {
       ...args,
       ownerId,
       ...(args.inputType === "url" ? { originalUrl: args.originalInput } : {}),
@@ -53,6 +55,18 @@ export const create = mutation({
       imageAssets: [],
       updatedAt: Date.now(),
     });
+    // Best effort: a labeling problem must never fail the save.
+    try {
+      const hasLabel = await ctx.db
+        .query("labels")
+        .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+        .first();
+      const item = await ctx.db.get(itemId);
+      if (hasLabel && item) await startDecision(ctx, item, "clef-flash");
+    } catch {
+      // Swallowed on purpose.
+    }
+    return itemId;
   },
 });
 
@@ -148,6 +162,16 @@ export const list = query({
 
 export const PREVIEW_PAGE_SIZE = 10;
 const PREVIEW_LABELS = 3;
+const PREVIEW_RUNS = 3;
+
+function isUnsure(link: Doc<"itemLabels">) {
+  return (
+    link.origin === "model" &&
+    link.confirmedAt === undefined &&
+    link.confidence !== undefined &&
+    link.confidence < UNSURE_THRESHOLD
+  );
+}
 
 function previewItem(item: Doc<"items">) {
   return {
@@ -167,7 +191,7 @@ function previewItem(item: Doc<"items">) {
 }
 
 // A page holds at most PREVIEW_PAGE_SIZE Items; each reads at most 4 included
-// links (the fourth only proves overflow) and 3 Label documents.
+// links (the fourth only proves overflow), 3 Label documents and 3 runs.
 export async function previewItems(
   ctx: QueryCtx,
   ownerId: string,
@@ -185,14 +209,41 @@ export async function previewItems(
         )
         .take(PREVIEW_LABELS + 1);
       const found = await Promise.all(
-        links.slice(0, PREVIEW_LABELS).map((link) => ctx.db.get(link.labelId)),
+        links.slice(0, PREVIEW_LABELS).map(async (link) => ({
+          link,
+          label: await ctx.db.get(link.labelId),
+        })),
       );
-      const labels = found.flatMap((label) =>
+      const labels = found.flatMap(({ link, label }) =>
         label && label.ownerId === ownerId
-          ? [{ _id: label._id, name: label.name }]
+          ? [
+              {
+                _id: label._id,
+                name: label.name,
+                ...(isUnsure(link) && { unsure: true }),
+              },
+            ]
           : [],
       );
-      return { ...previewItem(item), labels, labelCount: links.length };
+      const unsureCount = links.filter(isUnsure).length;
+      // A few recent runs are enough to tell whether labeling is in flight.
+      const runs = await ctx.db
+        .query("processingRuns")
+        .withIndex("by_owner_item", (q) =>
+          q.eq("ownerId", ownerId).eq("itemId", item._id),
+        )
+        .order("desc")
+        .take(PREVIEW_RUNS);
+      const labeling = runs.some(
+        (run) => run.kind === "decision" && run.status === "pending",
+      );
+      return {
+        ...previewItem(item),
+        labels,
+        labelCount: links.length,
+        ...(unsureCount > 0 && { unsureCount }),
+        ...(labeling && { labeling }),
+      };
     }),
   );
 }

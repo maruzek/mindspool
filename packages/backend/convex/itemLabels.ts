@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { requireOwned, requireOwner } from "./auth";
 import { PREVIEW_PAGE_SIZE, previewItems } from "./items";
 import {
+  itemLabelFields,
   itemPreview,
   labelDoc,
   paginationOptsValidator,
@@ -16,6 +17,13 @@ function clampPage<T extends { numItems: number }>(opts: T): T {
   return { ...opts, numItems: Math.min(opts.numItems, PREVIEW_PAGE_SIZE) };
 }
 
+const attribution = {
+  origin: itemLabelFields.origin,
+  provider: itemLabelFields.provider,
+  model: itemLabelFields.model,
+  confidence: itemLabelFields.confidence,
+  confirmedAt: itemLabelFields.confirmedAt,
+};
 const pair = { itemId: v.id("items"), labelId: v.id("labels") };
 async function decide(
   ctx: MutationCtx,
@@ -40,7 +48,17 @@ async function decide(
       updatedAt: Date.now(),
     });
   else if (existing.manualDecision !== manualDecision)
-    await ctx.db.patch(existing._id, { manualDecision, updatedAt: Date.now() });
+    // A user decision replaces any model attribution on the row.
+    await ctx.db.patch(existing._id, {
+      manualDecision,
+      updatedAt: Date.now(),
+      origin: "manual",
+      provider: undefined,
+      model: undefined,
+      confidence: undefined,
+      runId: undefined,
+      confirmedAt: undefined,
+    });
   return null;
 }
 export const attach = mutation({
@@ -54,9 +72,35 @@ export const remove = mutation({
   handler: (ctx, args) => decide(ctx, args, "exclude"),
 });
 
+/** Keep: confirms the caller's own model label; attribution is retained. */
+export const confirm = mutation({
+  args: pair,
+  returns: v.null(),
+  handler: async (ctx, { itemId, labelId }) => {
+    const ownerId = await requireOwner(ctx);
+    requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(await ctx.db.get(labelId), ownerId);
+    const link = await ctx.db
+      .query("itemLabels")
+      .withIndex("by_owner_pair", (q) =>
+        q.eq("ownerId", ownerId).eq("itemId", itemId).eq("labelId", labelId),
+      )
+      .unique();
+    if (
+      link?.origin === "model" &&
+      link.manualDecision === "include" &&
+      link.confirmedAt === undefined
+    )
+      await ctx.db.patch(link._id, { confirmedAt: Date.now() });
+    return null;
+  },
+});
+
 export const listForItem = query({
   args: { itemId: v.id("items"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(labelDoc),
+  returns: paginationResultValidator(
+    v.object({ ...labelDoc.fields, ...attribution }),
+  ),
   handler: async (ctx, { itemId, paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
     requireOwned(await ctx.db.get(itemId), ownerId);
@@ -73,9 +117,18 @@ export const listForItem = query({
     return {
       ...page,
       page: await Promise.all(
-        page.page.map(async (link) =>
-          requireOwned(await ctx.db.get(link.labelId), ownerId),
-        ),
+        page.page.map(async (link) => ({
+          ...requireOwned(await ctx.db.get(link.labelId), ownerId),
+          ...(link.origin && { origin: link.origin }),
+          ...(link.provider && { provider: link.provider }),
+          ...(link.model !== undefined && { model: link.model }),
+          ...(link.confidence !== undefined && {
+            confidence: link.confidence,
+          }),
+          ...(link.confirmedAt !== undefined && {
+            confirmedAt: link.confirmedAt,
+          }),
+        })),
       ),
     };
   },

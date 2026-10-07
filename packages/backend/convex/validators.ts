@@ -72,8 +72,19 @@ export const itemPreview = v.object({
   enrichmentStatus: itemFields.enrichmentStatus,
   captureSource,
   originalUrl: v.optional(v.string()),
-  labels: v.array(v.object({ _id: v.id("labels"), name: v.string() })),
+  labels: v.array(
+    v.object({
+      _id: v.id("labels"),
+      name: v.string(),
+      /** A model label the owner has not confirmed, below the confident threshold. */
+      unsure: v.optional(v.boolean()),
+    }),
+  ),
   labelCount: v.number(),
+  /** Unsure labels among the (at most four) links read for this preview. */
+  unsureCount: v.optional(v.number()),
+  /** A decision run is pending. */
+  labeling: v.optional(v.boolean()),
 });
 export const itemDetail = v.object({
   _id: v.id("items"),
@@ -87,10 +98,12 @@ export const itemDetail = v.object({
   sourceMetadata: itemFields.sourceMetadata,
 });
 export const itemPage = paginationResultValidator(itemPreview);
+export const LABEL_DESCRIPTION_MAX = 500;
 export const labelFields = {
   ownerId: v.string(),
   name: v.string(),
   normalizedName: v.string(),
+  description: v.optional(v.string()),
 };
 export const labelDoc = v.object({
   _id: v.id("labels"),
@@ -108,6 +121,26 @@ export const suggestion = v.object({
   labelId: v.id("labels"),
   confidence: v.optional(v.number()),
 });
+export const decisionProvider = v.union(
+  v.literal("jev"),
+  v.literal("clef"),
+  v.literal("clef-flash"),
+  v.literal("openai-decisions"),
+);
+export const itemLabelFields = {
+  ownerId: v.string(),
+  itemId: v.id("items"),
+  labelId: v.id("labels"),
+  manualDecision: v.union(v.literal("include"), v.literal("exclude")),
+  updatedAt: v.number(),
+  // Model attribution; absent origin means manual.
+  origin: v.optional(v.union(v.literal("manual"), v.literal("model"))),
+  provider: v.optional(decisionProvider),
+  model: v.optional(v.string()),
+  confidence: v.optional(v.number()),
+  runId: v.optional(v.id("processingRuns")),
+  confirmedAt: v.optional(v.number()),
+};
 export const runFields = {
   ownerId: v.string(),
   itemId: v.id("items"),
@@ -117,14 +150,7 @@ export const runFields = {
     v.literal("succeeded"),
     v.literal("failed"),
   ),
-  provider: v.optional(
-    v.union(
-      v.literal("jev"),
-      v.literal("clef"),
-      v.literal("clef-flash"),
-      v.literal("openai-decisions"),
-    ),
-  ),
+  provider: v.optional(decisionProvider),
   model: v.optional(v.string()),
   modality: v.union(
     v.literal("text"),
@@ -134,6 +160,8 @@ export const runFields = {
   questionVersion: v.string(),
   rubricVersion: v.optional(v.string()),
   suggestions: v.array(suggestion),
+  labelsAsked: v.optional(v.number()),
+  labelsTotal: v.optional(v.number()),
   category: v.optional(v.string()),
   rankingScore: v.optional(v.number()),
   error: v.optional(v.string()),

@@ -1,17 +1,30 @@
 import { paginationResultValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireOwner } from "./auth";
+import { requireOwned, requireOwner } from "./auth";
 import {
+  LABEL_DESCRIPTION_MAX,
   labelDoc,
   paginationOptsValidator,
   validatePagination,
 } from "./validators";
 
+/** Trimmed description, or undefined to clear; blank-but-not-empty is invalid. */
+function cleanDescription(input: string | undefined) {
+  if (input === undefined || input === "") return undefined;
+  const description = input.trim();
+  if (!description || description.length > LABEL_DESCRIPTION_MAX)
+    throw new ConvexError({
+      code: "INVALID_INPUT",
+      message: "Invalid label description",
+    });
+  return description;
+}
+
 export const create = mutation({
-  args: { name: v.string() },
+  args: { name: v.string(), description: v.optional(v.string()) },
   returns: v.id("labels"),
-  handler: async (ctx, { name: input }) => {
+  handler: async (ctx, { name: input, description: rawDescription }) => {
     const ownerId = await requireOwner(ctx);
     const name = input.trim();
     if (!name || name.length > 80)
@@ -19,6 +32,7 @@ export const create = mutation({
         code: "INVALID_INPUT",
         message: "Invalid label name",
       });
+    const description = cleanDescription(rawDescription);
     const normalizedName = name.toLowerCase();
     const existing = await ctx.db
       .query("labels")
@@ -28,8 +42,24 @@ export const create = mutation({
       .unique();
     return (
       existing?._id ??
-      ctx.db.insert("labels", { ownerId, name, normalizedName })
+      ctx.db.insert("labels", {
+        ownerId,
+        name,
+        normalizedName,
+        ...(description && { description }),
+      })
     );
+  },
+});
+
+export const update = mutation({
+  args: { id: v.id("labels"), description: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { id, description }) => {
+    const ownerId = await requireOwner(ctx);
+    requireOwned(await ctx.db.get(id), ownerId);
+    await ctx.db.patch(id, { description: cleanDescription(description) });
+    return null;
   },
 });
 

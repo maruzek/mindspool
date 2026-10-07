@@ -89,3 +89,55 @@ describe("owned Labels", () => {
     );
   });
 });
+
+describe("Label descriptions", () => {
+  it("creates with a trimmed description and clears with an empty one", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const id = await alice.mutation(api.labels.create, {
+      name: "Recipes",
+      description: "  Cooking  ",
+    });
+    expect(await alice.query(api.labels.get, { id })).toMatchObject({
+      description: "Cooking",
+    });
+    await alice.mutation(api.labels.update, { id, description: "Food" });
+    expect(await alice.query(api.labels.get, { id })).toMatchObject({
+      description: "Food",
+    });
+    await alice.mutation(api.labels.update, { id, description: "" });
+    expect((await alice.query(api.labels.get, { id }))?.description).toBe(
+      undefined,
+    );
+  });
+
+  it("rejects blank and oversized descriptions", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const id = await alice.mutation(api.labels.create, { name: "Recipes" });
+    for (const description of ["   ", "a".repeat(501)]) {
+      await expect(
+        alice.mutation(api.labels.update, { id, description }),
+      ).rejects.toThrow("Invalid label description");
+      await expect(
+        alice.mutation(api.labels.create, { name: "Other", description }),
+      ).rejects.toThrow("Invalid label description");
+    }
+    await alice.mutation(api.labels.update, {
+      id,
+      description: "a".repeat(500),
+    });
+  });
+
+  it("does not update another owner's label", async () => {
+    const t = convexTest(schema, modules);
+    const id = await t
+      .withIdentity({ subject: "alice" })
+      .mutation(api.labels.create, { name: "Recipes" });
+    await expect(
+      t
+        .withIdentity({ subject: "bob" })
+        .mutation(api.labels.update, { id, description: "x" }),
+    ).rejects.toThrow("Not found");
+  });
+});
