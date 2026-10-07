@@ -76,10 +76,11 @@ The web app runs at `http://localhost:5173`. App shells build without credential
 | `pnpm dev:mobile`                                  | Start Metro for an Expo development build                                  |
 | `pnpm --filter @mindspool/mobile android`          | Build and launch Android locally (requires Android SDK/device or emulator) |
 | `pnpm dev:extension`                               | Start WXT for Chrome development                                           |
+| `pnpm --filter @mindspool/extension dev:firefox`   | Start WXT for Firefox (only when no other Firefox is open)                 |
 | `pnpm dev:backend`                                 | Start Convex development after initialization                              |
 | `pnpm typecheck`                                   | Typecheck all source workspaces                                            |
 | `pnpm build`                                       | Bundle web, extension, and Android JavaScript (not a native APK)           |
-| `pnpm --filter @mindspool/extension build:firefox` | Check Firefox bundle compatibility                                         |
+| `pnpm --filter @mindspool/extension build:firefox` | Build the Firefox (MV3) bundle to load by hand                             |
 | `pnpm format`                                      | Format application/configuration/docs files                                |
 | `pnpm check`                                       | Run formatting, backend/web tests, typechecking, and builds                |
 
@@ -89,7 +90,9 @@ Use one Clerk development instance for all apps. Copy each app's `.env.example` 
 
 - **Web:** Set `VITE_CLERK_PUBLISHABLE_KEY` in `apps/web/.env.local`. Sign-in, account creation, and profile controls use Clerk's prebuilt UI.
 - **Mobile:** Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in `apps/mobile/.env.local`. Enable the Native API in the Clerk dashboard and configure the intended sign-in methods. Clerk's native UI uses the SDK's secure token cache and requires a development build; it cannot run in Expo Go. Native components are experimental/beta, so verify a real sign-in and session persistence on a device before relying on them.
-- **Chrome extension:** Set `WXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `WXT_PUBLIC_CLERK_FRONTEND_API` (the HTTPS Frontend API origin), and `CLERK_EXTENSION_PUBLIC_KEY` in `apps/extension/.env.local`. Use a stable public extension key and register its `chrome-extension://<id>` origin with Clerk. The popup uses Clerk's extension SDK; OAuth/SAML synchronization with the web app is a later integration. Firefox compilation does not verify that the Chrome-specific Clerk SDK authenticates on Firefox.
+- **Browser extension:** Set `WXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `WXT_PUBLIC_CLERK_FRONTEND_API` (the full `https://` Frontend API URL) and `WXT_PUBLIC_CONVEX_URL` in `apps/extension/.env.local`; `WXT_PUBLIC_WEB_URL` (the popup's link, default `http://localhost:5173`) and `CLERK_EXTENSION_PUBLIC_KEY` (a stable Chrome extension id) are optional. Firefox uses the fixed add-on id `clipper@mindspool.local`. The popup signs in with Clerk's extension SDK; OAuth/SAML synchronization with the web app is a later integration.
+
+  **Clipping from X (Firefox):** a content script adds a Clip button to each tweet on x.com; the background script sends the tweet to `items.create`, and the library shows it as an X link with the tweet text and images in the inspector. The Convex deployment must include the `items.create` fields `sourceMetadata`, `extractedText` and `imageAssets`. To load it, run `pnpm --filter @mindspool/extension build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on…** and pick `apps/extension/.output/firefox-mv3/manifest.json` (not the `-dev` folder). It is removed when Firefox restarts. Sign in through the popup first. See [the verification report](docs/verification/extension-clipper.md) for what has and has not been checked.
 
 Initialize the backend from its workspace:
 
