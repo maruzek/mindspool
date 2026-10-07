@@ -6,6 +6,20 @@ export type Send = (request: ClipRequest) => Promise<ClipResponse>;
 
 const MARK = "data-mindspool-clip";
 const RESET_MS = 3000;
+// Modernist tokens (see packages/ui globals.css), inline because X's page CSS can't be relied on.
+const ACCENT = "#5b2fc9";
+const HOVER_BG = "#4e25b0";
+const BUTTON_STYLE = [
+  'font:800 13px/1 "Archivo",system-ui,sans-serif',
+  "color:#fff",
+  `background:${ACCENT}`,
+  "border:0",
+  "border-radius:0",
+  "padding:7px 12px",
+  "margin-left:8px",
+  "cursor:pointer",
+  "box-shadow:2px 2px 0 #a78be6",
+].join(";");
 const FAILURE_TEXT: Record<ClipFailure, string> = {
   signed_out: "Sign in via the extension popup",
   invalid: "This tweet can't be clipped",
@@ -19,8 +33,13 @@ function makeButton(article: Element, send: Send): HTMLButtonElement {
   button.setAttribute(MARK, "");
   button.title = "Clip to MindSpool";
   button.setAttribute("aria-live", "polite");
-  button.style.cssText =
-    "font:inherit;font-size:13px;color:inherit;background:none;border:0;padding:0 8px;cursor:pointer;";
+  button.style.cssText = BUTTON_STYLE;
+  button.addEventListener("mouseenter", () => {
+    button.style.background = HOVER_BG;
+  });
+  button.addEventListener("mouseleave", () => {
+    button.style.background = ACCENT;
+  });
   let timer: ReturnType<typeof setTimeout> | undefined;
   let busy = false;
 
