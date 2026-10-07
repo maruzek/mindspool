@@ -237,7 +237,7 @@ describe("processing history and manual decisions", () => {
     ).rejects.toThrow("Authentication required");
     await expect(
       bob.query(api.processingRuns.listForItem, { itemId, paginationOpts }),
-    ).rejects.toThrow("Not found");
+    ).resolves.toMatchObject({ page: [], isDone: true });
     expect(
       (
         await alice.query(api.processingRuns.listForItem, {

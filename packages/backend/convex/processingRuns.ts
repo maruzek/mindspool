@@ -199,8 +199,12 @@ export const listForItem = query({
   ),
   handler: async (ctx, { itemId, paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
-    requireOwned(await ctx.db.get(itemId), ownerId);
     validatePagination(paginationOpts);
+    // A deleted or foreign item reads as empty so a live subscription
+    // outliving the item does not throw.
+    const item = await ctx.db.get(itemId);
+    if (!item || item.ownerId !== ownerId)
+      return { page: [], isDone: true, continueCursor: "" };
     const page = await ctx.db
       .query("processingRuns")
       .withIndex("by_owner_item", (q) =>

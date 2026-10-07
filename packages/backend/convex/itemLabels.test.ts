@@ -180,7 +180,7 @@ describe("item-label membership", () => {
     }
     await expect(
       bob.query(api.itemLabels.listForItem, { itemId, paginationOpts }),
-    ).rejects.toThrow("Not found");
+    ).resolves.toMatchObject({ page: [], isDone: true });
     await expect(
       bob.query(api.itemLabels.listItemsForLabel, { labelId, paginationOpts }),
     ).rejects.toThrow("Not found");
