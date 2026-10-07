@@ -6,25 +6,31 @@
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
-    "build:firefox": "wxt build -b firefox",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "dev:firefox": "wxt -b firefox --mv3",
     "typecheck": "wxt prepare && tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@clerk/chrome-extension": "3.1.90",
-    "@mindspool/ui": "workspace:*",
+    "@mindspool/backend": "workspace:*",
     "@mindspool/schema": "workspace:*",
+    "@mindspool/ui": "workspace:*",
+    "convex": "1.46.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@mindspool/typescript-config": "workspace:*",
+    "@types/node": "26.6.4",
     "@types/react": "19.2.4",
     "@types/react-dom": "19.2.7",
-    "@types/node": "26.6.4",
     "@wxt-dev/module-react": "1.2.2",
+    "jsdom": "29.0.1",
     "typescript": "6.0.3",
     "vite": "8.3.2",
+    "vitest": "5.0.3",
     "wxt": "0.21.4"
   }
 }

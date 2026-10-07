@@ -15,7 +15,7 @@
     "dev:backend": "pnpm --filter @mindspool/backend dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "test": "pnpm --filter @mindspool/backend test && pnpm --filter @mindspool/web test",
+    "test": "pnpm --filter @mindspool/backend test && pnpm --filter @mindspool/web test && pnpm --filter @mindspool/extension test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm format:check && pnpm test && pnpm typecheck && pnpm build"

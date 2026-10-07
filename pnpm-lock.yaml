@@ -209,12 +209,18 @@ importers:
       '@clerk/chrome-extension':
         specifier: 3.1.90
         version: 3.1.90(@types/react@19.2.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(typescript@6.0.3)(use-sync-external-store@1.7.0(react@19.2.3))(zod@3.25.76)
+      '@mindspool/backend':
+        specifier: workspace:*
+        version: link:../../packages/backend
       '@mindspool/schema':
         specifier: workspace:*
         version: link:../../packages/schema
       '@mindspool/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      convex:
+        specifier: 1.46.0
+        version: 1.46.0(@clerk/react@6.17.5(react@19.2.3))(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -237,12 +243,18 @@ importers:
       '@wxt-dev/module-react':
         specifier: 1.2.2
         version: 1.2.2(babel-plugin-react-compiler@1.0.0)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.0)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(wxt@0.21.4(esbuild@0.27.0)(rolldown@1.2.12)(typescript@6.0.3)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.0)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)))
+      jsdom:
+        specifier: 29.0.1
+        version: 29.0.1(@noble/hashes@1.8.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
       vite:
         specifier: 8.3.2
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.27.0)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)
+      vitest:
+        specifier: 5.0.3
+        version: 5.0.3(@edge-runtime/vm@5.0.0)(@types/node@26.6.4)(jsdom@29.0.1(@noble/hashes@1.8.0))(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.0)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
       wxt:
         specifier: 0.21.4
         version: 0.21.4(esbuild@0.27.0)(rolldown@1.2.12)(typescript@6.0.3)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.0)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))

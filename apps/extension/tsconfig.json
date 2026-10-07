@@ -8,5 +8,12 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
-  "include": ["entrypoints", "wxt.config.ts", "env.d.ts", ".wxt/wxt.d.ts"]
+  "include": [
+    "entrypoints",
+    "src",
+    "vitest.config.ts",
+    "wxt.config.ts",
+    "env.d.ts",
+    ".wxt/wxt.d.ts"
+  ]
 }
