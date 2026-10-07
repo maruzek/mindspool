@@ -7,9 +7,11 @@ import { requireOwned, requireOwner } from "./auth";
 import {
   LABEL_THRESHOLD,
   QUESTION_VERSION,
+  UNSURE_THRESHOLD,
   selectLabels,
 } from "./decisionProvider";
 import type { ClefProvider } from "./decisionProvider";
+import { linkSearchFields, refreshItemState } from "./itemState";
 import { finishRun } from "./processingRuns";
 
 export const clefProvider = v.union(v.literal("clef"), v.literal("clef-flash"));
@@ -46,6 +48,7 @@ export async function startDecision(
     itemId: item._id,
     provider,
   });
+  await refreshItemState(ctx, item._id);
   return runId;
 }
 
@@ -171,8 +174,11 @@ export const complete = internalMutation({
         model: model ?? run.model,
         confidence,
         runId,
+        ...linkSearchFields(item),
+        unsure: confidence < UNSURE_THRESHOLD,
       });
     }
+    await refreshItemState(ctx, itemId);
     return null;
   },
 });

@@ -5,6 +5,7 @@ import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireOwned, requireOwner } from "./auth";
+import { refreshItemState } from "./itemState";
 import {
   enrichment,
   labelDoc,
@@ -67,6 +68,7 @@ export const start = internalMutation({
         enrichmentStatus: "pending",
         updatedAt: Date.now(),
       });
+    await refreshItemState(ctx, item._id);
     return runId;
   },
 });
@@ -172,6 +174,7 @@ export async function finishRun(
       updatedAt: Date.now(),
     });
   }
+  await refreshItemState(ctx, itemId);
   return { item, run };
 }
 

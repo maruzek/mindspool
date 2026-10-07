@@ -1,4 +1,6 @@
 import { convexTest } from "convex-test";
+import type { TestConvex } from "convex-test";
+import type { Id } from "./_generated/dataModel";
 import { describe, expect, it } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
@@ -445,5 +447,75 @@ describe("labeling state in previews", () => {
     const kept = await list();
     expect(kept.unsureCount).toBeUndefined();
     expect(kept.labels.every((l) => l.unsure === undefined)).toBe(true);
+  });
+});
+
+describe("denormalized search state", () => {
+  // Owner ids are token identifiers ("<issuer>|<subject>"), so match on the subject.
+  const stats = async (t: TestConvex<typeof schema>, subject: string) =>
+    (await t.run((ctx) => ctx.db.query("ownerStats").collect())).find((row) =>
+      row.ownerId.endsWith(`|${subject}`),
+    ) ?? null;
+  const row = (t: TestConvex<typeof schema>, id: Id<"items">) =>
+    t.run((ctx) => ctx.db.get(id));
+
+  it("sets source, search text and inbox on a new item and counts it", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const id = await alice.mutation(api.items.create, {
+      ...capture,
+      originalInput: "https://www.youtube.com/watch?v=1",
+    });
+    expect(await row(t, id)).toMatchObject({
+      sourceKind: "youtube",
+      searchText: "https://www.youtube.com/watch?v=1",
+      inbox: true,
+    });
+    expect(await stats(t, "alice")).toMatchObject({
+      total: 1,
+      inbox: 1,
+      needsReview: 0,
+    });
+  });
+  it("classifies a note as a note", async () => {
+    const t = convexTest(schema, modules);
+    const id = await t
+      .withIdentity({ subject: "alice" })
+      .mutation(api.items.create, {
+        ...capture,
+        inputType: "text",
+        originalInput: "buy milk",
+      });
+    expect(await row(t, id)).toMatchObject({
+      sourceKind: "note",
+      searchText: "buy milk",
+    });
+  });
+  it("does not count a replayed capture twice", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    await alice.mutation(api.items.create, capture);
+    await alice.mutation(api.items.create, capture);
+    expect(await stats(t, "alice")).toMatchObject({ total: 1, inbox: 1 });
+  });
+  it("restores the counts when the item is deleted", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    await alice.mutation(api.items.create, { ...capture, captureKey: "keep" });
+    const id = await alice.mutation(api.items.create, capture);
+    expect(await stats(t, "alice")).toMatchObject({ total: 2, inbox: 2 });
+    await alice.mutation(api.items.remove, { id });
+    expect(await stats(t, "alice")).toMatchObject({ total: 1, inbox: 1 });
+  });
+  it("never touches another owner's stats", async () => {
+    const t = convexTest(schema, modules);
+    await t
+      .withIdentity({ subject: "alice" })
+      .mutation(api.items.create, capture);
+    await t
+      .withIdentity({ subject: "bob" })
+      .mutation(api.items.create, { ...capture, captureKey: "b" });
+    expect(await stats(t, "alice")).toMatchObject({ total: 1 });
+    expect(await stats(t, "bob")).toMatchObject({ total: 1 });
   });
 });

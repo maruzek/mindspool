@@ -30,6 +30,15 @@ export const asset = v.union(
     ),
   }),
 );
+export const sourceKind = v.union(
+  v.literal("x"),
+  v.literal("instagram"),
+  v.literal("tiktok"),
+  v.literal("youtube"),
+  v.literal("reddit"),
+  v.literal("web"),
+  v.literal("note"),
+);
 export const itemFields = {
   ownerId: v.string(),
   captureKey: v.string(),
@@ -57,6 +66,12 @@ export const itemFields = {
   imageAssets: v.array(asset),
   updatedAt: v.number(),
   pendingEnrichmentRunId: v.optional(v.id("processingRuns")),
+  // Denormalized for search and filters; written only by itemState.ts.
+  // Absent on items saved before these existed (flags absent = false).
+  searchText: v.optional(v.string()),
+  sourceKind: v.optional(sourceKind),
+  needsReview: v.optional(v.boolean()),
+  inbox: v.optional(v.boolean()),
 };
 export const itemDoc = v.object({
   _id: v.id("items"),
@@ -140,6 +155,17 @@ export const itemLabelFields = {
   confidence: v.optional(v.number()),
   runId: v.optional(v.id("processingRuns")),
   confirmedAt: v.optional(v.number()),
+  // Denormalized from the item (and the link's own state) so label-scoped
+  // search and filters stay bounded; written only by itemState.ts.
+  sourceKind: v.optional(sourceKind),
+  unsure: v.optional(v.boolean()),
+  searchText: v.optional(v.string()),
+};
+export const ownerStatsFields = {
+  ownerId: v.string(),
+  total: v.number(),
+  inbox: v.number(),
+  needsReview: v.number(),
 };
 export const runFields = {
   ownerId: v.string(),
@@ -221,4 +247,23 @@ export function validateUrl(value: string) {
   ) {
     throw new ConvexError({ code: "INVALID_INPUT", message: "Invalid URL" });
   }
+}
+
+const MAX_QUERY_CHARS = 200;
+// Convex rejects search expressions with more than 16 terms.
+const MAX_QUERY_TERMS = 16;
+
+/** Throws INVALID_INPUT for a query Convex search would reject or that is blank. */
+export function validateSearchQuery(raw: string) {
+  const query = raw.trim();
+  if (
+    !query ||
+    query.length > MAX_QUERY_CHARS ||
+    query.split(/\s+/).length > MAX_QUERY_TERMS
+  )
+    throw new ConvexError({
+      code: "INVALID_INPUT",
+      message: `Search must be 1 to ${MAX_QUERY_CHARS} characters and at most ${MAX_QUERY_TERMS} words`,
+    });
+  return query;
 }

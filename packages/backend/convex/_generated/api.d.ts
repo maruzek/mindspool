@@ -14,6 +14,7 @@ import type * as decisionProvider from "../decisionProvider.js";
 import type * as decisions from "../decisions.js";
 import type * as identity from "../identity.js";
 import type * as itemLabels from "../itemLabels.js";
+import type * as itemState from "../itemState.js";
 import type * as items from "../items.js";
 import type * as labels from "../labels.js";
 import type * as processingRuns from "../processingRuns.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   decisions: typeof decisions;
   identity: typeof identity;
   itemLabels: typeof itemLabels;
+  itemState: typeof itemState;
   items: typeof items;
   labels: typeof labels;
   processingRuns: typeof processingRuns;

@@ -1,16 +1,19 @@
 import { paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { requireOwned, requireOwner } from "./auth";
 import { PREVIEW_PAGE_SIZE, previewItems } from "./items";
+import { linkSearchFields, refreshItemState } from "./itemState";
 import {
   itemLabelFields,
   itemPreview,
   labelDoc,
   paginationOptsValidator,
+  sourceKind,
   validatePagination,
+  validateSearchQuery,
 } from "./validators";
 
 function clampPage<T extends { numItems: number }>(opts: T): T {
@@ -31,7 +34,7 @@ async function decide(
   manualDecision: "include" | "exclude",
 ) {
   const ownerId = await requireOwner(ctx);
-  requireOwned(await ctx.db.get(itemId), ownerId);
+  const item = requireOwned(await ctx.db.get(itemId), ownerId);
   requireOwned(await ctx.db.get(labelId), ownerId);
   const existing = await ctx.db
     .query("itemLabels")
@@ -46,6 +49,8 @@ async function decide(
       labelId,
       manualDecision,
       updatedAt: Date.now(),
+      ...linkSearchFields(item),
+      unsure: false,
     });
   else if (existing.manualDecision !== manualDecision)
     // A user decision replaces any model attribution on the row.
@@ -58,7 +63,10 @@ async function decide(
       confidence: undefined,
       runId: undefined,
       confirmedAt: undefined,
+      ...linkSearchFields(item),
+      unsure: false,
     });
+  await refreshItemState(ctx, itemId);
   return null;
 }
 export const attach = mutation({
@@ -91,7 +99,8 @@ export const confirm = mutation({
       link.manualDecision === "include" &&
       link.confirmedAt === undefined
     )
-      await ctx.db.patch(link._id, { confirmedAt: Date.now() });
+      await ctx.db.patch(link._id, { confirmedAt: Date.now(), unsure: false });
+    await refreshItemState(ctx, itemId);
     return null;
   },
 });
@@ -134,33 +143,115 @@ export const listForItem = query({
   },
 });
 
+/** `false` and absent both mean "no filter". In a label, needs review is this label's own link being unsure. */
+const labelFilterArgs = {
+  source: v.optional(sourceKind),
+  needsReview: v.optional(v.boolean()),
+};
+
+async function itemsOfLinks(
+  ctx: QueryCtx,
+  ownerId: string,
+  links: Doc<"itemLabels">[],
+) {
+  const items = await Promise.all(
+    links.map(async (link) =>
+      requireOwned(await ctx.db.get(link.itemId), ownerId),
+    ),
+  );
+  return previewItems(ctx, ownerId, items);
+}
+
 export const listItemsForLabel = query({
-  args: { labelId: v.id("labels"), paginationOpts: paginationOptsValidator },
+  args: {
+    labelId: v.id("labels"),
+    paginationOpts: paginationOptsValidator,
+    ...labelFilterArgs,
+  },
   returns: paginationResultValidator(itemPreview),
-  handler: async (ctx, { labelId, paginationOpts }) => {
+  handler: async (ctx, { labelId, paginationOpts, source, needsReview }) => {
     const ownerId = await requireOwner(ctx);
     requireOwned(await ctx.db.get(labelId), ownerId);
     validatePagination(paginationOpts);
-    const page = await ctx.db
-      .query("itemLabels")
-      .withIndex("by_owner_label_decision", (q) =>
-        q
-          .eq("ownerId", ownerId)
-          .eq("labelId", labelId)
-          .eq("manualDecision", "include"),
-      )
+    const links = ctx.db.query("itemLabels");
+    const page = await (
+      needsReview
+        ? source
+          ? links.withIndex("by_owner_label_unsure_source", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("labelId", labelId)
+                .eq("manualDecision", "include")
+                .eq("unsure", true)
+                .eq("sourceKind", source),
+            )
+          : links.withIndex("by_owner_label_unsure", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("labelId", labelId)
+                .eq("manualDecision", "include")
+                .eq("unsure", true),
+            )
+        : source
+          ? links.withIndex("by_owner_label_source", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("labelId", labelId)
+                .eq("manualDecision", "include")
+                .eq("sourceKind", source),
+            )
+          : links.withIndex("by_owner_label_decision", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("labelId", labelId)
+                .eq("manualDecision", "include"),
+            )
+    )
       .order("desc")
       .paginate({
         ...paginationOpts,
         numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
         maximumRowsRead: PREVIEW_PAGE_SIZE,
       });
-    const items = await Promise.all(
-      page.page.map(async (link) =>
-        requireOwned(await ctx.db.get(link.itemId), ownerId),
-      ),
-    );
-    return { ...page, page: await previewItems(ctx, ownerId, items) };
+    return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
+  },
+});
+
+/** Full-text search within one label, best match first; filters are equality-only search filters. */
+export const searchItemsForLabel = query({
+  args: {
+    labelId: v.id("labels"),
+    query: v.string(),
+    paginationOpts: paginationOptsValidator,
+    ...labelFilterArgs,
+  },
+  returns: paginationResultValidator(itemPreview),
+  handler: async (
+    ctx,
+    { labelId, query: raw, paginationOpts, source, needsReview },
+  ) => {
+    const ownerId = await requireOwner(ctx);
+    requireOwned(await ctx.db.get(labelId), ownerId);
+    validatePagination(paginationOpts);
+    const text = validateSearchQuery(raw);
+    const page = await ctx.db
+      .query("itemLabels")
+      .withSearchIndex("search_link", (q) => {
+        let found = q
+          .search("searchText", text)
+          .eq("ownerId", ownerId)
+          .eq("labelId", labelId)
+          .eq("manualDecision", "include");
+        if (source) found = found.eq("sourceKind", source);
+        if (needsReview) found = found.eq("unsure", true);
+        return found;
+      })
+      .paginate({
+        ...paginationOpts,
+        numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
+        maximumRowsRead: PREVIEW_PAGE_SIZE,
+      });
+    return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
   },
 });
 
