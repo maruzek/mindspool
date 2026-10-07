@@ -21,6 +21,26 @@ export const backend = {
   /** `items.stats`; `undefined` means still loading. */
   stats: { total: 0, inbox: 0, needsReview: 0 } as
     { total: number; inbox: number; needsReview: number } | undefined,
+  /** `aiUsage.today`; `undefined` means still loading. */
+  aiUsage: {
+    used: 0,
+    limit: 9000,
+    fraction: 0,
+    resetsAt: Date.UTC(2100, 0, 1),
+    tokens: 0,
+    runs: 0,
+  } as
+    | {
+        used: number;
+        limit: number;
+        fraction: number;
+        resetsAt: number;
+        tokens: number;
+        runs: number;
+      }
+    | undefined,
+  /** Thrown by `aiUsage.today`, like a failed Convex subscription. */
+  aiUsageError: null as Error | null,
   labelItems: [] as unknown[],
   labelItemsStatus: "Exhausted" as string,
   loadMoreItems: vi.fn(),
@@ -57,6 +77,15 @@ export function resetBackend() {
   backend.searchItems = [];
   backend.labelSearchItems = [];
   backend.stats = { total: 0, inbox: 0, needsReview: 0 };
+  backend.aiUsage = {
+    used: 0,
+    limit: 9000,
+    fraction: 0,
+    resetsAt: Date.UTC(2100, 0, 1),
+    tokens: 0,
+    runs: 0,
+  };
+  backend.aiUsageError = null;
   backend.paginatedArgs = {};
   backend.itemsError = null;
   backend.detail = () => null;
@@ -107,6 +136,10 @@ export const convexMock = {
     if (args === "skip") return undefined;
     if (name === "items:detail") return backend.detail(args);
     if (name === "items:stats") return backend.stats;
+    if (name === "aiUsage:today") {
+      if (backend.aiUsageError) throw backend.aiUsageError;
+      return backend.aiUsage;
+    }
     if (name === "seed:availability") return { enabled: backend.seedEnabled };
     if (name === "labels:get") return backend.label;
     throw new Error(`Unmocked query ${name}`);

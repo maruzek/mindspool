@@ -5,14 +5,25 @@
 export const LABEL_THRESHOLD = 0.5;
 export const UNSURE_THRESHOLD = 0.65;
 export const MAX_QUESTIONS = 64;
-/** Well inside the 65,536-token hosted context window. */
-export const STATE_CHAR_BUDGET = 60000;
+/** Total characters of item content sent to the model; the cost guard on every run. */
+export const AI_INPUT_CHAR_LIMIT = 500;
 export const QUESTION_VERSION = "label-noul-v1";
 /** USD per million input tokens; output is not billed. */
 export const PRICE_PER_MILLION_INPUT_TOKENS = {
   "clef-flash": 0.09,
   clef: 0.24,
 } as const;
+
+/** Workers AI neurons per million input tokens (output is not billed). */
+export const NEURONS_PER_MILLION_INPUT_TOKENS = {
+  "clef-flash": 8182,
+  clef: 21818,
+} as const;
+/**
+ * The hosted prompt wraps every request, so even a tiny item costs ~650 input
+ * tokens (recorded runs). Added to the estimate so it never undershoots.
+ */
+export const REQUEST_OVERHEAD_TOKENS = 600;
 
 export type ClefProvider = keyof typeof PRICE_PER_MILLION_INPUT_TOKENS;
 
@@ -90,18 +101,28 @@ export function toQuestions(
 }
 
 /**
- * Item content as the model's state. Fields are added in priority order and
- * the extracted text takes whatever budget is left, so a long article never
- * pushes out the title or URL.
+ * Item content as the model's state, at most AI_INPUT_CHAR_LIMIT characters in
+ * total. Fields are added in priority order and the extracted text takes
+ * whatever budget is left, so a long article never pushes out the title or URL.
+ * A field already contained in an earlier one (a tweet's description repeating
+ * its title) is skipped rather than sent twice.
  */
 export function buildState(item: ItemInput): Record<string, unknown> {
   const meta = item.sourceMetadata ?? {};
   const state: Record<string, unknown> = {};
-  let remaining = STATE_CHAR_BUDGET;
+  const seen: string[] = [];
+  let remaining = AI_INPUT_CHAR_LIMIT;
+  let truncated = false;
   const add = (key: string, value: string | undefined) => {
     const text = value?.trim();
-    if (!text || remaining <= 0) return;
+    if (!text || seen.some((earlier) => earlier.includes(text))) return;
+    seen.push(text);
+    if (remaining <= 0) {
+      truncated = true;
+      return;
+    }
     state[key] = text.slice(0, remaining);
+    if (text.length > remaining) truncated = true;
     remaining -= text.length;
   };
   add("title", meta.title);
@@ -110,7 +131,7 @@ export function buildState(item: ItemInput): Record<string, unknown> {
   add("site", meta.siteName);
   add("url", item.canonicalUrl ?? item.originalUrl);
   add("text", item.extractedText ?? item.originalInput);
-  state.truncated = remaining < 0;
+  state.truncated = truncated;
   return state;
 }
 
@@ -178,6 +199,23 @@ export function classify(answers: Answer[]): Classification {
     else result.below.push(answer);
   }
   return result;
+}
+
+export function neuronsFor(provider: ClefProvider, inputTokens: number) {
+  return (inputTokens / 1e6) * NEURONS_PER_MILLION_INPUT_TOKENS[provider];
+}
+
+/**
+ * Upper-ish bound on a run's neurons before it happens: the serialized request
+ * at 3 characters per token (real text is nearer 4) plus the fixed overhead.
+ */
+export function estimateNeurons(
+  provider: ClefProvider,
+  state: Record<string, unknown>,
+  questions: Record<string, Question>,
+) {
+  const chars = JSON.stringify(state).length + JSON.stringify(questions).length;
+  return neuronsFor(provider, chars / 3 + REQUEST_OVERHEAD_TOKENS);
 }
 
 export function costUsd(provider: ClefProvider, inputTokens: number) {

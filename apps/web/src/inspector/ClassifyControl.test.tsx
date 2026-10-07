@@ -71,6 +71,20 @@ describe("ClassifyControl", () => {
     }
   });
 
+  it("shows the server's message for LIMIT_REACHED", async () => {
+    backend.classify.mockRejectedValue(
+      new ConvexError({
+        code: "LIMIT_REACHED",
+        message: "Daily AI limit reached",
+      }),
+    );
+    render(<ClassifyControl itemId={itemId} run={undefined} />);
+    fireEvent.click(classifyButton());
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Daily AI limit reached",
+    );
+  });
+
   it("shows the server's message for CONFLICT", async () => {
     backend.classify.mockRejectedValue(
       new ConvexError({

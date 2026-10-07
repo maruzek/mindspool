@@ -1,4 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 import {
   itemFields,
   itemLabelFields,
@@ -68,4 +69,14 @@ export default defineSchema({
       ],
     }),
   ownerStats: defineTable(ownerStatsFields).index("by_owner", ["ownerId"]),
+  /** One row per owner per UTC day: the Workers AI neurons spent and held. */
+  aiUsage: defineTable({
+    ownerId: v.string(),
+    day: v.string(),
+    neurons: v.number(),
+    reserved: v.number(),
+    inputTokens: v.number(),
+    runs: v.number(),
+    backfilled: v.optional(v.boolean()),
+  }).index("by_owner_day", ["ownerId", "day"]),
 });

@@ -17,7 +17,9 @@ assignment, and both navigation directions. During the Modernist redesign
 `web-shell` provides the frame, routing, auth gate, and label navigation, and
 `library-view` and `item-inspector` restore capture and item views, and
 `search-and-filters` adds full-text search, source and needs-review filters and the Inbox
-(see [core concepts](docs/core-concepts.md)). The backend contracts above are unchanged,
+(see [core concepts](docs/core-concepts.md)). `ai-limit` is a guardrail around the one place the app spends
+Workers AI: item content sent to the model is capped at 500 characters and each owner has a daily neuron budget
+(`aiUsage`, default 9,000, resets 00:00 UTC) shown as a bar in the sidebar ([report](docs/verification/ai-limit.md)). The backend contracts above are unchanged,
 plus a read-only `labels.get`, `items.detail`/`remove`, and the search and counter queries. Generated Convex imports are tracked;
 `pnpm check` includes the local backend and web regression suites.
 

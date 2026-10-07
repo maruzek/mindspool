@@ -4,6 +4,8 @@ import type { Infer } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { utcDay } from "./aiBudget";
+import { release } from "./aiUsage";
 import { requireOwned, requireOwner } from "./auth";
 import { refreshItemState } from "./itemState";
 import {
@@ -131,7 +133,19 @@ export async function finishRun(
   measurement(result.costUsd);
   if (result.status === "failed") {
     bounded(result.error, 2000);
-    await ctx.db.patch(runId, { ...result, finishedAt: Date.now() });
+    await ctx.db.patch(runId, {
+      ...result,
+      reservedNeurons: undefined,
+      finishedAt: Date.now(),
+    });
+    // A failed call never reports usage: give the held neurons back.
+    if (run.kind === "decision" && run.reservedNeurons !== undefined)
+      await release(
+        ctx,
+        item.ownerId,
+        utcDay(run._creationTime),
+        run.reservedNeurons,
+      );
   } else {
     if (
       result.suggestions.length > 100 ||

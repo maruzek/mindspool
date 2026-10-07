@@ -8,7 +8,9 @@ import {
   parseAnswers,
   parseUsage,
   selectLabels,
-  STATE_CHAR_BUDGET,
+  AI_INPUT_CHAR_LIMIT,
+  estimateNeurons,
+  neuronsFor,
   toQuestions,
 } from "./decisionProvider";
 
@@ -103,15 +105,104 @@ describe("buildState", () => {
       truncated: false,
     });
   });
-  it("truncates text to the budget and keeps the title", () => {
+  it("caps all content at the limit and keeps the title", () => {
     const state = buildState({
       originalInput: "x",
-      extractedText: "a".repeat(STATE_CHAR_BUDGET * 2),
+      extractedText: "a".repeat(100000),
       sourceMetadata: { title: "Title" },
     });
     expect(state.title).toBe("Title");
-    expect((state.text as string).length).toBe(STATE_CHAR_BUDGET - 5);
+    expect((state.text as string).length).toBe(AI_INPUT_CHAR_LIMIT - 5);
     expect(state.truncated).toBe(true);
+  });
+  it("never sends more than the limit in total", () => {
+    const long = (c: string) => c.repeat(1000);
+    const state = buildState({
+      originalInput: "x",
+      originalUrl: `https://e.com/${long("u")}`,
+      extractedText: long("t"),
+      sourceMetadata: {
+        title: long("a"),
+        description: long("b"),
+        author: long("c"),
+        siteName: long("d"),
+      },
+    });
+    const { truncated, ...content } = state;
+    const total = Object.values(content).join("").length;
+    expect(total).toBeLessThanOrEqual(AI_INPUT_CHAR_LIMIT);
+    expect(truncated).toBe(true);
+  });
+  it("sends a description equal to the title once", () => {
+    const state = buildState({
+      originalInput: "x",
+      originalUrl: "https://x.com/a/1",
+      extractedText: "tweet body",
+      sourceMetadata: { title: "Same words", description: "Same words" },
+    });
+    expect(state).toEqual({
+      title: "Same words",
+      url: "https://x.com/a/1",
+      text: "tweet body",
+      truncated: false,
+    });
+  });
+  it("skips a field contained in an earlier one, case-sensitively", () => {
+    const state = buildState({
+      originalInput: "x",
+      extractedText: "hello",
+      sourceMetadata: { title: "Say hello there", description: "Hello" },
+    });
+    expect(state).toEqual({
+      title: "Say hello there",
+      description: "Hello",
+      truncated: false,
+    });
+  });
+  it("leaves a short item unchanged and not truncated", () => {
+    expect(buildState({ originalInput: "buy milk" }).truncated).toBe(false);
+  });
+});
+
+describe("neuronsFor", () => {
+  it("prices a million input tokens at the published rate", () => {
+    expect(neuronsFor("clef-flash", 1e6)).toBe(8182);
+    expect(neuronsFor("clef", 1e6)).toBe(21818);
+    expect(neuronsFor("clef-flash", 0)).toBe(0);
+  });
+});
+
+describe("estimateNeurons", () => {
+  const questions = (n: number) =>
+    toQuestions(
+      Array.from({ length: n }, (_, i) => ({
+        _id: `label${i}`,
+        name: `Label number ${i}`,
+        description: "Some description of what belongs here",
+      })),
+    );
+
+  it("is never below the recorded real runs (about 652 and 642 tokens, 5 labels)", () => {
+    const state = buildState({
+      originalInput: "Pasta recipe: boil water, add salt",
+    });
+    for (const real of [652, 642])
+      expect(
+        estimateNeurons("clef-flash", state, questions(5)),
+      ).toBeGreaterThanOrEqual(neuronsFor("clef-flash", real));
+  });
+  it("grows with content and labels and with the model rate", () => {
+    const small = buildState({ originalInput: "a" });
+    const big = buildState({ originalInput: "a".repeat(500) });
+    expect(estimateNeurons("clef-flash", big, questions(5))).toBeGreaterThan(
+      estimateNeurons("clef-flash", small, questions(5)),
+    );
+    expect(estimateNeurons("clef-flash", small, questions(20))).toBeGreaterThan(
+      estimateNeurons("clef-flash", small, questions(5)),
+    );
+    expect(estimateNeurons("clef", small, questions(5))).toBeGreaterThan(
+      estimateNeurons("clef-flash", small, questions(5)),
+    );
   });
 });
 

@@ -58,6 +58,17 @@ describe("RunCard", () => {
     expect(screen.getByText("Failed")).toBeTruthy();
     expect(screen.getByText("Model timed out")).toBeTruthy();
   });
+  it("shows a run refused by the daily AI limit", () => {
+    backend.runs = [
+      run({
+        kind: "decision",
+        status: "failed",
+        error: "Daily AI limit reached",
+      }),
+    ];
+    render(<RunCard itemId={itemId} enrichmentStatus="succeeded" />);
+    expect(screen.getByText("Daily AI limit reached")).toBeTruthy();
+  });
   it("falls back to the status line without a run", () => {
     render(<RunCard itemId={itemId} enrichmentStatus="not_started" />);
     expect(screen.getByText("Saved — original stored")).toBeTruthy();

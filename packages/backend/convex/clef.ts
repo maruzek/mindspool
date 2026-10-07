@@ -60,6 +60,7 @@ export const run = internalAction({
         model: result.model,
         latencyMs: Date.now() - started,
         costUsd: costUsd(provider, result.inputTokens),
+        inputTokens: result.inputTokens,
         ...counts,
       });
     } catch (error) {

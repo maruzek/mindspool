@@ -193,6 +193,8 @@ export const runFields = {
   error: v.optional(v.string()),
   latencyMs: v.optional(v.number()),
   costUsd: v.optional(v.number()),
+  /** Neurons held against today's budget until the run settles or fails. */
+  reservedNeurons: v.optional(v.number()),
   finishedAt: v.optional(v.number()),
 };
 export const runDoc = v.object({

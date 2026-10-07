@@ -47,6 +47,7 @@ describe("mobile sidebar sheet", () => {
     expect(
       within(dialog).getByRole("navigation", { name: "Primary" }),
     ).toBeTruthy();
+    expect(within(dialog).getByText("AI today")).toBeTruthy();
   });
 
   it("closes with Escape", async () => {

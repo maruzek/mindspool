@@ -3,7 +3,7 @@ import type { Infer } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
-import { startDecision } from "./decisions";
+import { startDecisionOrFail } from "./decisions";
 import {
   adjustStats,
   isUnsureLink,
@@ -77,7 +77,7 @@ export const create = mutation({
         .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
         .first();
       const item = await ctx.db.get(itemId);
-      if (hasLabel && item) await startDecision(ctx, item, "clef-flash");
+      if (hasLabel && item) await startDecisionOrFail(ctx, item, "clef-flash");
     } catch {
       // Swallowed on purpose.
     }

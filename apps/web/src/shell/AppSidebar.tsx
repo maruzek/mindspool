@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@mindspool/ui/components/sidebar";
 import { SearchBox } from "../search/SearchBox";
+import { AiUsageMeter } from "./AiUsageMeter";
 import { BrandMark } from "./BrandMark";
 import { LabelsNav } from "./LabelsNav";
 import { isActivePath, mainNav } from "./nav";
@@ -81,6 +82,7 @@ export function AppSidebar() {
           </SidebarGroup>
           <LabelsNav />
         </SidebarContent>
+        <AiUsageMeter />
         <SidebarFooter className="p-3">
           <UserMenu />
         </SidebarFooter>

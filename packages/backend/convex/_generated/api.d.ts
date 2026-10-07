@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as aiBudget from "../aiBudget.js";
+import type * as aiUsage from "../aiUsage.js";
 import type * as auth from "../auth.js";
 import type * as clef from "../clef.js";
 import type * as decisionProvider from "../decisionProvider.js";
@@ -29,6 +31,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiBudget: typeof aiBudget;
+  aiUsage: typeof aiUsage;
   auth: typeof auth;
   clef: typeof clef;
   decisionProvider: typeof decisionProvider;
