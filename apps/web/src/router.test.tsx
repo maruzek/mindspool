@@ -34,6 +34,17 @@ describe("routing", () => {
     ).toBeTruthy();
   });
 
+  it("keeps valid library search params and drops invalid ones", async () => {
+    const router = await renderAt("/library?layout=grid&item=abc");
+    expect(router.state.matches.at(-1)!.search).toEqual({
+      layout: "grid",
+      item: "abc",
+    });
+    cleanup();
+    const bad = await renderAt("/library?layout=tiles");
+    expect(bad.state.matches.at(-1)!.search).toEqual({});
+  });
+
   it("shows a not-found state for unknown paths", async () => {
     await renderAt("/nope");
     expect(

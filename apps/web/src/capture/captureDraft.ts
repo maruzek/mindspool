@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import type { ItemInputType } from "@mindspool/schema";
 
 export interface CaptureDraft {
-  inputType: ItemInputType;
   originalInput: string;
   captureKey: string | null;
 }
 const emptyDraft: CaptureDraft = {
-  inputType: "url",
   originalInput: "",
   captureKey: null,
 };
@@ -17,7 +14,6 @@ function readDraft(key: string): CaptureDraft {
     if (!value || typeof value !== "object") return emptyDraft;
     const record = value as Record<string, unknown>;
     if (
-      (record.inputType !== "url" && record.inputType !== "text") ||
       typeof record.originalInput !== "string" ||
       record.originalInput.length > 100000 ||
       !(
@@ -29,7 +25,6 @@ function readDraft(key: string): CaptureDraft {
     )
       return emptyDraft;
     return {
-      inputType: record.inputType,
       originalInput: record.originalInput,
       captureKey: record.captureKey,
     };
@@ -63,9 +58,7 @@ export function useCaptureDraft(sessionKey: string) {
   useEffect(() => () => forget(key), [key]);
   function captured(captureKey: string) {
     setDraft((current) =>
-      current.captureKey === captureKey
-        ? { ...emptyDraft, inputType: current.inputType }
-        : current,
+      current.captureKey === captureKey ? emptyDraft : current,
     );
   }
   return { draft, setDraft, captured };

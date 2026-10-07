@@ -1,4 +1,5 @@
 import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
+import { Toaster } from "@mindspool/ui/components/sonner";
 import { NotFound } from "../shell/NotFound";
 import { AuthGate } from "../shell/AuthGate";
 import type { RuntimeConfig } from "../shell/AuthGate";
@@ -20,6 +21,7 @@ function RootLayout() {
       backendConfigured={backendConfigured}
     >
       <Outlet />
+      <Toaster />
     </AuthGate>
   );
 }
