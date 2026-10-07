@@ -1,19 +1,26 @@
 import {
   BookmarkIcon,
-  CheckIcon,
   LoaderCircleIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { cn } from "cn";
 
-type ProcessingState = "saved" | "labeling" | "labeled" | "failed";
+/** Mirrors an Item's `enrichmentStatus`. */
+type ProcessingState = "not_started" | "pending" | "succeeded" | "failed";
 
 type ProcessingStatusProps = React.ComponentProps<"div"> & {
   status: ProcessingState;
-  /** Retry handler; renders a "Retry" link for failed items. */
+  /** Renders a "Retry" button for failed items; unused until reprocessing exists. */
   onRetry?: () => void;
 };
 
+const copy: Record<Exclude<ProcessingState, "succeeded">, string> = {
+  not_started: "Saved — original stored",
+  pending: "Processing…",
+  failed: "Extraction failed — link kept",
+};
+
+/** One quiet line under a row or card; nothing once processing has succeeded. */
 function ProcessingStatus({
   status,
   onRetry,
@@ -21,28 +28,24 @@ function ProcessingStatus({
   children,
   ...props
 }: ProcessingStatusProps) {
+  if (status === "succeeded") return null;
   return (
     <div
       data-slot="processing-status"
       data-status={status}
-      role="status"
       className={cn(
-        "flex items-center gap-2.5 text-sm [&_svg]:size-4",
-        status === "labeling" && "text-primary",
-        status === "failed" && "text-muted-foreground",
+        "flex items-center gap-1.5 text-xs [&_svg]:size-3.5",
+        status === "pending" ? "text-primary" : "text-muted-foreground",
         className,
       )}
       {...props}
     >
-      {status === "saved" && <BookmarkIcon aria-hidden="true" />}
-      {status === "labeling" && (
+      {status === "not_started" && <BookmarkIcon aria-hidden="true" />}
+      {status === "pending" && (
         <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
       )}
-      {status === "labeled" && (
-        <CheckIcon aria-hidden="true" className="text-primary" />
-      )}
       {status === "failed" && <TriangleAlertIcon aria-hidden="true" />}
-      <span>{children}</span>
+      <span>{children ?? copy[status]}</span>
       {status === "failed" && onRetry && (
         <>
           <span aria-hidden="true">·</span>
