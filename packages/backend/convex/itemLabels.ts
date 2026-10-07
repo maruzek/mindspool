@@ -154,10 +154,10 @@ async function itemsOfLinks(
   ownerId: string,
   links: Doc<"itemLabels">[],
 ) {
-  const items = await Promise.all(
-    links.map(async (link) =>
-      requireOwned(await ctx.db.get(link.itemId), ownerId),
-    ),
+  // A deleted item's links are purged in the background; skip any still left.
+  const found = await Promise.all(links.map((link) => ctx.db.get(link.itemId)));
+  const items = found.flatMap((item) =>
+    item ? [requireOwned(item, ownerId)] : [],
   );
   return previewItems(ctx, ownerId, items);
 }

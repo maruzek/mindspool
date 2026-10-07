@@ -222,6 +222,9 @@ export function costUsd(provider: ClefProvider, inputTokens: number) {
   return (inputTokens / 1e6) * PRICE_PER_MILLION_INPUT_TOKENS[provider];
 }
 
+/** A provider call that has not answered by now is abandoned, so the run can fail instead of hanging. */
+export const PROVIDER_TIMEOUT_MS = 60_000;
+
 export const WORKERS_AI_BASE = "https://api.cloudflare.com/client/v4";
 
 /** Workers AI REST implementation. Errors never carry the token, account id or response body. */
@@ -249,6 +252,7 @@ export function workersAiProvider({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({ model: provider, ...request }),
+            signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
           },
         );
       } catch {

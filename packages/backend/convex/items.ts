@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
 import { startDecisionOrFail } from "./decisions";
 import {
@@ -10,7 +11,7 @@ import {
   refreshItemState,
   sourceKindOf,
 } from "./itemState";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   captureSource,
   inputType,
@@ -119,35 +120,19 @@ export const detail = query({
   },
 });
 
-const MAX_LINKS = 500;
-const MAX_RUNS = 100;
+const DELETE_BATCH = 100;
 
-/** Atomic and capped: refuses before deleting anything when the item has more rows than one transaction should touch. */
+/**
+ * Removes the item and its counters at once, so it leaves the library
+ * immediately however much history it has. The link and run rows go in
+ * bounded batches: the first here, the rest by a scheduled continuation.
+ */
 export const remove = mutation({
   args: { id: v.id("items") },
   returns: v.null(),
   handler: async (ctx, { id }) => {
     const ownerId = await requireOwner(ctx);
     const item = requireOwned(await ctx.db.get(id), ownerId);
-    const links = await ctx.db
-      .query("itemLabels")
-      .withIndex("by_owner_pair", (q) =>
-        q.eq("ownerId", ownerId).eq("itemId", id),
-      )
-      .take(MAX_LINKS + 1);
-    const runs = await ctx.db
-      .query("processingRuns")
-      .withIndex("by_owner_item", (q) =>
-        q.eq("ownerId", ownerId).eq("itemId", id),
-      )
-      .take(MAX_RUNS + 1);
-    if (links.length > MAX_LINKS || runs.length > MAX_RUNS) {
-      throw new ConvexError({
-        code: "CONFLICT",
-        message: "This item has too much history to delete at once",
-      });
-    }
-    for (const row of [...links, ...runs]) await ctx.db.delete(row._id);
     for (const asset of item.imageAssets)
       if (asset.kind === "stored") await ctx.storage.delete(asset.storageId);
     await ctx.db.delete(id);
@@ -156,6 +141,42 @@ export const remove = mutation({
       inbox: -Number(item.inbox ?? false),
       needsReview: -Number(item.needsReview ?? false),
     });
+    await purgeHistory(ctx, ownerId, id);
+    return null;
+  },
+});
+
+/** Deletes one bounded batch of a removed item's links and runs; reschedules itself while rows remain. */
+async function purgeHistory(
+  ctx: MutationCtx,
+  ownerId: string,
+  itemId: Id<"items">,
+) {
+  const links = await ctx.db
+    .query("itemLabels")
+    .withIndex("by_owner_pair", (q) =>
+      q.eq("ownerId", ownerId).eq("itemId", itemId),
+    )
+    .take(DELETE_BATCH);
+  const runs = await ctx.db
+    .query("processingRuns")
+    .withIndex("by_owner_item", (q) =>
+      q.eq("ownerId", ownerId).eq("itemId", itemId),
+    )
+    .take(DELETE_BATCH);
+  for (const row of [...links, ...runs]) await ctx.db.delete(row._id);
+  if (links.length === DELETE_BATCH || runs.length === DELETE_BATCH)
+    await ctx.scheduler.runAfter(0, internal.items.purgeRemovedItem, {
+      ownerId,
+      itemId,
+    });
+}
+
+export const purgeRemovedItem = internalMutation({
+  args: { ownerId: v.string(), itemId: v.id("items") },
+  returns: v.null(),
+  handler: async (ctx, { ownerId, itemId }) => {
+    await purgeHistory(ctx, ownerId, itemId);
     return null;
   },
 });
@@ -297,7 +318,9 @@ function previewItem(item: Doc<"items">) {
   };
 }
 
-// A page holds at most PREVIEW_PAGE_SIZE Items; each reads at most 4 included
+// A page is normally at most PREVIEW_PAGE_SIZE Items, but a reactive range can
+// hold more; all are returned, because the cursor has already moved past them.
+// Each reads at most 4 included
 // links (the fourth only proves overflow), 3 Label documents and 3 runs.
 export async function previewItems(
   ctx: QueryCtx,
@@ -305,7 +328,7 @@ export async function previewItems(
   items: Doc<"items">[],
 ) {
   return Promise.all(
-    items.slice(0, PREVIEW_PAGE_SIZE).map(async (item) => {
+    items.map(async (item) => {
       const links = await ctx.db
         .query("itemLabels")
         .withIndex("by_owner_item_decision", (q) =>

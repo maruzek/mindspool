@@ -145,6 +145,7 @@ export async function adjustStats(
     total: next("total"),
     inbox: next("inbox"),
     needsReview: next("needsReview"),
+    generation: (row?.generation ?? 0) + 1,
   };
   if (row) await ctx.db.patch(row._id, values);
   else await ctx.db.insert("ownerStats", { ownerId, ...values });
@@ -278,17 +279,23 @@ export const fanOutLinks = internalMutation({
 
 // Whole items are read (up to ~300 KB each with extracted text), so keep a batch well under the 16 MiB read limit.
 /**
- * Brings an item's links in line with the item and their own state: source,
- * search text, and whether the link is an unsure model label. Used by the
- * recount for data saved before these fields existed.
+ * Brings one page of an item's links in line with the item and their own
+ * state: source, search text, and whether the link is an unsure model label.
+ * Used by the recount for data saved before these fields existed.
  */
-async function repairLinks(ctx: MutationCtx, item: Doc<"items">) {
+async function repairLinksPage(
+  ctx: MutationCtx,
+  item: Doc<"items">,
+  after: string | null,
+) {
   const fields = linkSearchFields(item);
+  // Keyed on labelId rather than paginate(): the recount already paginates items.
   const links = await ctx.db
     .query("itemLabels")
-    .withIndex("by_owner_pair", (q) =>
-      q.eq("ownerId", item.ownerId).eq("itemId", item._id),
-    )
+    .withIndex("by_owner_pair", (q) => {
+      const pair = q.eq("ownerId", item.ownerId).eq("itemId", item._id);
+      return after ? pair.gt("labelId", after as Id<"labels">) : pair;
+    })
     .take(FANOUT_BATCH);
   let repaired = 0;
   for (const link of links) {
@@ -302,15 +309,30 @@ async function repairLinks(ctx: MutationCtx, item: Doc<"items">) {
       repaired++;
     }
   }
-  // Beyond one batch only text and source are caught up, by the usual fan-out.
+  // The rest are repaired by a continuation that refreshes the item's flags once done.
   if (links.length === FANOUT_BATCH)
-    await ctx.scheduler.runAfter(0, internal.itemState.fanOutLinks, {
+    await ctx.scheduler.runAfter(0, internal.itemState.repairLinks, {
       itemId: item._id,
+      cursor: links[links.length - 1]!.labelId,
     });
   return repaired;
 }
 
+export const repairLinks = internalMutation({
+  args: { itemId: v.id("items"), cursor: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { itemId, cursor }) => {
+    const item = await ctx.db.get(itemId);
+    if (!item) return null;
+    await repairLinksPage(ctx, item, cursor);
+    // Harmless on earlier pages; after the last one the flags reflect every link.
+    await refreshItemState(ctx, itemId);
+    return null;
+  },
+});
+
 const RECOUNT_BATCH = 20;
+const RECOUNT_ATTEMPTS = 3;
 
 /**
  * Drift check and repair: recomputes every item's fields and the owner's
@@ -322,6 +344,9 @@ export const recountOwnerStats = internalMutation({
   args: {
     ownerId: v.string(),
     cursor: v.optional(v.union(v.string(), v.null())),
+    /** The counter generation when the scan began; the totals are only valid if it is unchanged at the end. */
+    generation: v.optional(v.number()),
+    attempt: v.optional(v.number()),
     totals: v.optional(
       v.object({
         total: v.number(),
@@ -338,7 +363,7 @@ export const recountOwnerStats = internalMutation({
     linksRepaired: v.number(),
     statsRepaired: v.boolean(),
   }),
-  handler: async (ctx, { ownerId, cursor, totals }) => {
+  handler: async (ctx, { ownerId, cursor, generation, attempt, totals }) => {
     const acc = totals ?? {
       total: 0,
       inbox: 0,
@@ -346,6 +371,12 @@ export const recountOwnerStats = internalMutation({
       itemsRepaired: 0,
       linksRepaired: 0,
     };
+    const statsRow = () =>
+      ctx.db
+        .query("ownerStats")
+        .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+        .unique();
+    const startGeneration = generation ?? (await statsRow())?.generation ?? 0;
     const page = await ctx.db
       .query("items")
       .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
@@ -353,11 +384,15 @@ export const recountOwnerStats = internalMutation({
     for (const item of page.page) {
       // Links first: the item's flags are derived from the links' `unsure` field,
       // which legacy rows do not have yet.
-      acc.linksRepaired += await repairLinks(ctx, {
-        ...item,
-        sourceKind: sourceKindOf(item),
-        searchText: buildSearchText(item),
-      });
+      acc.linksRepaired += await repairLinksPage(
+        ctx,
+        {
+          ...item,
+          sourceKind: sourceKindOf(item),
+          searchText: buildSearchText(item),
+        },
+        null,
+      );
       const next = await computeItemState(ctx, item);
       if (differs(item, next)) {
         await ctx.db.patch(item._id, next);
@@ -371,6 +406,8 @@ export const recountOwnerStats = internalMutation({
       await ctx.scheduler.runAfter(0, internal.itemState.recountOwnerStats, {
         ownerId,
         cursor: page.continueCursor,
+        generation: startGeneration,
+        attempt,
         totals: acc,
       });
       return {
@@ -380,10 +417,22 @@ export const recountOwnerStats = internalMutation({
         statsRepaired: false,
       };
     }
-    const row = await ctx.db
-      .query("ownerStats")
-      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
-      .unique();
+    const row = await statsRow();
+    if ((row?.generation ?? 0) !== startGeneration) {
+      // Creates, deletes or flag changes landed during the scan, so the totals
+      // may be stale. Scan again rather than overwrite the live counters.
+      if ((attempt ?? 0) < RECOUNT_ATTEMPTS - 1)
+        await ctx.scheduler.runAfter(0, internal.itemState.recountOwnerStats, {
+          ownerId,
+          attempt: (attempt ?? 0) + 1,
+        });
+      return {
+        done: false,
+        itemsRepaired: acc.itemsRepaired,
+        linksRepaired: acc.linksRepaired,
+        statsRepaired: false,
+      };
+    }
     const want = {
       total: acc.total,
       inbox: acc.inbox,

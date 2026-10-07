@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test";
 import type { TestConvex } from "convex-test";
 import type { Id } from "./_generated/dataModel";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
@@ -345,12 +345,13 @@ describe("items.remove", () => {
       "Authentication required",
     );
   });
-  it("still deletes at exactly 500 links and 100 runs", async () => {
+  it("deletes an item with more history than one batch, purging the rest in the background", async () => {
+    vi.useFakeTimers();
     const { t, alice, id, ownerId } = await setup();
     await t.run(async (ctx) => {
-      for (let i = 0; i < 100; i++)
+      for (let i = 0; i < 250; i++)
         await ctx.db.insert("processingRuns", run(ownerId, id));
-      for (let i = 0; i < 500; i++) {
+      for (let i = 0; i < 250; i++) {
         const l = await ctx.db.insert("labels", {
           ownerId,
           name: `n${i}`,
@@ -367,42 +368,14 @@ describe("items.remove", () => {
     });
     await alice.mutation(api.items.remove, { id });
     expect(await t.run((ctx) => ctx.db.get(id))).toBeNull();
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await t.run((ctx) => ctx.db.query("itemLabels").collect())).toEqual(
       [],
     );
-  });
-  it("refuses over the caps and deletes nothing", async () => {
-    const { t, alice, id, labelId, ownerId } = await setup();
-    await t.run(async (ctx) => {
-      for (let i = 0; i < 101; i++)
-        await ctx.db.insert("processingRuns", run(ownerId, id));
-    });
-    await expect(alice.mutation(api.items.remove, { id })).rejects.toThrow(
-      "CONFLICT",
-    );
-    await t.run(async (ctx) => {
-      for (const r of await ctx.db.query("processingRuns").collect())
-        await ctx.db.delete(r._id);
-      for (let i = 0; i < 501; i++) {
-        const l = await ctx.db.insert("labels", {
-          ownerId,
-          name: `n${i}`,
-          normalizedName: `n${i}`,
-        });
-        await ctx.db.insert("itemLabels", {
-          ownerId,
-          itemId: id,
-          labelId: l,
-          manualDecision: "include",
-          updatedAt: 0,
-        });
-      }
-    });
-    await expect(alice.mutation(api.items.remove, { id })).rejects.toThrow(
-      "CONFLICT",
-    );
-    expect(await t.run((ctx) => ctx.db.get(id))).not.toBeNull();
-    expect(labelId).toBeDefined();
+    expect(
+      await t.run((ctx) => ctx.db.query("processingRuns").collect()),
+    ).toEqual([]);
+    vi.useRealTimers();
   });
 });
 

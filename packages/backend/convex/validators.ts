@@ -166,6 +166,8 @@ export const ownerStatsFields = {
   total: v.number(),
   inbox: v.number(),
   needsReview: v.number(),
+  /** Bumped by every counter change, so a long recount can tell the counters moved under it. */
+  generation: v.optional(v.number()),
 };
 export const runFields = {
   ownerId: v.string(),

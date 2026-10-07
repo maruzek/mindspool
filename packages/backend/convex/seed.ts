@@ -1,6 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireOwner } from "./auth";
+import {
+  adjustStats,
+  linkSearchFields,
+  refreshItemState,
+  sourceKindOf,
+} from "./itemState";
 import { examples, sampleRubrics } from "./sampleContent";
 
 function enabled() {
@@ -66,6 +72,7 @@ export const load = mutation({
         captureStatus: "captured",
         enrichmentStatus: "not_started",
         updatedAt: now,
+        sourceKind: sourceKindOf(example),
         sourceMetadata: { title: example.title },
         // Illustrative reference only: the seeder does not fetch or upload images.
         imageAssets:
@@ -79,6 +86,8 @@ export const load = mutation({
               ]
             : [],
       });
+      await adjustStats(ctx, ownerId, { total: 1 });
+      const item = await ctx.db.get(itemId);
       for (const labelId of labelIds) {
         await ctx.db.insert("itemLabels", {
           ownerId,
@@ -86,8 +95,11 @@ export const load = mutation({
           labelId,
           manualDecision: "include",
           updatedAt: now,
+          ...(item && linkSearchFields(item)),
         });
       }
+      // Search text, flags and the inbox counters come from the shared rules.
+      await refreshItemState(ctx, itemId);
       createdItems++;
     }
     return { createdItems };

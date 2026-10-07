@@ -77,7 +77,10 @@ export const run = internalAction({
             latencyMs: Date.now() - started,
           },
         })
-        .catch(() => undefined);
+        // If even this fails, `decisions.expire` fails the run later.
+        .catch((failure) =>
+          console.error("Could not record failed run", runId, failure),
+        );
     }
     return null;
   },

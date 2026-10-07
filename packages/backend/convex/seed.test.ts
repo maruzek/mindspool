@@ -51,6 +51,10 @@ describe("development examples", () => {
       paginationOpts: { numItems: 20, cursor: null },
     });
     expect(items.page.length).toBeGreaterThanOrEqual(3);
+    const stats = await alice.query(api.items.stats, {});
+    expect(stats.total).toBe(first.createdItems);
+    const stored = await t.run((ctx) => ctx.db.query("items").collect());
+    expect(stored.every((i) => i.searchText && i.sourceKind)).toBe(true);
     const details = await Promise.all(
       items.page.map((item) => alice.query(api.items.get, { id: item._id })),
     );

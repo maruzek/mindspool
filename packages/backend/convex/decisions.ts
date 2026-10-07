@@ -26,6 +26,9 @@ export const clefProvider = v.union(v.literal("clef"), v.literal("clef-flash"));
 const LABEL_SCAN_LIMIT = 1000;
 const PENDING_SCAN_LIMIT = 20;
 
+/** Longer than an action may run (10 minutes), so a run still pending then was lost, not slow. */
+const RUN_EXPIRY_MS = 11 * 60 * 1000;
+
 const LIMIT_MESSAGE = "Daily AI limit reached";
 
 async function insertRun(
@@ -99,6 +102,10 @@ async function begin(
       itemId: item._id,
       provider,
     });
+    await ctx.scheduler.runAfter(RUN_EXPIRY_MS, internal.decisions.expire, {
+      runId,
+      itemId: item._id,
+    });
     await refreshItemState(ctx, item._id);
     return runId;
   } catch (error) {
@@ -148,6 +155,23 @@ export const classify = mutation({
         message: "Labeling is already running for this item",
       });
     return startDecision(ctx, item, model);
+  },
+});
+
+/** Fails a run whose action never reported back (terminated, or its final write failed), releasing its budget hold. */
+export const expire = internalMutation({
+  args: { runId: v.id("processingRuns"), itemId: v.id("items") },
+  returns: v.null(),
+  handler: async (ctx, { runId, itemId }) => {
+    const run = await ctx.db.get(runId);
+    if (!run || run.status !== "pending" || !(await ctx.db.get(itemId)))
+      return null;
+    await finishRun(ctx, {
+      runId,
+      itemId,
+      result: { status: "failed", error: "Labeling timed out" },
+    });
+    return null;
   },
 });
 
