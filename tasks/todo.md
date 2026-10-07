@@ -1,103 +1,166 @@
-# Tasks: web-shell
+# Tasks: item-inspector
 
-Plan: [plan.md](plan.md). Spec: [SPEC-web-shell.md](../SPEC-web-shell.md). Follow task order and checkpoints.
-Focused test: `pnpm --filter @mindspool/web test`. Typecheck: `pnpm --filter @mindspool/web typecheck`. Full: `pnpm check`.
-Adding dependencies (T1) is pre-approved by the spec approval; any others need a question first.
+Plan: [plan.md](plan.md). Spec: [SPEC-item-inspector.md](../SPEC-item-inspector.md). Follow task order and checkpoints;
+one task per turn. Focused tests: `pnpm --filter @mindspool/web test`, `pnpm --filter @mindspool/backend test`.
+Typecheck: `pnpm --filter @mindspool/web typecheck`. Build: `pnpm --filter @mindspool/web build`. Full: `pnpm check`.
+The three backend changes (T1, T2) are approved by the spec. New dependencies, schema or index changes, and image upload
+need a question first. `pnpm check` currently fails only on `.mcp.json` (committed unformatted, not ours).
 
-## Phase 1: Foundation
+## Phase 1: Backend
 
-- [x] **T1: Router foundation** (S)
-  - Install `@tanstack/react-router` and `@tanstack/router-plugin` (pinned); add the plugin to `vite.config.ts` and
-    `vitest.config.ts`; create `routes/__root.tsx`, `routes/index.tsx` (redirect to `/library`), `routes/library.tsx`
-    (placeholder heading); mount `RouterProvider` in `main.tsx` inside the existing Clerk/Convex providers; commit
-    `routeTree.gen.ts`.
-  - Acceptance: `pnpm dev:web` shows "Library" at `/library`; `/` redirects; unknown path shows a not-found component;
-    a test renders the route tree with memory history.
-  - Verify: `pnpm --filter @mindspool/web test && ... typecheck && ... build`.
-  - Files: `package.json`, `vite.config.ts`, `vitest.config.ts`, `src/main.tsx`, `src/routes/*`, `src/routeTree.gen.ts`.
+- [x] **T1: `items.detail` and join clamps** (M)
+  - Add `items.detail({ id: v.string() })` returning `null` for foreign, missing, malformed and deleted ids
+    (`ctx.db.normalizeId` plus owner check, like `labels.get`) and otherwise `_id`, `_creationTime`, `inputType`,
+    `originalInput`, `originalUrl`, `canonicalUrl`, `captureSource`, `enrichmentStatus`, `sourceMetadata` (title,
+    description, author, siteName). No `ownerId`, `captureKey` or run pointers. Clamp `itemLabels.listForItem` and
+    `itemLabels.availableLabels` pages to 10 (constant shared with `PREVIEW_PAGE_SIZE`). `items.get` is unchanged.
+  - Acceptance:
+    - [x] `detail` returns the item with exactly the listed fields; `null` for foreign, missing, malformed ids.
+    - [x] Both label joins return at most 10 rows however large `numItems` is.
+    - [x] Existing `items.get` and label tests still pass or are updated deliberately.
+  - Verify: `pnpm --filter @mindspool/backend test` (new tests for `detail` and both clamps) and `pnpm typecheck`.
+  - Files: `convex/validators.ts`, `convex/items.ts`, `convex/itemLabels.ts`, `convex/items.test.ts`, `convex/itemLabels.test.ts`.
 
-- [x] **T2: Auth gate, draft provider, old gate removed** (M)
-  - Move `captureDraft.ts` (+ tests) to `src/capture/`; add `CaptureDraftProvider`; create `shell/AuthGate.tsx` with states:
-    Clerk loading, signed out (Clerk modal sign-in/up), Convex connecting, auth failure (Reconnect + retained input), error
-    boundary, auth-not-configured, backend-not-configured; wire into root route. Port every `App.test.tsx` draft/auth test to
-    the new structure **before** deleting `App.tsx`, `CaptureSession.tsx`, `Workspace.tsx`, `App.test.tsx`.
-  - Acceptance: state matrix tests green; draft survives auth failure, reload, session change, stale purge (existing cases);
-    each state has distinct announced text.
-  - Verify: tests + typecheck + build.
-  - Files: `src/capture/*`, `src/shell/AuthGate.tsx`, `src/shell/StateNotice.tsx`, `src/routes/__root.tsx`, `src/shell/AuthGate.test.tsx`.
+- [x] **T2: `items.remove` with bounded cascade** (M)
+  - `items.remove({ id: v.id("items") })`: ownership check ("Not found" for foreign or missing); read up to 501
+    `itemLabels` rows via the `by_owner_pair` prefix and 101 `processingRuns` rows via `by_owner_item`; if either cap is
+    exceeded throw `CONFLICT` before deleting anything; otherwise delete the rows, any `stored` image assets from
+    `_storage`, and the item, in one transaction.
+  - Acceptance:
+    - [x] Item, its links and its runs are gone; other items, labels, runs and other owners' data are untouched.
+    - [x] Foreign and missing ids are rejected with the standard error; unauthenticated calls fail.
+    - [x] Over the cap nothing is deleted; the item disappears from `items.list` and label lists after a delete.
+  - Verify: `pnpm --filter @mindspool/backend test` (ownership, cascade, caps, list disappearance), `pnpm typecheck`.
+  - Files: `convex/items.ts`, `convex/items.test.ts` (and `convex/itemLabels.test.ts` for the label-list case).
 
-- [x] **T3: Sidebar primitives and dark tokens** (M)
-  - `shadcn add sidebar sheet dropdown-menu skeleton breadcrumb collapsible` into `packages/ui` (hooks under
-    `@mindspool/ui/hooks`); add `--sidebar-*` tokens mapped to semantic tokens; add `.dark-sidebar` override in `globals.css`
-    using the design values (`#1a0b33`, `#240f45`, `#f1ecfb`, `#3d2370`, `#b69cff`); fix imports to `@mindspool/ui/*`.
-  - Acceptance: packages/ui typechecks; no hex outside the token definitions; zero radius preserved.
-  - Verify: `pnpm typecheck && pnpm --filter @mindspool/web build`.
-  - Files: `packages/ui/src/components/{sidebar,sheet,dropdown-menu,skeleton,breadcrumb,collapsible}.tsx`, `src/hooks/use-mobile.ts`, `globals.css`, `package.json`.
+### Checkpoint: Backend
 
-### Checkpoint: Foundation
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm typecheck` green. No UI change yet.
 
-- [ ] `pnpm check` green; app boots through the gate; primitives compile. Review with human.
+## Phase 2: Panel frame
 
-## Phase 2: Frame
+- [x] **T3: Panel frame spike on the shadcn sidebar** (M)
+  - Install `c-sidebar-4` (`npx shadcn@latest add @reui/c-sidebar-4`, into `packages/ui`) and read its source. Build
+    `inspector/ItemInspector.tsx` as a right-side `Sidebar` inside its own `SidebarProvider`, mounted in `LibraryView`
+    in place of the empty `#inspector` aside. Open state comes from `?item` (`open` on desktop, `setOpenMobile` on
+    mobile); a close button removes `item` and keeps `layout`. Content for now: skeleton while `items.detail` loads,
+    the spec's "Not found" notice when it returns `null`, and the item's title once loaded. Extend the shared mocks with
+    `items:detail`. Record what the primitive does at 1440px, 1024px and 390px in the plan's new "Spike findings" section.
+  - Acceptance:
+    - [x] Selecting an item opens the panel; closing removes only `item`; a malformed or foreign id shows "Not found" and the list stays usable.
+    - [x] Inline 380px column at 1280px and above; overlay below 1280px; full width below 768px (or the gap is reported, see Risks).
+    - [x] Ctrl/Cmd+B does not toggle the inspector; the left navigation still works.
+  - Verify: tests (open from URL, close, loading, not found, mocked media query); `typecheck`, `build`; manual look at the three widths (**still pending**).
+  - Files: `packages/ui/src/components/` (installed example parts, `sidebar.tsx` only if the shortcut needs an opt-out), `inspector/ItemInspector.tsx`, `library/LibraryView.tsx`, `test-utils/mocks.ts`, test.
+  - Depends on: T1.
+  - **Stop and report** findings if the primitive cannot meet the layout intent; do not substitute a `sheet` silently.
 
-- [x] **T4: Sidebar frame with navigation** (M)
-  - `routes/_app.tsx` layout with `AppSidebar`: brand mark (two-square mark from the design), disabled search with tooltip,
-    Inbox/Library/Boards/Graph nav (active from URL, `aria-current`), user footer with Clerk `UserButton`/menu including
-    "Load examples" (port `LoadExamples` logic using `api.seed.availability`/`load`). Routes `/inbox`, `/library` under it.
-  - Acceptance: visually matches design section 02 sidebar at 1440px (colors, 2px rule, zero radius, Archivo); active item
-    follows back/forward; examples item hidden unless `seed.availability` allows it.
-  - Verify: tests for active-nav mapping and examples visibility; manual side-by-side with design.
-  - Files: `routes/_app.tsx`, `shell/AppSidebar.tsx`, `shell/UserMenu.tsx`, `shell/LoadExamples.tsx`, test.
+- [x] **T4: Header and preview** (M)
+  - `InspectorHeader` (brand icon or Globe or note icon, host or "note", "Open original (new tab)" link only for
+    http/https with `target="_blank"` and `rel="noopener noreferrer"`, close), `InspectorPreview` (kind tile, title via
+    `displayTitle`, saved line, note text with `whitespace-pre-wrap` in a scroll region, or link URL, canonical URL when
+    different, description, author and site name), and pure `savedLine.ts` ("Saved 4m ago from browser extension", short
+    date after seven days) reusing `relativeDate` and the capture-source names.
+  - Acceptance:
+    - [ ] Note whitespace shown exactly as stored; stored text is never rendered as HTML.
+    - [ ] Open-original link hidden for notes; opens safely for links.
+    - [ ] Saved line uses the injected clock.
+  - Verify: tests (savedLine, title rule, whitespace, link details, link attributes); `typecheck`, `build`.
+  - Files: `inspector/{InspectorHeader,InspectorPreview,ItemInspector}.tsx`, `inspector/savedLine.ts`, tests.
+  - Depends on: T3.
 
-- [x] **T5: Labels in sidebar and label route** (M)
-  - Labels section from `api.labels.list`; `+` opens a dialog using `api.labels.create` (trim, 80 chars, case-insensitive
-    duplicates surfaced); `routes/_app/labels.$labelId.tsx` shows the label name heading; invalid/foreign id → shared
-    Not-found state. Skeleton while loading, empty state when none.
-  - Acceptance: create label appears in sidebar and is selectable; wrong id shows "Not found" with no existence leak.
-  - Verify: tests (dialog validation, not-found, loading/empty); manual with dev Convex.
-  - Files: `shell/LabelsNav.tsx`, `shell/CreateLabelDialog.tsx`, `routes/_app/labels.$labelId.tsx`, `shell/NotFound.tsx`, tests.
+- [x] **T5: Grid columns follow container width** (S)
+  - `ItemGrid` uses container queries instead of viewport breakpoints: one column below 560px of list width, two from
+    560px, three from 960px (so 1440px without the panel stays three columns and with the panel open becomes two).
+  - Acceptance:
+    - [ ] Grid classes are container-based; library-view grid tests still pass.
+    - [ ] With the inline panel open at 1440px the grid shows two columns (manual).
+  - Verify: `pnpm --filter @mindspool/web test`, `typecheck`, `build`; manual at 1440px with and without the panel.
+  - Files: `library/ItemGrid.tsx`, `library/LibraryView.tsx`, test.
+  - Depends on: T3.
+
+### Checkpoint: Panel frame
+
+- [ ] `pnpm check` green; panel opens from a row, a card and a deep link with header, title, saved line and preview;
+      inline at 1440px, overlay at 1024px, full width at 390px; grid is two columns with the panel open. Review with human.
+
+## Phase 3: Labels and processing
+
+- [x] **T6: Confirmed labels with remove** (M)
+  - `InspectorLabels`: `usePaginatedQuery(itemLabels.listForItem)` ten per page with "Show more", `LabelTag` per label with
+    a "Remove <name>" button calling `itemLabels.remove`, empty "No labels yet.", failure shown in `role="alert"` with the
+    list unchanged, controls disabled only during their own call. Mount after `detail` returns an item. Extend mocks
+    (`itemLabels:listForItem`, `itemLabels:remove`).
+  - Acceptance:
+    - [x] Removing a label calls `remove` with the right ids and the row's tag disappears through the reactive query (mocked).
+    - [x] Show more requests the next page; empty and failure states are visible and announced.
+  - Verify: tests (list, empty, remove, show more, failure); `typecheck`, `build`.
+  - Files: `inspector/InspectorLabels.tsx`, `inspector/ItemInspector.tsx`, `test-utils/mocks.ts`, test.
   - Depends on: T4.
 
-- [x] **T6: Icon-rail frame, Boards and Graph placeholders** (S)
-  - `routes/_rail.tsx` with the 60px rail (brand mark + four icons, active highlight, tooltips); `/boards`, `/boards/$boardId`,
-    `/graph` render the "Not built yet" state. Sidebar nav links reach them.
-  - Acceptance: switching between `_app` and `_rail` routes keeps the gate mounted (no auth flash); rail matches design 03/04.
-  - Verify: route tests; manual.
-  - Files: `routes/_rail.tsx`, `shell/IconRail.tsx`, `routes/_rail/{boards,graph}.tsx`.
+- [x] **T7: Add-label popover** (M)
+  - `AddLabelPopover`: "Add label" opens a popover subscribing to `itemLabels.availableLabels` only while open (ten per
+    page, "Show more"); each label is a checkbox reflecting `isAssigned`, toggling calls `attach` or `remove`. No labels:
+    "You have no labels yet. Create one from the sidebar." Failures in `role="alert"`.
+  - Acceptance:
+    - [x] Toggling calls the right mutation with the right ids; state follows the query result.
+    - [x] No subscription while closed; no-labels message and failure alert visible.
+  - Verify: tests (open/close, toggle both ways, show more, empty, failure, lazy subscription); `typecheck`, `build`.
+  - Files: `inspector/AddLabelPopover.tsx`, `inspector/InspectorLabels.tsx`, `test-utils/mocks.ts`, test; a `popover` primitive in `packages/ui` if one is not installed (shadcn add, no new dependency).
+  - Depends on: T6.
+
+- [x] **T8: Processing-run card** (S)
+  - `RunCard`: heading "Processing"; with a run (`processingRuns.listForItem`, `numItems: 1`) rows for provider, model,
+    input modality, question version, status (and error when failed), latency in ms, cost in USD, each only when present;
+    with no run, the `ProcessingStatus` line for `enrichmentStatus`. Extend mocks (`processingRuns:listForItem`).
+  - Acceptance:
+    - [x] All fields render when present; missing fields are omitted, none invented.
+    - [x] A failed run shows its error; no run falls back to the status line.
+  - Verify: tests for each case; `typecheck`, `build`.
+  - Files: `inspector/RunCard.tsx`, `inspector/ItemInspector.tsx`, `test-utils/mocks.ts`, test.
   - Depends on: T4.
 
-### Checkpoint: Desktop navigation
+### Checkpoint: Labels and processing
 
-- [ ] `pnpm check` green; full navigation works against dev Clerk/Convex; compared to the design. Review with human.
+- [x] `pnpm check` green; add and remove a label in the panel and see the row's tags and the label view change without a
+      reload, against dev Convex; run card shows real data. Review with human.
 
-## Phase 3: Polish and close
+## Phase 4: Delete and close
 
-- [x] **T7: Mobile sheet and accessibility** (S)
-  - Below 768px the sidebar is an off-canvas sheet behind a menu button; rail hides its labels; skip-to-main link; focus
-    ring uses `:focus-visible`; headings/landmarks (`nav`, `main`) labelled.
-  - Acceptance: 390px has no horizontal scroll; sheet opens/closes by button, Escape, and route change; axe has no serious issues.
-  - Verify: tests for sheet toggle; manual at 390px; axe/Lighthouse on `/library`.
-  - Files: `shell/AppSidebar.tsx`, `routes/_app.tsx`, `routes/__root.tsx`, tests.
-  - Depends on: T4, T6.
+- [x] **T9: Delete with confirmation** (M)
+  - `DeleteItemDialog`: "Delete" opens a dialog ("Delete this item? Its original and label links are removed. This cannot
+    be undone."), Cancel is the default focus, confirm calls `items.remove`, then removes `item` from the URL, closes the
+    dialog and panel, and the library announces "Item deleted" in a polite `role="status"`. Failure keeps the dialog open
+    with the backend message in `role="alert"`. Extend mocks (`items:remove`).
+  - Acceptance:
+    - [x] Cancel and Escape do nothing to the item; confirm deletes once, closes the panel, announces.
+    - [x] A failed delete leaves the dialog and item in place with the error shown.
+    - [x] After delete the URL has no `item`, with no "Not found" flash in the test.
+  - Verify: tests (cancel, confirm, failure, URL, announcement); `typecheck`, `build`.
+  - Files: `inspector/DeleteItemDialog.tsx`, `inspector/ItemInspector.tsx`, `library/LibraryView.tsx`, `test-utils/mocks.ts`, test.
+  - Depends on: T2, T4.
 
-- [x] **T8: Remove remaining old UI** (S)
-  - Deleted `SaveItemForm`, `ItemList`, `ItemDetail`, `ItemLabelControls`, `LabelList`, `ProcessingHistory` from
-    `apps/web/src` (`style.css`, `LoadExamples` and the old gate went in T2/T4). Their behavior is re-specified by
-    `library-view`/`item-inspector`.
-  - Kept on purpose: `WorkspaceShell` in `packages/ui` (the browser-extension popup still uses it; `capture-clients`
-    is out of scope) and `packages/ui/.../mindspool/*` (unused for now; `library-view`'s spec decides reuse or removal,
-    per the capability map).
-  - Acceptance met: no imports of removed files; no `style.css`; no raw hex in `apps/web/src`; extension still builds.
-  - Verify: `pnpm test`, `pnpm typecheck`, web and extension builds.
-  - Depends on: T4.
+- [x] **T10: Focus, keyboard and accessibility** (S)
+  - Escape inside the panel and the close button close it; focus returns to the selected row or card when it is still on
+    the page; inline mode never steals focus from the list; overlay mode moves focus in and traps it; the panel is a
+    labelled complementary region with an `<h2>` naming the item; controls have the specified names ("Remove <label>",
+    "Open original (new tab)", "Close").
+  - Acceptance:
+    - [x] Tests for Escape, focus return, focus not stolen inline, trap in overlay, and the accessible names.
+    - [x] axe has no serious issues in the panel states where jsdom allows it.
+  - Verify: tests; `typecheck`, `build`; manual keyboard pass.
+  - Files: `inspector/ItemInspector.tsx`, `inspector/InspectorHeader.tsx`, `library/ItemList.tsx`, `library/ItemGrid.tsx`, tests.
+  - Depends on: T4–T9.
 
-- [ ] **T9: Verification record and docs** (S) — report and docs written; manual browser checks pending (criteria 2, 3 visual, 6, 8 in `docs/verification/web-shell.md`)
-  - Write `docs/verification/web-shell.md` (commands, 1440px/390px comparison notes, a11y results); update
-    `README.md`/`docs/core-concepts.md` (routes, shell, how drafts work) and `CAPABILITY-MAP-web-redesign.md` status.
-  - Acceptance: every spec success criterion is checked with evidence; open questions updated with decisions taken.
-  - Verify: `pnpm check` and manual run.
-  - Depends on: T1–T8.
+- [x] **T11: Docs and verification record** (S)
+  - Write `docs/verification/item-inspector.md` (commands and results, criterion-by-criterion evidence, deviations, spike
+    findings, open manual checks); update `README.md`, `docs/core-concepts.md` (`items.detail`, `items.remove`, caps,
+    clamps) and the capability-map status; remove `tasks/` references that went stale.
+  - Acceptance: every spec success criterion has evidence or is listed as a pending manual check; no test dropped without replacement.
+  - Verify: `pnpm check` and a manual run.
+  - Depends on: T1–T10.
 
 ### Checkpoint: Complete
 
-- [ ] All SPEC-web-shell success criteria met; human review; then write `SPEC-library-view.md`.
+- [ ] All SPEC-item-inspector success criteria met (1440px, 1024px, 390px, Lighthouse accessibility at least 95); human
+      review; then write `SPEC-search-and-filters.md`.

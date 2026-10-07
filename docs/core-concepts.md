@@ -74,8 +74,22 @@ references; no image binary is fetched or uploaded.
 
 ## Bounded browsing and examples
 
-Lists use owner-prefixed indexes and cursor pagination. Inbox results contain
-160-character previews and bounded titles; Item detail returns full content.
+Lists use owner-prefixed indexes and cursor pagination. List results (`items.list`
+and `itemLabels.listItemsForLabel`) are previews: 160-character input, bounded
+titles, `enrichmentStatus`, `captureSource`, `originalUrl`, up to three included
+Labels (`{ _id, name }`) and a `labelCount` capped at four, so a row can show
+`+N`. Pages are clamped to ten Items; each Item reads at most four `itemLabels`
+rows and three Label documents. Excluded and foreign Labels never appear.
+`items.get` returns the full document. `items.detail` takes a string id and
+returns `null` for foreign, missing, malformed, and deleted ids; otherwise the
+full original input, URLs, capture source, enrichment status, and source
+metadata (never `ownerId`, `captureKey`, or run pointers). The item-scoped joins
+`itemLabels.listForItem` and `itemLabels.availableLabels` clamp pages to ten.
+
+`items.remove` deletes an Item in one transaction together with its `itemLabels`
+rows, its Processing Runs, and any stored image assets. It refuses with
+`CONFLICT` and deletes nothing when the Item has more than 500 label links or
+100 runs, so no orphaned link can break a label's item list.
 Inbox pagination limits database bytes read. Queries that join large Items or Run
 suggestions enforce a maximum of ten source rows, including reactive page ranges;
 Convex split metadata is preserved for the paginated React client.

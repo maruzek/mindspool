@@ -9,10 +9,12 @@ target in section 05 are separate apps and are out of scope (`capture-clients`, 
 
 ## Status
 
-| Module      | Status                                                                                 |
-| ----------- | -------------------------------------------------------------------------------------- |
-| `web-shell` | Implemented; [verification](docs/verification/web-shell.md) has the open manual checks |
-| others      | Not specified yet                                                                      |
+| Module           | Status                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `web-shell`      | Implemented; [verification](docs/verification/web-shell.md) has the open manual checks      |
+| `library-view`   | Implemented; [verification](docs/verification/library-view.md) has the open manual checks   |
+| `item-inspector` | Implemented; [verification](docs/verification/item-inspector.md) has the open manual checks |
+| others           | Not specified yet                                                                           |
 
 ## Assumptions
 
@@ -25,23 +27,23 @@ target in section 05 are separate apps and are out of scope (`capture-clients`, 
 
 ## Modules
 
-| Module id            | Responsibility                                                                                                                                                                                                         | Depends on                                               |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `web-shell`          | App frame: dark sidebar (brand, search box, Inbox/Library/Boards/Graph nav, label list with counts, user menu), icon-rail variant for Board/Graph, auth/loading/empty states, router                                   | existing `identity`                                      |
-| `library-view`       | Capture bar (link/note + Save), list/grid toggle, label heading, item rows/cards with confirmed tags and processing state, pagination, selection. Source chips, counts and "Needs review" move to `search-and-filters` | `web-shell`, existing `core-library`                     |
-| `item-inspector`     | Right panel: source, preview, title, labels (confirmed vs suggested outline), add label, decision-run card, delete                                                                                                     | `library-view`                                           |
-| `label-suggestions`  | Backend and UI for suggested labels with confidence, accept/reject, rejected-kept-hidden, reprocess                                                                                                                    | `item-inspector`; extends `itemLabels`, `processingRuns` |
-| `search-and-filters` | Backend search over title/content, source and "needs review" filters, Inbox (unlabeled or processing items) with count                                                                                                 | `library-view`                                           |
-| `boards`             | Spatial board: board CRUD, placed items, notes, label frames, zoom/pan, unplaced tray                                                                                                                                  | `library-view`; new tables                               |
-| `graph`              | Network graph: label hubs, items as nodes, shared-label and explicit links, cluster/filter controls, hover card                                                                                                        | `label-suggestions`, `boards` (links)                    |
-| `capture-clients`    | Extension popup and Android share sheet (**out of scope here**)                                                                                                                                                        | —                                                        |
+| Module id            | Responsibility                                                                                                                                                                                                                                                                | Depends on                                               |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `web-shell`          | App frame: dark sidebar (brand, search box, Inbox/Library/Boards/Graph nav, label list with counts, user menu), icon-rail variant for Board/Graph, auth/loading/empty states, router                                                                                          | existing `identity`                                      |
+| `library-view`       | Capture bar (link/note + Save), list/grid toggle, label heading, item rows/cards with confirmed tags and processing state, pagination, selection. Source chips, counts and "Needs review" move to `search-and-filters`                                                        | `web-shell`, existing `core-library`                     |
+| `item-inspector`     | Right panel: source and open-original link, preview, title, saved line, confirmed labels with remove, add label from existing labels, latest processing-run facts, delete. Suggested labels, accept/reject, reprocess move to `label-suggestions`; "Add to board" to `boards` | `library-view`; adds `items.detail`, `items.remove`      |
+| `label-suggestions`  | Backend and UI for suggested labels with confidence, accept/reject, rejected-kept-hidden, reprocess                                                                                                                                                                           | `item-inspector`; extends `itemLabels`, `processingRuns` |
+| `search-and-filters` | Backend search over title/content, source and "needs review" filters, Inbox (unlabeled or processing items) with count                                                                                                                                                        | `library-view`                                           |
+| `boards`             | Spatial board: board CRUD, placed items, notes, label frames, zoom/pan, unplaced tray                                                                                                                                                                                         | `library-view`; new tables                               |
+| `graph`              | Network graph: label hubs, items as nodes, shared-label and explicit links, cluster/filter controls, hover card                                                                                                                                                               | `label-suggestions`, `boards` (links)                    |
+| `capture-clients`    | Extension popup and Android share sheet (**out of scope here**)                                                                                                                                                                                                               | —                                                        |
 
 Build order: `web-shell` → `library-view` → `item-inspector` → `search-and-filters` → `label-suggestions` → `boards` → `graph`
 
 ## Backend gap (what the current Convex API cannot do for the design)
 
 - No suggestion model: `itemLabels` holds only manual `include`/`exclude`. The design needs suggested (score, run id), accepted, and rejected states.
-- No search, no source/host facet, no Inbox/"needs review" query, no item delete, no reprocess trigger, no label counts.
+- No search, no source/host facet, no Inbox/"needs review" query, no reprocess trigger, no label counts.
 - No boards, board placements, notes, frames, or explicit item-to-item links (graph).
 - Model execution and scraping are not implemented (documented as later work). The design's "Labeling…" states render from real `enrichment` state only.
 
