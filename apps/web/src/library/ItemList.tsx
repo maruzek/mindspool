@@ -1,3 +1,4 @@
+import { LoaderCircleIcon } from "lucide-react";
 import { useLinkProps, useSearch } from "@tanstack/react-router";
 import { ItemRow } from "@mindspool/ui/components/mindspool/item-row";
 import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
@@ -32,9 +33,22 @@ export function Tags({ item }: { item: PreviewItem }) {
   const extra = item.labelCount - item.labels.length;
   return (
     <>
-      {item.labels.map((label) => (
-        <LabelTag key={label._id}>{label.name}</LabelTag>
-      ))}
+      {item.labeling && (
+        <LabelTag state="manual" className="gap-1">
+          <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
+          Labeling…
+        </LabelTag>
+      )}
+      {item.labels.map((label) =>
+        label.unsure ? (
+          <LabelTag key={label._id} state="suggested">
+            {label.name}
+            <span className="sr-only"> (unsure)</span>
+          </LabelTag>
+        ) : (
+          <LabelTag key={label._id}>{label.name}</LabelTag>
+        ),
+      )}
       {extra > 0 && <LabelTag state="manual">+{extra}</LabelTag>}
     </>
   );

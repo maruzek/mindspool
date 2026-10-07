@@ -25,7 +25,11 @@ export function ItemGrid({
               title={displayTitle(item)}
               source={<SourceLine item={item} />}
               status={<ProcessingStatus status={item.enrichmentStatus} />}
-              labels={item.labelCount > 0 ? <Tags item={item} /> : undefined}
+              labels={
+                item.labelCount > 0 || item.labeling ? (
+                  <Tags item={item} />
+                ) : undefined
+              }
               selected={item._id === selectedId}
               data-new={item._id === highlightedId || undefined}
               className={

@@ -370,3 +370,44 @@ describe("selection", () => {
     expect(grid.className).not.toMatch(/(^| )(md|xl):grid-cols/);
   });
 });
+
+describe("labeling state", () => {
+  it("shows Labeling… in the row and an unsure marker on the label", async () => {
+    backend.items = [
+      item("a", {
+        labeling: true,
+        labels: [
+          { _id: "l1", name: "Food", unsure: true },
+          { _id: "l2", name: "Dinner" },
+        ],
+        labelCount: 2,
+        unsureCount: 1,
+      }),
+    ];
+    await renderAt("/library");
+    expect(main().getByText("Labeling…")).toBeTruthy();
+    expect(main().getByText("(unsure)")).toBeTruthy();
+    expect(
+      main()
+        .getByText("Food")
+        .closest("[data-state]")
+        ?.getAttribute("data-state"),
+    ).toBe("suggested");
+    expect(
+      main()
+        .getByText("Dinner")
+        .closest("[data-state]")
+        ?.getAttribute("data-state"),
+    ).toBe("confirmed");
+  });
+  it("shows nothing extra when not labeling", async () => {
+    backend.items = [item("a")];
+    await renderAt("/library");
+    expect(main().queryByText("Labeling…")).toBeNull();
+  });
+  it("shows Labeling… in grid cards", async () => {
+    backend.items = [item("a", { labeling: true })];
+    await renderAt("/library?layout=grid");
+    expect(main().getByText("Labeling…")).toBeTruthy();
+  });
+});

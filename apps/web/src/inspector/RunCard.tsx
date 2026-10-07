@@ -1,6 +1,7 @@
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
 import type { Id } from "@mindspool/backend/data-model";
+import { ClassifyControl } from "./ClassifyControl";
 import {
   ProcessingStatus,
   type ProcessingState,
@@ -37,6 +38,14 @@ export function RunCard({
         ["Model", run.model],
         ["Input", MODALITY[run.modality]],
         ["Question version", run.questionVersion],
+        [
+          "Labels asked",
+          run.labelsAsked === undefined
+            ? undefined
+            : run.labelsTotal !== undefined && run.labelsTotal > run.labelsAsked
+              ? `${run.labelsAsked} of ${run.labelsTotal}`
+              : String(run.labelsAsked),
+        ],
         ["Status", STATUS[run.status]],
         ["Error", run.status === "failed" ? run.error : undefined],
         [
@@ -69,6 +78,9 @@ export function RunCard({
         </dl>
       ) : (
         <ProcessingStatus status={enrichmentStatus} />
+      )}
+      {status !== "LoadingFirstPage" && (
+        <ClassifyControl itemId={itemId} run={run} />
       )}
     </section>
   );

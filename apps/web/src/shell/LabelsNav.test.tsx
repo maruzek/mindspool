@@ -152,4 +152,46 @@ describe("create label dialog", () => {
     );
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
+
+  it("sends a trimmed description when given, with the model-context note", async () => {
+    backend.createLabel.mockResolvedValue("label-recipes");
+    backend.label = recipes;
+    await renderAt("/library");
+    const dialog = await openDialog();
+    expect(
+      within(dialog).getByText(/Sent to the model as context/),
+    ).toBeTruthy();
+    fireEvent.change(within(dialog).getByLabelText("Name"), {
+      target: { value: "Recipes" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Description (optional)"), {
+      target: { value: "  Cooking instructions  " },
+    });
+    fireEvent.click(within(dialog).getByText("Create label"));
+    await waitFor(() =>
+      expect(backend.createLabel).toHaveBeenCalledWith({
+        name: "Recipes",
+        description: "Cooking instructions",
+      }),
+    );
+  });
+
+  it("limits the description and rejects a whitespace-only one", async () => {
+    await renderAt("/library");
+    const dialog = await openDialog();
+    const description = within(dialog).getByLabelText(
+      "Description (optional)",
+    ) as HTMLTextAreaElement;
+    expect(description.maxLength).toBe(500);
+    fireEvent.change(within(dialog).getByLabelText("Name"), {
+      target: { value: "Recipes" },
+    });
+    fireEvent.change(description, { target: { value: "   " } });
+    fireEvent.click(within(dialog).getByText("Create label"));
+    expect((await within(dialog).findByRole("alert")).textContent).toContain(
+      "description",
+    );
+    expect(backend.createLabel).not.toHaveBeenCalled();
+    expect(description.value).toBe("   ");
+  });
 });

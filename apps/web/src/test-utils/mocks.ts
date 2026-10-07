@@ -10,6 +10,7 @@ export const backend = {
   load: vi.fn(),
   signOut: vi.fn(),
   createLabel: vi.fn(),
+  updateLabel: vi.fn(),
   createItem: vi.fn(),
   loadMore: vi.fn(),
   items: [] as unknown[],
@@ -24,6 +25,8 @@ export const backend = {
   itemLabelsStatus: "Exhausted" as string,
   loadMoreItemLabels: vi.fn(),
   removeItemLabel: vi.fn(),
+  confirmItemLabel: vi.fn(),
+  classify: vi.fn(),
   removeItem: vi.fn(),
   runs: [] as unknown[],
   runsStatus: "Exhausted" as string,
@@ -58,11 +61,14 @@ export function resetBackend() {
     backend.load,
     backend.signOut,
     backend.createLabel,
+    backend.updateLabel,
     backend.createItem,
     backend.loadMore,
     backend.loadMoreItems,
     backend.loadMoreItemLabels,
     backend.removeItemLabel,
+    backend.confirmItemLabel,
+    backend.classify,
     backend.removeItem,
     backend.attachItemLabel,
     backend.loadMoreAvailable,
@@ -99,8 +105,11 @@ export const convexMock = {
     const name = getFunctionName(ref);
     if (name === "seed:load") return backend.load;
     if (name === "labels:create") return backend.createLabel;
+    if (name === "labels:update") return backend.updateLabel;
     if (name === "items:create") return backend.createItem;
     if (name === "itemLabels:remove") return backend.removeItemLabel;
+    if (name === "itemLabels:confirm") return backend.confirmItemLabel;
+    if (name === "decisions:classify") return backend.classify;
     if (name === "items:remove") return backend.removeItem;
     if (name === "itemLabels:attach") return backend.attachItemLabel;
     throw new Error(`Unmocked mutation ${name}`);

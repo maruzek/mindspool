@@ -6,6 +6,7 @@ import { Skeleton } from "@mindspool/ui/components/skeleton";
 import { validateLibrarySearch } from "../../library/search";
 import { LibraryView } from "../../library/LibraryView";
 import { PAGE_SIZE } from "../../library/types";
+import { LabelDescription } from "../../shell/LabelDescription";
 import { NotFound } from "../../shell/NotFound";
 
 export const Route = createFileRoute("/_app/labels/$labelId")({
@@ -24,20 +25,37 @@ function LabelPage() {
     );
   // Foreign, missing, and malformed ids all arrive as null.
   if (label === null) return <NotFound />;
-  return <LabelItems labelId={label._id} name={label.name} />;
+  return (
+    <LabelItems
+      labelId={label._id}
+      name={label.name}
+      description={label.description}
+    />
+  );
 }
 
 function LabelItems({
   labelId,
   name,
+  description,
 }: {
   labelId: Id<"labels">;
   name: string;
+  description?: string;
 }) {
   const feed = usePaginatedQuery(
     api.itemLabels.listItemsForLabel,
     { labelId },
     { initialNumItems: PAGE_SIZE },
   );
-  return <LibraryView heading={name} feed={feed} empty="label" />;
+  return (
+    <LibraryView
+      heading={name}
+      subheading={
+        <LabelDescription labelId={labelId} description={description} />
+      }
+      feed={feed}
+      empty="label"
+    />
+  );
 }

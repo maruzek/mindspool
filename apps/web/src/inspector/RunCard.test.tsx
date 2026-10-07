@@ -62,4 +62,35 @@ describe("RunCard", () => {
     render(<RunCard itemId={itemId} enrichmentStatus="not_started" />);
     expect(screen.getByText("Saved — original stored")).toBeTruthy();
   });
+  it("shows labels asked, with the total when some were left out", () => {
+    backend.runs = [run({ labelsAsked: 64, labelsTotal: 70 })];
+    const { unmount } = render(
+      <RunCard itemId={itemId} enrichmentStatus="succeeded" />,
+    );
+    expect(screen.getByText("Labels asked")).toBeTruthy();
+    expect(screen.getByText("64 of 70")).toBeTruthy();
+    unmount();
+    backend.runs = [run({ labelsAsked: 5, labelsTotal: 5 })];
+    render(<RunCard itemId={itemId} enrichmentStatus="succeeded" />);
+    expect(screen.getByText("5")).toBeTruthy();
+  });
+  it("renders the pending, failed and succeeded decision states with Classify", () => {
+    backend.runs = [run({ kind: "decision", status: "pending" })];
+    const { unmount } = render(
+      <RunCard itemId={itemId} enrichmentStatus="succeeded" />,
+    );
+    expect(screen.getByText("Processing", { selector: "dd" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Classifying…" })).toBeTruthy();
+    unmount();
+    backend.runs = [
+      run({
+        kind: "decision",
+        status: "failed",
+        error: "Provider returned HTTP 500",
+      }),
+    ];
+    render(<RunCard itemId={itemId} enrichmentStatus="succeeded" />);
+    expect(screen.getByText("Provider returned HTTP 500")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Classify" })).toBeTruthy();
+  });
 });

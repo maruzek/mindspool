@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import type { ReactNode } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { LayoutGridIcon, ListIcon } from "lucide-react";
 import { toast } from "@mindspool/ui/components/sonner";
@@ -11,16 +12,19 @@ import type { EmptyKind } from "./ItemEmpty";
 import { ItemGrid } from "./ItemGrid";
 import { ItemList } from "./ItemList";
 import type { Layout } from "./search";
+import { useLabelingToasts } from "./useLabelingToasts";
 import { PAGE_SIZE } from "./types";
 import type { ItemFeed, PreviewItem } from "./types";
 
 /** Heading, capture bar and a paginated item list; shared by both routes. */
 export function LibraryView({
   heading,
+  subheading,
   feed,
   empty = "library",
 }: {
   heading: string;
+  subheading?: ReactNode;
   feed: ItemFeed;
   empty?: EmptyKind;
 }) {
@@ -29,6 +33,16 @@ export function LibraryView({
   const navigate = useNavigate();
   // A fresh save is highlighted, never opened: it does not touch `?item`.
   const [savedId, setSavedId] = useState<string | null>(null);
+  const openItem = useCallback(
+    (itemId: string) =>
+      void navigate({
+        to: ".",
+        search: (prev) => ({ ...prev, item: itemId }),
+        resetScroll: false,
+      }),
+    [navigate],
+  );
+  useLabelingToasts(results, openItem);
   const more = status === "CanLoadMore" || status === "LoadingMore";
   return (
     <div className="flex min-h-full">
@@ -42,6 +56,7 @@ export function LibraryView({
             </p>
           )}
         </header>
+        {subheading}
         <div className="flex flex-col gap-3 md:flex-row md:items-start">
           <div className="min-w-0 flex-1">
             <CaptureBar onSaved={setSavedId} />
