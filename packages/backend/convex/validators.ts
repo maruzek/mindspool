@@ -69,6 +69,22 @@ export const itemPreview = v.object({
   inputType,
   originalInput: v.string(),
   sourceMetadata: v.optional(v.object({ title: v.optional(v.string()) })),
+  enrichmentStatus: itemFields.enrichmentStatus,
+  captureSource,
+  originalUrl: v.optional(v.string()),
+  labels: v.array(v.object({ _id: v.id("labels"), name: v.string() })),
+  labelCount: v.number(),
+});
+export const itemDetail = v.object({
+  _id: v.id("items"),
+  _creationTime: v.number(),
+  inputType,
+  originalInput: v.string(),
+  originalUrl: v.optional(v.string()),
+  canonicalUrl: v.optional(v.string()),
+  captureSource,
+  enrichmentStatus: itemFields.enrichmentStatus,
+  sourceMetadata: itemFields.sourceMetadata,
 });
 export const itemPage = paginationResultValidator(itemPreview);
 export const labelFields = {

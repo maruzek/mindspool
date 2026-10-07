@@ -31,6 +31,20 @@ describe("owned Item capture", () => {
       originalInput,
     );
   });
+  it("includes the original URL in previews of link Items", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+    });
+    await alice.mutation(api.items.create, capture);
+    const page = await alice.query(api.items.list, {
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    expect(page.page[0]).toMatchObject({
+      originalUrl: capture.originalInput,
+      labels: [],
+      labelCount: 0,
+    });
+  });
   it("paginates only the owner's newest Items", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });
@@ -198,5 +212,194 @@ describe("owned Item capture", () => {
         ownerId: "bob",
       } as typeof capture),
     ).rejects.toThrow();
+  });
+});
+
+describe("items.detail", () => {
+  it("returns exactly the inspector fields", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+    });
+    const id = await alice.mutation(api.items.create, capture);
+    const detail = await alice.query(api.items.detail, { id });
+    expect(Object.keys(detail!).sort()).toEqual(
+      [
+        "_creationTime",
+        "_id",
+        "captureSource",
+        "enrichmentStatus",
+        "inputType",
+        "originalInput",
+        "originalUrl",
+      ].sort(),
+    );
+    expect(detail).toMatchObject({
+      _id: id,
+      originalInput: capture.originalInput,
+    });
+  });
+  it("returns null for foreign, missing and malformed ids", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const bob = t.withIdentity({ subject: "bob" });
+    const id = await alice.mutation(api.items.create, capture);
+    expect(await bob.query(api.items.detail, { id })).toBeNull();
+    expect(await alice.query(api.items.detail, { id: "nope" })).toBeNull();
+    const labelId = await alice.mutation(api.labels.create, { name: "x" });
+    expect(await alice.query(api.items.detail, { id: labelId })).toBeNull();
+    await t.run((ctx) => ctx.db.delete(id));
+    expect(await alice.query(api.items.detail, { id })).toBeNull();
+  });
+  it("requires authentication", async () => {
+    await expect(
+      convexTest(schema, modules).query(api.items.detail, { id: "x" }),
+    ).rejects.toThrow("Authentication required");
+  });
+});
+
+describe("items.remove", () => {
+  async function setup() {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const bob = t.withIdentity({ subject: "bob" });
+    const id = await alice.mutation(api.items.create, capture);
+    const otherId = await alice.mutation(api.items.create, {
+      ...capture,
+      captureKey: "capture-2",
+    });
+    const labelId = await alice.mutation(api.labels.create, { name: "L" });
+    const { ownerId } = await alice.query(api.identity.current, {});
+    return { t, alice, bob, id, otherId, labelId, ownerId };
+  }
+  const run = (ownerId: string, itemId: any) => ({
+    ownerId,
+    itemId,
+    kind: "decision" as const,
+    status: "succeeded" as const,
+    modality: "text" as const,
+    questionVersion: "v1",
+    suggestions: [],
+  });
+
+  it("deletes the item, its links, runs and stored assets only", async () => {
+    const { t, alice, id, otherId, labelId, ownerId } = await setup();
+    await alice.mutation(api.itemLabels.attach, { itemId: id, labelId });
+    await alice.mutation(api.itemLabels.attach, { itemId: otherId, labelId });
+    const storageId = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["img"])),
+    );
+    await t.run(async (ctx) => {
+      await ctx.db.patch(id, {
+        imageAssets: [{ kind: "stored", storageId, purpose: "image" }],
+      });
+      await ctx.db.insert("processingRuns", run(ownerId, id));
+      await ctx.db.insert("processingRuns", run(ownerId, otherId));
+    });
+    await alice.mutation(api.items.remove, { id });
+    const left = await t.run(async (ctx) => ({
+      item: await ctx.db.get(id),
+      other: await ctx.db.get(otherId),
+      links: await ctx.db.query("itemLabels").collect(),
+      runs: await ctx.db.query("processingRuns").collect(),
+      blob: await ctx.storage.getUrl(storageId),
+      labels: await ctx.db.query("labels").collect(),
+    }));
+    expect(left.item).toBeNull();
+    expect(left.other).not.toBeNull();
+    expect(left.links.map((l) => l.itemId)).toEqual([otherId]);
+    expect(left.runs.map((r) => r.itemId)).toEqual([otherId]);
+    expect(left.blob).toBeNull();
+    expect(left.labels).toHaveLength(1);
+  });
+  it("disappears from items.list and label lists", async () => {
+    const { alice, id, labelId } = await setup();
+    await alice.mutation(api.itemLabels.attach, { itemId: id, labelId });
+    await alice.mutation(api.items.remove, { id });
+    const opts = { numItems: 10, cursor: null };
+    expect(
+      (await alice.query(api.items.list, { paginationOpts: opts })).page.map(
+        (i) => i._id,
+      ),
+    ).not.toContain(id);
+    expect(
+      (
+        await alice.query(api.itemLabels.listItemsForLabel, {
+          labelId,
+          paginationOpts: opts,
+        })
+      ).page,
+    ).toEqual([]);
+  });
+  it("rejects foreign, missing and unauthenticated calls", async () => {
+    const { t, bob, alice, id } = await setup();
+    await expect(bob.mutation(api.items.remove, { id })).rejects.toThrow(
+      "Not found",
+    );
+    await alice.mutation(api.items.remove, { id });
+    await expect(alice.mutation(api.items.remove, { id })).rejects.toThrow(
+      "Not found",
+    );
+    await expect(t.mutation(api.items.remove, { id })).rejects.toThrow(
+      "Authentication required",
+    );
+  });
+  it("still deletes at exactly 500 links and 100 runs", async () => {
+    const { t, alice, id, ownerId } = await setup();
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 100; i++)
+        await ctx.db.insert("processingRuns", run(ownerId, id));
+      for (let i = 0; i < 500; i++) {
+        const l = await ctx.db.insert("labels", {
+          ownerId,
+          name: `n${i}`,
+          normalizedName: `n${i}`,
+        });
+        await ctx.db.insert("itemLabels", {
+          ownerId,
+          itemId: id,
+          labelId: l,
+          manualDecision: "include",
+          updatedAt: 0,
+        });
+      }
+    });
+    await alice.mutation(api.items.remove, { id });
+    expect(await t.run((ctx) => ctx.db.get(id))).toBeNull();
+    expect(await t.run((ctx) => ctx.db.query("itemLabels").collect())).toEqual(
+      [],
+    );
+  });
+  it("refuses over the caps and deletes nothing", async () => {
+    const { t, alice, id, labelId, ownerId } = await setup();
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 101; i++)
+        await ctx.db.insert("processingRuns", run(ownerId, id));
+    });
+    await expect(alice.mutation(api.items.remove, { id })).rejects.toThrow(
+      "CONFLICT",
+    );
+    await t.run(async (ctx) => {
+      for (const r of await ctx.db.query("processingRuns").collect())
+        await ctx.db.delete(r._id);
+      for (let i = 0; i < 501; i++) {
+        const l = await ctx.db.insert("labels", {
+          ownerId,
+          name: `n${i}`,
+          normalizedName: `n${i}`,
+        });
+        await ctx.db.insert("itemLabels", {
+          ownerId,
+          itemId: id,
+          labelId: l,
+          manualDecision: "include",
+          updatedAt: 0,
+        });
+      }
+    });
+    await expect(alice.mutation(api.items.remove, { id })).rejects.toThrow(
+      "CONFLICT",
+    );
+    expect(await t.run((ctx) => ctx.db.get(id))).not.toBeNull();
+    expect(labelId).toBeDefined();
   });
 });

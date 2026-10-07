@@ -4,13 +4,17 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireOwned, requireOwner } from "./auth";
-import { previewItem } from "./items";
+import { PREVIEW_PAGE_SIZE, previewItems } from "./items";
 import {
   itemPreview,
   labelDoc,
   paginationOptsValidator,
   validatePagination,
 } from "./validators";
+
+function clampPage<T extends { numItems: number }>(opts: T): T {
+  return { ...opts, numItems: Math.min(opts.numItems, PREVIEW_PAGE_SIZE) };
+}
 
 const pair = { itemId: v.id("items"), labelId: v.id("labels") };
 async function decide(
@@ -65,7 +69,7 @@ export const listForItem = query({
           .eq("itemId", itemId)
           .eq("manualDecision", "include"),
       )
-      .paginate(paginationOpts);
+      .paginate(clampPage(paginationOpts));
     return {
       ...page,
       page: await Promise.all(
@@ -95,17 +99,15 @@ export const listItemsForLabel = query({
       .order("desc")
       .paginate({
         ...paginationOpts,
-        numItems: Math.min(paginationOpts.numItems, 10),
-        maximumRowsRead: 10,
+        numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
+        maximumRowsRead: PREVIEW_PAGE_SIZE,
       });
-    return {
-      ...page,
-      page: await Promise.all(
-        page.page.map(async (link) =>
-          previewItem(requireOwned(await ctx.db.get(link.itemId), ownerId)),
-        ),
+    const items = await Promise.all(
+      page.page.map(async (link) =>
+        requireOwned(await ctx.db.get(link.itemId), ownerId),
       ),
-    };
+    );
+    return { ...page, page: await previewItems(ctx, ownerId, items) };
   },
 });
 
@@ -123,7 +125,7 @@ export const availableLabels = query({
     const page = await ctx.db
       .query("labels")
       .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
-      .paginate(paginationOpts);
+      .paginate(clampPage(paginationOpts));
     return {
       ...page,
       page: await Promise.all(

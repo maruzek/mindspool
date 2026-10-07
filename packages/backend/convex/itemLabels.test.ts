@@ -226,3 +226,118 @@ describe("item-label membership", () => {
     ).toBe(true);
   });
 });
+
+describe("item-scoped join clamps", () => {
+  it("returns at most 10 rows from listForItem and availableLabels", async () => {
+    const { alice, itemId } = await fixture();
+    for (let i = 0; i < 12; i++) {
+      const id = await alice.mutation(api.labels.create, { name: `Many${i}` });
+      await alice.mutation(api.itemLabels.attach, { itemId, labelId: id });
+    }
+    const opts = { numItems: 100, cursor: null };
+    expect(
+      (
+        await alice.query(api.itemLabels.listForItem, {
+          itemId,
+          paginationOpts: opts,
+        })
+      ).page,
+    ).toHaveLength(10);
+    expect(
+      (
+        await alice.query(api.itemLabels.availableLabels, {
+          itemId,
+          paginationOpts: opts,
+        })
+      ).page,
+    ).toHaveLength(10);
+  });
+});
+
+describe("item previews with labels", () => {
+  async function labelled(count: number) {
+    const f = await fixture();
+    for (let i = 0; i < count; i++) {
+      const id = await f.alice.mutation(api.labels.create, { name: `L${i}` });
+      await f.alice.mutation(api.itemLabels.attach, {
+        itemId: f.itemId,
+        labelId: id,
+      });
+    }
+    return f;
+  }
+  const opts = { numItems: 10, cursor: null };
+
+  it("returns display fields, at most 3 labels and a capped count", async () => {
+    const { alice, itemId } = await labelled(5);
+    const page = await alice.query(api.items.list, { paginationOpts: opts });
+    const row = page.page.find((item) => item._id === itemId)!;
+    expect(row).toMatchObject({
+      enrichmentStatus: "not_started",
+      captureSource: "web",
+    });
+    expect(row.labels).toHaveLength(3);
+    expect(row.labelCount).toBe(4);
+    expect(row).not.toHaveProperty("originalUrl");
+  });
+
+  it("shows the same preview shape in a label view", async () => {
+    const { alice, itemId, labelId } = await fixture();
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    const page = await alice.query(api.itemLabels.listItemsForLabel, {
+      labelId,
+      paginationOpts: opts,
+    });
+    expect(page.page[0]).toMatchObject({
+      _id: itemId,
+      labels: [{ _id: labelId, name: "Recipes" }],
+      labelCount: 1,
+      captureSource: "web",
+    });
+  });
+
+  it("omits excluded and foreign labels", async () => {
+    const { t, alice, itemId, labelId, secondLabelId, foreignLabelId } =
+      await fixture();
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    await alice.mutation(api.itemLabels.attach, {
+      itemId,
+      labelId: secondLabelId,
+    });
+    await alice.mutation(api.itemLabels.remove, {
+      itemId,
+      labelId: secondLabelId,
+    });
+    const identity = await alice.query(api.identity.current, {});
+    await t.run((ctx) =>
+      ctx.db.insert("itemLabels", {
+        ownerId: identity.ownerId,
+        itemId,
+        labelId: foreignLabelId,
+        manualDecision: "include",
+        updatedAt: 0,
+      }),
+    );
+    const row = (
+      await alice.query(api.items.list, { paginationOpts: opts })
+    ).page.find((item) => item._id === itemId)!;
+    expect(row.labels).toEqual([{ _id: labelId, name: "Recipes" }]);
+  });
+
+  it("clamps page size to 10 and truncates previews", async () => {
+    const { alice } = await fixture();
+    for (let i = 0; i < 12; i++)
+      await alice.mutation(api.items.create, {
+        originalInput: "x".repeat(300),
+        inputType: "text",
+        captureSource: "web",
+        captureKey: `bulk-${i}`,
+      });
+    const page = await alice.query(api.items.list, {
+      paginationOpts: { numItems: 100, cursor: null },
+    });
+    expect(page.page).toHaveLength(10);
+    expect(page.isDone).toBe(false);
+    expect(page.page[0]!.originalInput).toHaveLength(160);
+  });
+});
