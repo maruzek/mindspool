@@ -15,8 +15,10 @@ The web previously implemented URL/text capture, owned inbox/detail views, label
 assignment, and both navigation directions. During the Modernist redesign
 ([capability map](CAPABILITY-MAP-web-redesign.md)) that UI was removed; the new
 `web-shell` provides the frame, routing, auth gate, and label navigation, and
-`library-view` and `item-inspector` restore capture and item views. The backend
-contracts above are unchanged, plus a read-only `labels.get`. Generated Convex imports are tracked;
+`library-view` and `item-inspector` restore capture and item views, and
+`search-and-filters` adds full-text search, source and needs-review filters and the Inbox
+(see [core concepts](docs/core-concepts.md)). The backend contracts above are unchanged,
+plus a read-only `labels.get`, `items.detail`/`remove`, and the search and counter queries. Generated Convex imports are tracked;
 `pnpm check` includes the local backend and web regression suites.
 
 ## Accepted Contracts
@@ -44,7 +46,7 @@ contracts above are unchanged, plus a read-only `labels.get`. Generated Convex i
 
 ## Later Roadmap Work
 
-Search, deletion/export, asynchronous extraction and image storage, provider
+Deletion/export, asynchronous extraction and image storage, provider
 adapters, Android share receiver, extension capture, spatial boards, and network
 graphs remain subsequent phases. The source of scope and acceptance criteria is
 [the approved plan](tasks/archive/library-foundation-plan.md); a separate specification is appropriate when

@@ -47,9 +47,56 @@ error, and missing configuration. Two layouts sit inside the gate: `_app`, the
 a 60px icon rail for the full-bleed Boards and Graph canvases. Below 768px the
 sidebar becomes a sheet. Label pages live at `/labels/$labelId`; `labels.get`
 returns null for foreign, missing, and malformed ids, so the page shows the same
-"Not found" for all three. Boards, Graph, Inbox, and Library content are
-placeholders until their modules land. The sidebar and rail share a scoped dark
+"Not found" for all three. Boards and Graph content are placeholders until
+their modules land; Library, Inbox and label pages share one view. The sidebar and rail share a scoped dark
 palette (`.dark-sidebar`) without a global dark mode.
+
+## Search, filters and the Inbox
+
+Every list can be searched and narrowed, in the Library, the Inbox, and inside one
+label. The URL holds the state (`?q`, `?source`, `?review=1`, plus `layout` and
+`item`), so a view can be reloaded, shared with yourself, and navigated with back
+and forward. Choosing a filter replaces the history entry and drops the selected
+item.
+
+Convex has no joins and no array-contains index, so the facts the filters need are
+**denormalized**: an Item carries `searchText` (title first, then description,
+author, site, the start of the input, and extracted text, capped at 8,000
+characters), `sourceKind` (`x`, `instagram`, `tiktok`, `youtube`, `reddit`, `web`,
+`note`), `inbox` and `needsReview`. Each `itemLabels` row carries `sourceKind`, a
+short `searchText` (title, site, start of the input) and `unsure`. Search uses one
+text search index per table plus an index for each filter combination; each
+combination has its own index because Convex orders by the first unconstrained
+index field, not newest first.
+
+- **Needs review**: an included model label that is still unsure (below 65%,
+  unconfirmed). In the Library and Inbox it means any unsure label on the Item; inside
+  a label it means that label's own link is unsure.
+- **Inbox**: no included labels, or enrichment or labeling in flight (a pending
+  decision run among the three newest runs), or needs review. Needs review is a
+  subset.
+- **Counters**: `ownerStats` (`total`, `inbox`, `needsReview`) is adjusted in the
+  same transaction as the change, so the sidebar badge and the Library heading are
+  exact and read one document.
+
+`refreshItemState` is the only code that writes an Item's `searchText`,
+`sourceKind`, `inbox` and `needsReview`; every writer calls it (create, delete,
+attach, remove, confirm, model labels, run start and finish, enrichment). A change
+to an Item's text updates its links 100 at a time with a scheduled continuation.
+`recountOwnerStats` recomputes everything from scratch in batches and reports what
+it fixed; run it once per owner for data saved before this feature, and any time
+counts look wrong. A seeded random test checks, after every step, that stored
+state equals a full recompute.
+
+Queries: `items.list` and `itemLabels.listItemsForLabel` take optional `source`
+and `needsReview` (and `inbox` for `items.list`); `items.search` and
+`itemLabels.searchItemsForLabel` take a query of 1 to 200 characters and at most 16
+words, with the same filters; `items.stats` returns the counters. All are owner
+scoped and return the same bounded previews. Search matches whole words and a
+prefix of the last word, ignores case, splits URLs on punctuation, has no typo
+tolerance, and scans at most 1,024 results, so the UI shows "N loaded" and never
+a total. Keyboard: `/` focuses the search box, Enter searches the current view,
+Esc clears the query.
 
 ## Processing and image references
 
@@ -103,8 +150,7 @@ future experiments, rather than evidence of model quality.
 ## Next increment
 
 Build one asynchronous enrichment path that retains captured content on failure,
-then a decision-provider adapter using the versioned sample questions. Search,
-export/deletion, real image uploads, capture from mobile/extension, and spatial
+then a decision-provider adapter using the versioned sample questions. Export/deletion, real image uploads, capture from mobile/extension, and spatial
 views remain separate roadmap work.
 
 ## Implementation references
