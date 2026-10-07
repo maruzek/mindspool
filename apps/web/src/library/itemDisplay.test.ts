@@ -8,7 +8,7 @@ import {
   kindOf,
   relativeDate,
 } from "./itemDisplay";
-import { validateLibrarySearch } from "./search";
+import { validateLibrarySearch } from "../search/searchParams";
 
 describe("captureTypeOf", () => {
   it.each([

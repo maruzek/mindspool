@@ -92,4 +92,18 @@ describe("accessibility landmarks", () => {
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Labels" })).toBeTruthy();
   });
+
+  it("has the search box inside the sheet", async () => {
+    const router = await renderAt("/library", 390);
+    fireEvent.click(await screen.findByLabelText("Open menu"));
+    const dialog = await screen.findByRole("dialog");
+    const box = within(dialog).getByLabelText("Search everything");
+    fireEvent.change(box, { target: { value: "ramen" } });
+    fireEvent.submit(box.closest("form")!);
+    await waitFor(() =>
+      expect(router.state.matches.at(-1)!.search).toMatchObject({
+        q: "ramen",
+      }),
+    );
+  });
 });

@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { LayoutGridIcon, ListIcon } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@mindspool/backend/api";
+import { LayoutGridIcon, ListIcon, XIcon } from "lucide-react";
 import { toast } from "@mindspool/ui/components/sonner";
 import { Button } from "@mindspool/ui/components/button";
 import { SegmentedControl } from "@mindspool/ui/components/mindspool/segmented-control";
@@ -11,7 +13,9 @@ import { ItemEmpty, ItemSkeleton } from "./ItemEmpty";
 import type { EmptyKind } from "./ItemEmpty";
 import { ItemGrid } from "./ItemGrid";
 import { ItemList } from "./ItemList";
-import type { Layout } from "./search";
+import { FilterBar } from "../search/FilterBar";
+import { changeFilters, hasFilters } from "../search/searchParams";
+import type { Layout, LibrarySearch } from "../search/searchParams";
 import { useLabelingToasts } from "./useLabelingToasts";
 import { PAGE_SIZE } from "./types";
 import type { ItemFeed, PreviewItem } from "./types";
@@ -21,15 +25,17 @@ export function LibraryView({
   heading,
   subheading,
   feed,
-  empty = "library",
+  scope = "library",
 }: {
+  /** The view's name: Library, Inbox, or the label. */
   heading: string;
   subheading?: ReactNode;
   feed: ItemFeed;
-  empty?: EmptyKind;
+  scope?: EmptyKind;
 }) {
   const { results, status, loadMore } = feed;
-  const { layout = "list", item: selectedId } = useSearch({ strict: false });
+  const filters = useSearch({ strict: false }) as LibrarySearch;
+  const { layout = "list", item: selectedId, q } = filters;
   const navigate = useNavigate();
   // A fresh save is highlighted, never opened: it does not touch `?item`.
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -43,19 +49,72 @@ export function LibraryView({
     [navigate],
   );
   useLabelingToasts(results, openItem);
+  const clear = useCallback(
+    (which: "q" | "source" | "review") =>
+      void navigate({
+        to: ".",
+        search: (prev: LibrarySearch) =>
+          changeFilters(prev, { [which]: undefined }),
+        resetScroll: false,
+      }),
+    [navigate],
+  );
+  const searchAll = () =>
+    void navigate({
+      to: "/library",
+      search: (prev: LibrarySearch) => changeFilters(prev, {}),
+    });
+  // Exact counts only describe the whole library: not a search, a filter, the inbox or a label.
+  const wholeLibrary = scope === "library" && !hasFilters(filters);
+  const stats = useQuery(api.items.stats, wholeLibrary ? {} : "skip");
   const more = status === "CanLoadMore" || status === "LoadingMore";
   return (
     <div className="flex min-h-full">
       <section className="flex min-w-0 flex-1 flex-col gap-4 p-6">
         <header className="flex items-baseline gap-3">
-          <h1 className="text-2xl">{heading}</h1>
-          {results.length > 0 && (
+          <h1 className="text-2xl">{q ? `Results for “${q}”` : heading}</h1>
+          {q && (
+            <>
+              <p className="text-sm text-muted-foreground">in {heading}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Clear search"
+                onClick={() => clear("q")}
+              >
+                <XIcon />
+              </Button>
+              {scope === "label" && (
+                <Button variant="outline" size="sm" onClick={searchAll}>
+                  Search all
+                </Button>
+              )}
+            </>
+          )}
+          {stats && stats.total > 0 ? (
             <p className="text-sm text-muted-foreground">
-              {results.length} {results.length === 1 ? "item" : "items"}
-              {more ? " loaded" : ""}
+              {count(stats.total)}
+              {stats.needsReview > 0 &&
+                ` · ${stats.needsReview} awaiting review`}
             </p>
+          ) : (
+            results.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {count(results.length)}
+                {more ? " loaded" : ""}
+              </p>
+            )
           )}
         </header>
+        {q && (
+          <p role="status" aria-label="Search status" className="sr-only">
+            {status === "LoadingFirstPage"
+              ? "Searching…"
+              : results.length === 0
+                ? "No results"
+                : "Showing results"}
+          </p>
+        )}
         {subheading}
         <div className="flex flex-col gap-3 md:flex-row md:items-start">
           <div className="min-w-0 flex-1">
@@ -79,10 +138,11 @@ export function LibraryView({
             ]}
           />
         </div>
+        <FilterBar />
         {status === "LoadingFirstPage" ? (
           <ItemSkeleton />
         ) : results.length === 0 ? (
-          <ItemEmpty kind={empty} />
+          <ItemEmpty kind={scope} filters={filters} onClear={clear} />
         ) : (
           <Items items={results} layout={layout} highlightedId={savedId} />
         )}
@@ -107,6 +167,10 @@ export function LibraryView({
       />
     </div>
   );
+}
+
+function count(n: number) {
+  return `${n} ${n === 1 ? "item" : "items"}`;
 }
 
 function Items({

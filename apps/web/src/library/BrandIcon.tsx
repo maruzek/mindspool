@@ -1,6 +1,7 @@
 import { Globe, StickyNote } from "lucide-react";
 import { brandOf } from "./itemDisplay";
 import type { BrandKey, ItemKind } from "./itemDisplay";
+import type { Source } from "../search/searchParams";
 import instagram from "../assets/brands/instagram.svg?raw";
 import reddit from "../assets/brands/reddit.svg?raw";
 import tiktok from "../assets/brands/tiktok.svg?raw";
@@ -38,5 +39,33 @@ export function BrandIcon({
     >
       <path d={PATHS[brand]} />
     </svg>
+  );
+}
+
+const SOURCE_BRANDS: Partial<Record<Source, BrandKey>> = {
+  x: "x",
+  instagram: "instagram",
+  tiktok: "tiktok",
+  youtube: "youtube",
+  reddit: "reddit",
+};
+
+/** The icon for a filter source: its brand mark, a globe for the web, a note for notes. */
+export function SourceIcon({
+  source,
+  className = "size-4",
+}: {
+  source: Source;
+  className?: string;
+}) {
+  const brand = SOURCE_BRANDS[source];
+  if (brand)
+    return (
+      <BrandIcon host={`${brand}.com`} kind="link" className={className} />
+    );
+  return source === "note" ? (
+    <StickyNote aria-hidden="true" className={className} />
+  ) : (
+    <Globe aria-hidden="true" className={className} />
   );
 }

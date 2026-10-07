@@ -62,11 +62,11 @@ describe("sidebar frame", () => {
     await waitFor(() => expect(current()).toEqual(["Library"]));
   });
 
-  it("shows the brand, a disabled search box, and primary navigation", async () => {
+  it("shows the brand, an enabled search box, and primary navigation", async () => {
     await renderAt("/library");
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeTruthy();
     const search = screen.getByLabelText("Search everything");
-    expect((search as HTMLInputElement).disabled).toBe(true);
+    expect((search as HTMLInputElement).disabled).toBe(false);
     expect(
       within(screen.getByRole("complementary", { name: "Sidebar" })).getByText(
         "mindspool",

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Search } from "lucide-react";
-import { Input } from "@mindspool/ui/components/input";
+import { useQuery } from "convex/react";
+import { api } from "@mindspool/backend/api";
 import {
   Sidebar,
   SidebarContent,
@@ -9,23 +9,24 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@mindspool/ui/components/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@mindspool/ui/components/tooltip";
+import { SearchBox } from "../search/SearchBox";
 import { BrandMark } from "./BrandMark";
 import { LabelsNav } from "./LabelsNav";
 import { isActivePath, mainNav } from "./nav";
 import { UserMenu } from "./UserMenu";
 
+const INBOX_COUNT_ID = "inbox-count";
+
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { setOpenMobile } = useSidebar();
+  const stats = useQuery(api.items.stats, {});
+  const inboxCount = stats?.inbox ?? 0;
   // Picking a destination closes the mobile sheet.
   useEffect(() => setOpenMobile(false), [pathname, setOpenMobile]);
   return (
@@ -41,18 +42,7 @@ export function AppSidebar() {
               mindspool
             </span>
           </Link>
-          <Tooltip>
-            <TooltipTrigger render={<div className="relative" />}>
-              <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-              <Input
-                disabled
-                aria-label="Search everything"
-                placeholder="Search everything"
-                className="pl-8"
-              />
-            </TooltipTrigger>
-            <TooltipContent side="right">Search is coming soon</TooltipContent>
-          </Tooltip>
+          <SearchBox />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -60,6 +50,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {mainNav.map(({ to, label, icon: Icon }) => {
                   const active = isActivePath(pathname, to);
+                  const count = to === "/inbox" ? inboxCount : 0;
                   return (
                     <SidebarMenuItem key={to}>
                       <SidebarMenuButton
@@ -68,12 +59,20 @@ export function AppSidebar() {
                           <Link
                             to={to}
                             aria-current={active ? "page" : undefined}
+                            aria-describedby={
+                              count > 0 ? INBOX_COUNT_ID : undefined
+                            }
                           />
                         }
                       >
                         <Icon />
                         <span>{label}</span>
                       </SidebarMenuButton>
+                      {count > 0 && (
+                        <SidebarMenuBadge id={INBOX_COUNT_ID}>
+                          {count > 99 ? "99+" : count}
+                        </SidebarMenuBadge>
+                      )}
                     </SidebarMenuItem>
                   );
                 })}

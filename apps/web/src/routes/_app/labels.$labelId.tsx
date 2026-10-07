@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
 import type { Id } from "@mindspool/backend/data-model";
 import { Skeleton } from "@mindspool/ui/components/skeleton";
-import { validateLibrarySearch } from "../../library/search";
+import { validateLibrarySearch } from "../../search/searchParams";
 import { LibraryView } from "../../library/LibraryView";
-import { PAGE_SIZE } from "../../library/types";
+import { useItemsFeed } from "../../library/useItemsFeed";
 import { LabelDescription } from "../../shell/LabelDescription";
 import { NotFound } from "../../shell/NotFound";
 
@@ -43,11 +43,7 @@ function LabelItems({
   name: string;
   description?: string;
 }) {
-  const feed = usePaginatedQuery(
-    api.itemLabels.listItemsForLabel,
-    { labelId },
-    { initialNumItems: PAGE_SIZE },
-  );
+  const feed = useItemsFeed({ labelId });
   return (
     <LibraryView
       heading={name}
@@ -55,7 +51,7 @@ function LabelItems({
         <LabelDescription labelId={labelId} description={description} />
       }
       feed={feed}
-      empty="label"
+      scope="label"
     />
   );
 }

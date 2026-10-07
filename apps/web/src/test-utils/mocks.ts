@@ -15,6 +15,12 @@ export const backend = {
   loadMore: vi.fn(),
   items: [] as unknown[],
   itemsStatus: "Exhausted" as string,
+  /** `items.search` and `itemLabels.searchItemsForLabel` results. */
+  searchItems: [] as unknown[],
+  labelSearchItems: [] as unknown[],
+  /** `items.stats`; `undefined` means still loading. */
+  stats: { total: 0, inbox: 0, needsReview: 0 } as
+    { total: number; inbox: number; needsReview: number } | undefined,
   labelItems: [] as unknown[],
   labelItemsStatus: "Exhausted" as string,
   loadMoreItems: vi.fn(),
@@ -48,6 +54,9 @@ export function resetBackend() {
   backend.itemsStatus = "Exhausted";
   backend.labelItems = [];
   backend.labelItemsStatus = "Exhausted";
+  backend.searchItems = [];
+  backend.labelSearchItems = [];
+  backend.stats = { total: 0, inbox: 0, needsReview: 0 };
   backend.paginatedArgs = {};
   backend.itemsError = null;
   backend.detail = () => null;
@@ -97,6 +106,7 @@ export const convexMock = {
     const name = getFunctionName(ref);
     if (args === "skip") return undefined;
     if (name === "items:detail") return backend.detail(args);
+    if (name === "items:stats") return backend.stats;
     if (name === "seed:availability") return { enabled: backend.seedEnabled };
     if (name === "labels:get") return backend.label;
     throw new Error(`Unmocked query ${name}`);
@@ -120,12 +130,31 @@ export const convexMock = {
   ) => {
     const name = getFunctionName(ref);
     backend.paginatedArgs[name] = args;
+    // A skipped subscription never loads, like the real hook.
+    if (args === "skip")
+      return {
+        results: [],
+        status: "LoadingFirstPage",
+        loadMore: vi.fn(),
+      };
     if (name.startsWith("items:") && backend.itemsError)
       throw backend.itemsError;
     if (name === "items:list")
       return {
         results: backend.items,
         status: backend.itemsStatus,
+        loadMore: backend.loadMoreItems,
+      };
+    if (name === "items:search")
+      return {
+        results: backend.searchItems,
+        status: backend.itemsStatus,
+        loadMore: backend.loadMoreItems,
+      };
+    if (name === "itemLabels:searchItemsForLabel")
+      return {
+        results: backend.labelSearchItems,
+        status: backend.labelItemsStatus,
         loadMore: backend.loadMoreItems,
       };
     if (name === "processingRuns:listForItem")

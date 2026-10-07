@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LibraryView } from "../../library/LibraryView";
+import { useItemsFeed } from "../../library/useItemsFeed";
+import { validateLibrarySearch } from "../../search/searchParams";
 
 export const Route = createFileRoute("/_app/inbox")({
-  component: () => (
-    <section className="p-6">
-      <h1 className="text-2xl">Inbox</h1>
-    </section>
-  ),
+  validateSearch: validateLibrarySearch,
+  component: InboxPage,
 });
+
+function InboxPage() {
+  return (
+    <LibraryView
+      heading="Inbox"
+      feed={useItemsFeed({ inbox: true })}
+      scope="inbox"
+    />
+  );
+}
