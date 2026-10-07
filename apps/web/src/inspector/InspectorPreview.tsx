@@ -17,6 +17,9 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
   const kind = kindOf(item);
   const meta = item.sourceMetadata;
   const url = item.originalUrl ?? item.originalInput;
+  const images = (item.imageAssets ?? []).flatMap((asset) =>
+    asset.kind === "external" ? [asset.url] : [],
+  );
   return (
     <div className="flex flex-col gap-4">
       <ItemThumb kind={kind} className="h-32 w-full" />
@@ -45,6 +48,30 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
           {meta?.author && <Fact label="Author">{meta.author}</Fact>}
           {meta?.siteName && <Fact label="Site">{meta.siteName}</Fact>}
         </dl>
+      )}
+      {kind === "link" && item.extractedText && (
+        <div
+          tabIndex={0}
+          aria-label="Text"
+          className="max-h-80 overflow-auto text-sm break-words whitespace-pre-wrap"
+        >
+          {item.extractedText}
+        </div>
+      )}
+      {kind === "link" && images.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {images.map((src) => (
+            // Referenced from its source, never fetched or stored by us.
+            <img
+              key={src}
+              src={src}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="aspect-square w-full border object-cover"
+            />
+          ))}
+        </div>
       )}
     </div>
   );
