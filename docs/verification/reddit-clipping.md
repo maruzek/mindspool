@@ -5,9 +5,10 @@ Spec: [SPEC-reddit-clipping.md](../../SPEC-reddit-clipping.md).
 Plan: [tasks/plan.md](../../tasks/plan.md).
 Checklist: [tasks/todo.md](../../tasks/todo.md).
 
-**Status: Task 1 complete. Live Firefox compatibility and identity-only URLs
-are established. Implementation begins at Task 2; extension-to-Library
-acceptance remains unverified.**
+**Status: local implementation and automated verification complete. The fresh
+review's three important defects are repaired and tested. Live public Firefox
+investigation and component smoke checks pass; authenticated extension-to-Library
+acceptance, official codegen, and actual concurrent clients remain unverified.**
 
 ## Compatibility investigation
 
@@ -72,48 +73,91 @@ are not inspected or instrumented.
 
 ## Automated checks
 
-| Command                                                                                                               | Result                  | Scope                                                                           |
-| --------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `pnpm --filter @mindspool/extension test`                                                                             | Pass: 6 files, 45 tests | Existing X clipper baseline; no Reddit implementation or tests exist yet        |
-| `pnpm exec prettier --check SPEC-reddit-clipping.md tasks/plan.md tasks/todo.md docs/verification/reddit-clipping.md` | Pass after formatting   | Documentation only; the initial check found pre-existing spec formatting issues |
-| `git diff --check`                                                                                                    | Pass                    | Changed tracked documentation                                                   |
+| Command                                            | Result                                       |
+| -------------------------------------------------- | -------------------------------------------- |
+| `pnpm --filter @mindspool/schema typecheck`        | Pass                                         |
+| `pnpm --filter @mindspool/backend test`            | Pass: 19 files, 261 tests                    |
+| `pnpm --filter @mindspool/backend typecheck`       | Pass                                         |
+| `pnpm --filter @mindspool/extension test`          | Pass after review fixes: 13 files, 112 tests |
+| `pnpm --filter @mindspool/extension typecheck`     | Pass                                         |
+| `pnpm --filter @mindspool/extension build:firefox` | Pass: Firefox MV3, approximately 1.66 MB     |
+| `pnpm --filter @mindspool/extension build`         | Pass: Chrome MV3, approximately 1.66 MB      |
+| `pnpm --filter @mindspool/web test`                | Pass: 27 files, 278 tests                    |
+| `pnpm --filter @mindspool/web typecheck`           | Pass                                         |
+| `pnpm --filter @mindspool/web build`               | Pass                                         |
 
-The final backend/schema/web/typecheck/build matrix has not been run for
-this feature. No development deployment, codegen, live mutation, or
-extension publication was performed.
+The extension total includes the 16 shared Reddit identity/projection tests.
+Backend coverage proves first capture, validation atomicity, owner isolation,
+comment union in both request orders, unchanged-repeat timestamps, preserved
+snapshots/manual labels, no AI rerun on additions, AI-limit tolerant first saves,
+legacy acquisition, deletion, and bounded list/detail/search projections.
+These local tests do not simulate actual deployed OCC contention.
 
-## Outstanding feasibility evidence
+The first matrix ran workspaces concurrently and timed out one existing backend
+invariant case at 6.6 seconds against its default 5-second timeout; 260 other
+tests passed. The unchanged invariant suite passed alone (20/20), then the entire
+backend passed alone (261/261 in 9.71 seconds). No timeout was increased.
+The web suite emits existing jsdom `scrollTo` notices and passes.
 
-Task 1 fixtures have been reviewed against the observed structural boundaries.
-Clicking the native “more replies” control increased comment hosts from 25
-to 28 while retaining the same post identity. The subsequent live extension
-acceptance matrix must still establish:
+## Live component smoke checks
 
-- Card and compact feeds, post detail, nested comments, crossposts, gallery,
-  video, and spoiler boundaries, including accessible shadow roots.
-- Own-post and own-comment extraction boundaries and accessible control
-  insertion targets, including tab-focus behavior.
-- Newly loaded comments, control replacement, and in-site navigation.
-- One deterministic post/comment permalink strategy that opens the intended
-  objects in Firefox, consistently across supported views.
-- Minimal anonymized post/comment fixtures derived from those observations.
+The compiled browser-only parser/watcher ran on the inspected public detail page
+in the same isolated Firefox 144.0.2 context. Transport was a local fake returning
+`signed_out`; no extension authentication or Convex save occurred.
 
-The live investigation is separate from extension acceptance: no Clip or
-Keep comment control has been injected and no capture has been saved yet.
+| Check                   | Observed result                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Post/comment controls   | One post button; 25 eligible checkboxes among 28 loaded comment hosts                                                                            |
+| Parent/reply selection  | Native Playwright clicks independently selected two comments; no transport call until Clip                                                       |
+| Request boundary        | Clip sent exactly two distinct selected snapshots and 1,833 available post-text characters; detail location stayed unchanged                     |
+| Feedback/retry          | Signed-out guidance retained both selections; the next request arguments were identical                                                          |
+| Focus                   | Native post button received focus in the accessible root; rendered size approximately 51.7 × 27 pixels                                           |
+| Cleanup                 | Stopping the watcher removed the comment controls                                                                                                |
+| CSS/composed visibility | Synthetic public-DOM probes excluded CSS-hidden and shadow-slot-hidden text, then captured it after same-node reveal; all four assertions passed |
+
+Visibility probes use synthetic text and temporary elements, not real hidden
+Reddit contents. jsdom retains stale computed display after changing a shadow
+ancestor's inline style; separate hidden/revealed unit fixtures cover both
+structures, and Firefox additionally proves the same-node reveal operation.
+No selector for an unobserved live spoiler mechanism was invented.
+
+The fresh whole-branch review found three important defects: selections lost
+through a same-route rendering gap, stale replacement controls after pending
+completion, and CSS-hidden content passing extraction. Each regression first
+failed, then passed after repair; the extension's final 112-test suite passes.
+Selection painting now updates existing checkboxes without reparsing all comment
+text on every local toggle. There were no critical or deferred minor findings.
+
+## Remaining live acceptance
+
+The identified target is **dev: graceful-stork-346**. Backend and web public URLs
+agree on `https://graceful-stork-346.eu-west-1.convex.cloud`; no deploy key is set.
+The extension has no local public Clerk/Convex configuration. Development push,
+codegen, and authenticated live verification require the plan's separate
+approval; that approval has been requested. No deployment, codegen, live mutation,
+extension signing, or publishing has occurred.
+
+After authorization/configuration, load
+`apps/extension/.output/firefox-mv3/manifest.json` in a fresh Firefox profile and
+sign in through the popup. Verify feed/detail deduplication, parent plus unrelated
+reply capture, later additions and saved-ID reselection, source links, inspector
+and bounded search, AI-limit first capture, deletion, navigation during a pending
+save, interrupted retry, and existing X clipping. Use two independent
+authenticated clients for overlapping/disjoint saves, then verify one item's
+comment union, unchanged repeat timestamps, no extra AI run, and second-owner
+isolation. Actual contention and authenticated UI results remain unchecked.
 
 ## Spec success criteria
 
-| Criteria                                                               | Evidence status                                                                   |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1–2: Live controls and exact capture payloads                          | Unverified; depends on blocked Task 1                                             |
-| 3–4: Owned persistence, canonical identity, and atomic comment merging | Not implemented or verified                                                       |
-| 5: Library, inspector, source links, and bounded search                | Not implemented or verified for Reddit captures                                   |
-| 6: Initial labeling and AI-limit behavior                              | Not verified for Reddit captures                                                  |
-| 7: Error feedback and retry                                            | Not implemented or verified for Reddit captures                                   |
-| 8: X/auth regression and required automated matrix                     | Existing extension baseline passes; remaining checks unverified                   |
-| 9: Real Firefox verification report                                    | This report records the access blocker; required live evidence remains incomplete |
+| Criteria                                                           | Evidence status                                                                                                 |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| 1–2: Live controls and exact capture payloads                      | Live detail component smoke plus exact fixtures; authenticated extension feed/detail capture remains unverified |
+| 3–4: Owned persistence, canonical identity, atomic comment merging | Backend and shared helper tests pass; actual concurrent deployed clients remain unverified                      |
+| 5: Library, inspector, source links, bounded search                | Backend/web tests and web build pass; authenticated visible inspector remains unverified                        |
+| 6: Initial labeling and AI-limit behavior                          | Backend tests pass; live initial run/limit acceptance remains unverified                                        |
+| 7: Error feedback and retry                                        | Extension tests and live fake signed-out transport pass; real lost-response save remains unverified             |
+| 8: X/auth regression and required automated matrix                 | All required automated commands pass; real Firefox X/auth regression remains unverified                         |
+| 9: Real Firefox verification report                                | Compatibility and component evidence recorded; full authenticated matrix remains incomplete                     |
 
-The live concurrent-save case, second-owner isolation, deletion, unchanged
-repeat timestamps, additions without AI reruns, and end-to-end X regression
-also remain unverified. No criterion is marked complete from these preliminary
-checks.
+The checklist records automated and live checks separately. No live criterion is
+marked complete from fixture tests or the fake transport.

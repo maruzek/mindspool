@@ -1,6 +1,9 @@
 # Tasks: Reddit post clipping with selected comments
 
-Status: proposed for review. All implementation tasks remain unchecked.
+Status: local implementation and automated verification complete, 2026-10-08.
+Firefox compatibility is established. Automated results are checked individually;
+authenticated development acceptance and actual concurrent clients remain unchecked.
+See [the investigation report](../docs/verification/reddit-clipping.md).
 Spec: [SPEC-reddit-clipping.md](../SPEC-reddit-clipping.md).
 Design and API contracts: [plan.md](plan.md).
 
@@ -12,14 +15,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Evidence covers card/compact feeds, detail, nested comments, crossposts, available gallery/video/spoiler media, and new comments/navigation; accessible roots and selector boundaries are recorded.
-- [ ] Candidate identity-only post/comment URLs open the correct objects, or one deterministic alternative is documented and the spec updated before dependent tasks.
-- [ ] Fixtures preserve relevant structure while removing private content, identifiers tied to private users, tracking payloads, and unrelated page data.
+- [x] Evidence covers card/compact feeds, detail, nested comments, crossposts, available gallery/video/spoiler media, and new comments/navigation; accessible roots and selector boundaries are recorded.
+- [x] Candidate identity-only post/comment URLs open the correct objects, or one deterministic alternative is documented and the spec updated before dependent tasks.
+- [x] Fixtures preserve relevant structure while removing private content, identifiers tied to private users, tracking payloads, and unrelated page data.
 
 **Verification:**
 
-- [ ] Manual: open the same post from feed and detail, then a nested-comment link; verify IDs/targets and tab-focus insertion opportunities in Firefox.
-- [ ] Review the evidence and fixtures against the captured DOM; record browser version, view, and unresolved compatibility gaps.
+- [x] Manual: open the same post from feed and detail, then a nested-comment link; verify IDs/targets and tab-focus insertion opportunities in Firefox.
+- [x] Review the evidence and fixtures against the captured DOM; record browser version, view, and unresolved compatibility gaps.
 
 **Dependencies:** None.
 
@@ -34,9 +37,9 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: Feasibility
 
-- [ ] Real Firefox evidence supports post/comment extraction and accessible control placement; blockers have a reviewed resolution.
-- [ ] Post/comment URL normalization has one verified strategy for every supported view.
-- [ ] Review the compatibility findings before Task 2; do not silently substitute an unverified route or inaccessible-root workaround.
+- [x] Real Firefox evidence supports post/comment extraction and accessible control placement; blockers have a reviewed resolution.
+- [x] Post/comment URL normalization has one verified strategy for every supported view.
+- [x] Review the compatibility findings before Task 2; do not silently substitute an unverified route or inaccessible-root workaround.
 
 ## Task 2: Define shared Reddit identity helpers
 
@@ -44,14 +47,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Helpers produce stable lowercase IDs, `reddit:<id>`, and Task 1's verified URLs across slugs, tracking parameters, fragments, and comment-link variants; invalid/inconsistent identities are rejected.
-- [ ] Snapshot types and limits match the planned backend contract; projection keeps post/link and selected comment author/text/permalink sections in stable order.
-- [ ] The shared module has no browser, Clerk, Convex runtime, or new package dependency; existing schema exports remain compatible.
+- [x] Helpers produce stable lowercase IDs, `reddit:<id>`, and Task 1's verified URLs across slugs, tracking parameters, fragments, and comment-link variants; invalid/inconsistent identities are rejected.
+- [x] Snapshot types and limits match the planned backend contract; projection keeps post/link and selected comment author/text/permalink sections in stable order.
+- [x] The shared module has no browser, Clerk, Convex runtime, or new package dependency; existing schema exports remain compatible.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/redditContract.test.ts`
-- [ ] `pnpm --filter @mindspool/schema typecheck`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/redditContract.test.ts`
+- [x] `pnpm --filter @mindspool/schema typecheck`
 
 **Dependencies:** Task 1.
 
@@ -69,15 +72,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] First save derives owner/key/URLs/source server-side and persists first post metadata/media plus unique comment snapshots; legacy documents remain valid without the optional field.
-- [ ] Invalid IDs, mismatched post/comment associations, unsafe links, over-limit selection/content/images, and projected item size reject atomically with bounded errors; anonymous saves fail.
-- [ ] Initial labeling remains best-effort and AI-limit tolerant; stats/state are maintained, and existing web/mobile/X create replay/conflict behavior stays unchanged.
+- [x] First save derives owner/key/URLs/source server-side and persists first post metadata/media plus unique comment snapshots; legacy documents remain valid without the optional field.
+- [x] Invalid IDs, mismatched post/comment associations, unsafe links, over-limit selection/content/images, and projected item size reject atomically with bounded errors; anonymous saves fail.
+- [x] Initial labeling remains best-effort and AI-limit tolerant; stats/state are maintained, and existing web/mobile/X create replay/conflict behavior stays unchanged.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
-- [ ] Include title-only, no-label, initial-comments, duplicate-request-ID, and AI-limit cases; assert failed validation leaves no item or counter change.
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
+- [x] Include title-only, no-label, initial-comments, duplicate-request-ID, and AI-limit cases; assert failed validation leaves no item or counter change.
 
 **Dependencies:** Task 2.
 
@@ -93,9 +96,9 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: First-save contract
 
-- [ ] Shared identity tests, backend capture tests, and affected typechecks pass; existing capture sources are intact.
-- [ ] Review actual validators/mutation behavior, optional-field compatibility, and byte-size calculation before extending repeated saves.
-- [ ] The mutation is not exposed through a live Reddit content script until atomic merging is implemented.
+- [x] Shared identity tests, backend capture tests, and affected typechecks pass; existing capture sources are intact.
+- [x] Review actual validators/mutation behavior, optional-field compatibility, and byte-size calculation before extending repeated saves.
+- [x] The mutation is not exposed through a live Reddit content script until atomic merging is implemented.
 
 ## Task 4: Merge newly selected comments atomically
 
@@ -103,15 +106,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Same owner/post keeps one item; duplicate/overlapping requests form a comment-ID union, preserving old snapshots and each request's new selection order. Unchanged repeats perform no writes.
-- [ ] Actual additions update derived text/search state and `updatedAt`, preserve creation time/post/media/labels/manual decisions, and start no automatic AI run; matching legacy extension captures can acquire structured comments without rewriting their post.
-- [ ] Combined limits are checked before any patch; conflicts/foreign identities reject. Tests cover both merge orders, repeated IDs, another owner's independent capture, deletion, and pending initial labeling.
+- [x] Same owner/post keeps one item; duplicate/overlapping requests form a comment-ID union, preserving old snapshots and each request's new selection order. Unchanged repeats perform no writes.
+- [x] Actual additions update derived text/search state and `updatedAt`, preserve creation time/post/media/labels/manual decisions, and start no automatic AI run; matching legacy extension captures can acquire structured comments without rewriting their post.
+- [x] Combined limits are checked before any patch; conflicts/foreign identities reject. Tests cover both merge orders, repeated IDs, another owner's independent capture, deletion, and pending initial labeling.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts convex/itemState.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
-- [ ] Assert IDs, timestamps, run counts, label decisions, searchable prefix, counters, and old snapshots; reserve actual OCC contention proof for Task 15.
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts convex/itemState.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
+- [x] Assert IDs, timestamps, run counts, label decisions, searchable prefix, counters, and old snapshots; reserve actual OCC contention proof for Task 15.
 
 **Dependencies:** Task 3.
 
@@ -129,14 +132,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Owned detail includes structured post/comment snapshots; missing/foreign/deleted items retain current behavior and reveal no capture key, owner ID, or run pointers.
-- [ ] List/search previews omit comment payloads; legacy and non-Reddit detail shapes remain compatible, and deleting an item removes its embedded snapshots.
-- [ ] Return validators and generated client types agree; generated definitions are produced by codegen rather than hand editing.
+- [x] Owned detail includes structured post/comment snapshots; missing/foreign/deleted items retain current behavior and reveal no capture key, owner ID, or run pointers.
+- [x] List/search previews omit comment payloads; legacy and non-Reddit detail shapes remain compatible, and deleting an item removes its embedded snapshots.
+- [x] Return validators and generated client types agree; generated definitions are produced by codegen rather than hand editing.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 - [ ] After target identification and authorization: `pnpm --filter @mindspool/backend codegen`; inspect only changed generated artifacts and split if the file ceiling would be exceeded.
 
 **Dependencies:** Task 4.
@@ -157,15 +160,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Post title/metadata/body/link/images and selected comment author/text/permalink are readable in saved order, with no implied captured ancestor/thread hierarchy.
-- [ ] Text stays plain text; source links are HTTPS Reddit permalinks with safe new-tab attributes, and comments are not duplicated through `extractedText`.
-- [ ] Post-only, legacy Reddit, X, generic link, and note previews preserve existing behavior; an empty comment selection has no comments section.
+- [x] Post title/metadata/body/link/images and selected comment author/text/permalink are readable in saved order, with no implied captured ancestor/thread hierarchy.
+- [x] Text stays plain text; source links are HTTPS Reddit permalinks with safe new-tab attributes, and comments are not duplicated through `extractedText`.
+- [x] Post-only, legacy Reddit, X, generic link, and note previews preserve existing behavior; an empty comment selection has no comments section.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/inspector/RedditCapturePreview.test.tsx src/inspector/InspectorPreview.test.tsx`
-- [ ] `pnpm --filter @mindspool/web typecheck`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/inspector/RedditCapturePreview.test.tsx src/inspector/InspectorPreview.test.tsx`
+- [x] `pnpm --filter @mindspool/web typecheck`
+- [x] `pnpm --filter @mindspool/web build`
 
 **Dependencies:** Task 5.
 
@@ -181,7 +184,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 ### Checkpoint: Saved discussion
 
 - [ ] Backend and web suites/typechecks pass and the web builds; one owned capture with comments reads correctly through detail and the inspector.
-- [ ] Search/counter changes, unchanged repeat behavior, no new AI run on merge, legacy compatibility, and ownership isolation are verified.
+- [x] Search/counter changes, unchanged repeat behavior, no new AI run on merge, legacy compatibility, and ownership isolation are verified.
 - [ ] Review the merge and reader results before enabling extension capture. Any live dev verification uses the separately authorized, announced target.
 
 ## Task 7: Extract a rendered Reddit post
@@ -190,14 +193,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Parse title, ID, optional author/subreddit, available own body/link, and eligible image references across verified feed/detail/compact fixtures; title-only posts remain valid.
-- [ ] Preserve paragraph/list/emoji text and image URL parameters; exclude embedded crosspost contents, avatars/icons, unselected comments, player UI, and unrevealed spoilers.
-- [ ] Exact mapped arguments satisfy the API contract and bounds; unusable identity/title fails without side effects and images are unique with at most ten references.
+- [x] Parse title, ID, optional author/subreddit, available own body/link, and eligible image references across verified feed/detail/compact fixtures; title-only posts remain valid.
+- [x] Preserve paragraph/list/emoji text and image URL parameters; exclude embedded crosspost contents, avatars/icons, unselected comments, player UI, and unrevealed spoilers.
+- [x] Exact mapped arguments satisfy the API contract and bounds; unusable identity/title fails without side effects and images are unique with at most ten references.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/reddit.test.ts src/redditClip.test.ts src/redditContract.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/reddit.test.ts src/redditClip.test.ts src/redditContract.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
 
 **Dependencies:** Tasks 2 and 3.
 
@@ -217,15 +220,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Reddit requests call `items.clipReddit` using the current Clerk token; X requests still call `items.create`, with no auth/configuration change.
-- [ ] Runtime checks and sender-ID checks reject unrelated/malformed requests; tokens/content/exception text never enter logs, page code, or responses.
-- [ ] Success returns the item ID and optional addition count; signed-out, validation/size, network, conflict, and unknown failures map to retryable UI results without falsely confirming a save.
+- [x] Reddit requests call `items.clipReddit` using the current Clerk token; X requests still call `items.create`, with no auth/configuration change.
+- [x] Runtime checks and sender-ID checks reject unrelated/malformed requests; tokens/content/exception text never enter logs, page code, or responses.
+- [x] Success returns the item ID and optional addition count; signed-out, validation/size, network, conflict, and unknown failures map to retryable UI results without falsely confirming a save.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/clipHandler.test.ts src/clip.test.ts src/tokenProvider.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] `pnpm --filter @mindspool/extension build:firefox`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/clipHandler.test.ts src/clip.test.ts src/tokenProvider.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension build:firefox`
 
 **Dependencies:** Task 4.
 
@@ -245,15 +248,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] One post Clip button appears in supported card/compact/detail controls; native keyboard/focus behavior works and clicking does not activate Reddit navigation/voting.
-- [ ] Current-post extraction sends one request; busy suppression, three-second success/error feedback, signed-out guidance, and retry work. Observers do not loop on their own changes and clean up on context invalidation.
-- [ ] Manifest access is limited to `reddit.com`/`www.reddit.com` plus existing hosts; Firefox MV3 and Chrome bundles build, with X behavior preserved.
+- [x] One post Clip button appears in supported card/compact/detail controls; native keyboard/focus behavior works and clicking does not activate Reddit navigation/voting.
+- [x] Current-post extraction sends one request; busy suppression, three-second success/error feedback, signed-out guidance, and retry work. Observers do not loop on their own changes and clean up on context invalidation.
+- [x] Manifest access is limited to `reddit.com`/`www.reddit.com` plus existing hosts; Firefox MV3 and Chrome bundles build, with X behavior preserved.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditButton.test.ts src/injectButton.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] `pnpm --filter @mindspool/extension build:firefox` and `pnpm --filter @mindspool/extension build`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditButton.test.ts src/injectButton.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension build:firefox` and `pnpm --filter @mindspool/extension build`
 - [ ] Manual on authorized dev: load `.output/firefox-mv3/manifest.json`, sign in, clip the same post from feed/detail, and confirm one Reddit-branded Library item with captured context.
 
 **Dependencies:** Tasks 7 and 8.
@@ -279,14 +282,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] A readable comment yields normalized ID, owning post ID, optional author, and plain-text body; shared helpers derive its source URL consistently.
-- [ ] Parent/reply bodies stay separate, with paragraphs/lists/emoji/link text preserved; votes, awards, controls, nested reply text, and unselected neighbors are excluded.
-- [ ] Unreadable/deleted-empty comments, mismatched identity/post, and inaccessible hidden content are ineligible; deleted author with readable body is allowed.
+- [x] A readable comment yields normalized ID, owning post ID, optional author, and plain-text body; shared helpers derive its source URL consistently.
+- [x] Parent/reply bodies stay separate, with paragraphs/lists/emoji/link text preserved; votes, awards, controls, nested reply text, and unselected neighbors are excluded.
+- [x] Unreadable/deleted-empty comments, mismatched identity/post, and inaccessible hidden content are ineligible; deleted author with readable body is allowed.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/redditComment.test.ts src/redditContract.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/redditComment.test.ts src/redditContract.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
 
 **Dependencies:** Tasks 1 and 2.
 
@@ -304,14 +307,14 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Parent/reply selection is independent; duplicate IDs do not increase the count, deselection works at the 20-comment limit, and selected snapshots survive node removal/re-render.
-- [ ] Same-post re-renders preserve state; navigation away/new post clears it; selecting or deselecting never sends data or removes already saved backend comments.
-- [ ] Freeze a stable request snapshot while sending; success clears only that request's current generation, failure retains it, and late replies cannot mutate a new post's selections.
+- [x] Parent/reply selection is independent; duplicate IDs do not increase the count, deselection works at the 20-comment limit, and selected snapshots survive node removal/re-render.
+- [x] Same-post re-renders preserve state; navigation away/new post clears it; selecting or deselecting never sends data or removes already saved backend comments.
+- [x] Freeze a stable request snapshot while sending; success clears only that request's current generation, failure retains it, and late replies cannot mutate a new post's selections.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/redditSelection.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/redditSelection.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
 
 **Dependencies:** Task 10.
 
@@ -328,15 +331,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] One accessible checkbox appears per eligible loaded comment; new comments start unselected, parent/reply checks stay independent, and the count/limit explanation matches stored local selection.
-- [ ] Clip sends the post plus exactly selected snapshots, including selected nodes later removed from DOM; zero selection saves the post alone, and oversized selection gives deselection/retry guidance without dropping content.
-- [ ] Success clears the request's selection; failed/unknown save preserves it; later clipping appends new comments to the same item and selecting saved IDs again creates no duplicate comments or AI runs.
+- [x] One accessible checkbox appears per eligible loaded comment; new comments start unselected, parent/reply checks stay independent, and the count/limit explanation matches stored local selection.
+- [x] Clip sends the post plus exactly selected snapshots, including selected nodes later removed from DOM; zero selection saves the post alone, and oversized selection gives deselection/retry guidance without dropping content.
+- [x] Success clears the request's selection; failed/unknown save preserves it; later clipping appends new comments to the same item and selecting saved IDs again creates no duplicate comments or AI runs.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditSelection.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] `pnpm --filter @mindspool/extension build:firefox`
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditSelection.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension build:firefox`
 - [ ] Manual on authorized dev: select a parent and an unrelated nested reply, clip, inspect their source links, then add a third comment and reselect one saved ID; confirm one item with three comments.
 
 **Dependencies:** Tasks 4, 9, and 11.
@@ -363,15 +366,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] New cards/replies, identity-attribute changes, same-post control replacement, navigation away/back, and detail closing preserve or clear selection as specified, without duplicate controls or observer loops.
-- [ ] No recycled card or late response reads/saves/clears another post's state; repeated clicks and retry after a lost response preserve item/comment idempotency.
-- [ ] Cleanup releases observers/handlers/timers and frozen requests behave predictably; existing X interactions and legacy capture replay behavior still pass.
+- [x] New cards/replies, identity-attribute changes, same-post control replacement, navigation away/back, and detail closing preserve or clear selection as specified, without duplicate controls or observer loops.
+- [x] No recycled card or late response reads/saves/clears another post's state; repeated clicks and retry after a lost response preserve item/comment idempotency.
+- [x] Cleanup releases observers/handlers/timers and frozen requests behave predictably; existing X interactions and legacy capture replay behavior still pass.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension test`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension test`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
 - [ ] Manual: navigate to another post during a pending save, replace controls, and interrupt then retry a request; inspect the saved item and current selection, not just button text.
 
 **Dependencies:** Task 12.
@@ -392,15 +395,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Signed-in status mentions X and Reddit while preserving sign-in behavior and the Open MindSpool link.
-- [ ] Usage instructions explain Keep comment → Clip, the 20-per-save selection limit, adding comments later, first-snapshot preservation, and obtaining fuller post text before first capture.
-- [ ] Core concepts record optional embedded comment storage and current search/AI budgets; documentation does not claim automatic whole-thread capture, refreshed content, archived media, or full-comment classification.
+- [x] Signed-in status mentions X and Reddit while preserving sign-in behavior and the Open MindSpool link.
+- [x] Usage instructions explain Keep comment → Clip, the 20-per-save selection limit, adding comments later, first-snapshot preservation, and obtaining fuller post text before first capture.
+- [x] Core concepts record optional embedded comment storage and current search/AI budgets; documentation does not claim automatic whole-thread capture, refreshed content, archived media, or full-comment classification.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/ClipStatus.test.tsx`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] Review instructions against the actual working Firefox interaction.
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/ClipStatus.test.tsx`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] Review instructions against the actual working Firefox interaction.
 
 **Dependencies:** Task 13.
 
@@ -425,7 +428,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Verification:**
 
-- [ ] Run all commands in `plan.md` under “Verification checkpoints and commands,” plus formatter checks for changed implementation files.
+- [x] Run all commands in `plan.md` under “Verification checkpoints and commands,” plus formatter checks for changed implementation files.
 - [ ] Push/codegen only after classifying and authorizing the development target; load the Firefox MV3 bundle and exercise the manual matrix above. Record browser/version and test-case evidence without tokens or private content.
 - [ ] Check deletion of a captured discussion, independent owner capture, unchanged-repeat timestamps, additions without paid reruns, and the visible inspector after the concurrent-save case.
 

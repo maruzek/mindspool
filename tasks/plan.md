@@ -1,6 +1,9 @@
 # Implementation Plan: Reddit post clipping with selected comments
 
-Status: proposed for review, 2026-10-08. No implementation changes made.
+Status: local implementation, automated verification, and review repairs complete,
+2026-10-08. Live Firefox compatibility and component checks pass. Development
+deployment/codegen and authenticated acceptance remain pending authorization.
+See [the verification report](../docs/verification/reddit-clipping.md).
 Spec: [SPEC-reddit-clipping.md](../SPEC-reddit-clipping.md).
 Task checklist: [todo.md](todo.md). No previous active plan or checklist existed; archived plans remain untouched.
 
@@ -161,14 +164,14 @@ Initial AI sees the current projection subject to its 500-character overall budg
 
 The checklist in `todo.md` is authoritative; this is its ordered index.
 
-| Phase | Tasks | Observable checkpoint |
-| --- | --- | --- |
-| Compatibility | 1. Inspect live Reddit | DOM and permalink strategy established |
-| Capture contract | 2. Shared identity; 3. First-save backend | One owned Reddit item can be created without disrupting existing captures |
-| Saved discussion | 4. Atomic merging; 5. Detail projection; 6. Inspector reader | Selected snapshots persist, merge, and display correctly |
-| Post clipping | 7. Post extraction; 8. Transport; 9. Post button | A real post clips from Firefox into the Library |
-| Comment selection | 10. Comment extraction; 11. Selection state; 12. Controls | Explicit selections clip together, with later additions to the same item |
-| Reliability | 13. Lifecycle hardening; 14. Popup/docs; 15. Live verification | Error, navigation, ownership, concurrency, and regression evidence complete |
+| Phase             | Tasks                                                          | Observable checkpoint                                                       |
+| ----------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Compatibility     | 1. Inspect live Reddit                                         | DOM and permalink strategy established                                      |
+| Capture contract  | 2. Shared identity; 3. First-save backend                      | One owned Reddit item can be created without disrupting existing captures   |
+| Saved discussion  | 4. Atomic merging; 5. Detail projection; 6. Inspector reader   | Selected snapshots persist, merge, and display correctly                    |
+| Post clipping     | 7. Post extraction; 8. Transport; 9. Post button               | A real post clips from Firefox into the Library                             |
+| Comment selection | 10. Comment extraction; 11. Selection state; 12. Controls      | Explicit selections clip together, with later additions to the same item    |
+| Reliability       | 13. Lifecycle hardening; 14. Popup/docs; 15. Live verification | Error, navigation, ownership, concurrency, and regression evidence complete |
 
 Every implementation task touches at most five anticipated files and has at most three acceptance bullets. If generated artifacts or actual DOM findings expand a task beyond that, split it rather than silently enlarging it. Schema/API changes are reviewed before enabling extension callers.
 
@@ -203,17 +206,17 @@ Never hand-edit generated definitions. Count changed generated files in task siz
 
 ## Risks and mitigations
 
-| Risk | Impact | Mitigation |
-| --- | --- | --- |
-| Reddit layouts/root boundaries differ | High | Live compatibility task first; test fixtures per view; explicit scope revision if an insertion target is inaccessible |
-| Slug/subreddit/comment paths change identity | High | One shared verified URL strategy; backend derives canonical URLs; cross-view repeat tests |
-| Nested replies or crossposts contaminate extraction | High | Own-node boundaries and exact payload tests; independently select each comment |
-| Concurrent saves lose comments or create duplicates | High | Read/union/write in one mutation; semantic tests plus overlapping saves against dev |
-| Projection duplicates large stored text | Medium | Combined text and prospective item byte bounds; no partial merges |
-| Re-renders/navigation retain stale selections | High | Post/generation-scoped state; current-DOM identity on click; ignore stale async completions |
-| New API/schema breaks existing clients | High | Optional fields, new mutation/message discriminator, unchanged create behavior and legacy fixtures |
-| Comments are saved but outside search/AI windows | Medium | Retain existing budgets explicitly; test short searchable fixtures; no claim of full-thread AI/search coverage |
-| External media expires or is absent | Low | Save references only; readable title/text persist; no archival guarantee |
+| Risk                                                | Impact | Mitigation                                                                                                            |
+| --------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
+| Reddit layouts/root boundaries differ               | High   | Live compatibility task first; test fixtures per view; explicit scope revision if an insertion target is inaccessible |
+| Slug/subreddit/comment paths change identity        | High   | One shared verified URL strategy; backend derives canonical URLs; cross-view repeat tests                             |
+| Nested replies or crossposts contaminate extraction | High   | Own-node boundaries and exact payload tests; independently select each comment                                        |
+| Concurrent saves lose comments or create duplicates | High   | Read/union/write in one mutation; semantic tests plus overlapping saves against dev                                   |
+| Projection duplicates large stored text             | Medium | Combined text and prospective item byte bounds; no partial merges                                                     |
+| Re-renders/navigation retain stale selections       | High   | Post/generation-scoped state; current-DOM identity on click; ignore stale async completions                           |
+| New API/schema breaks existing clients              | High   | Optional fields, new mutation/message discriminator, unchanged create behavior and legacy fixtures                    |
+| Comments are saved but outside search/AI windows    | Medium | Retain existing budgets explicitly; test short searchable fixtures; no claim of full-thread AI/search coverage        |
+| External media expires or is absent                 | Low    | Save references only; readable title/text persist; no archival guarantee                                              |
 
 ## Parallelization opportunities
 
