@@ -1,0 +1,58 @@
+<!-- Minimal structural snapshots from Firefox 144.0.2, 2026-10-08.
+     Public content, author names, IDs, media paths, and tracking are replaced.
+     Declarative shadow templates represent inspected open roots. -->
+<section data-case="card-text">
+  <shreddit-post id="t3_abc123" permalink="/r/example/comments/abc123/first_title/" post-title="A useful post" author="reader" subreddit-name="example" post-type="text" view-type="cardView" view-context="SubredditFeed" content-href="https://www.reddit.com/r/example/comments/abc123/first_title/">
+    <a slot="full-post-link" href="/r/example/comments/abc123/first_title/">A useful post</a>
+    <a slot="title" href="/r/example/comments/abc123/first_title/">A useful post</a>
+    <span slot="credit-bar"><img src="https://www.redditstatic.com/avatar.png" />u/reader</span>
+    <shreddit-post-text-body slot="text-body" post-id="t3_abc123">
+      <a slot="text-body"><div property="schema:articleBody" id="t3_abc123-post-rtjson-content"><p>First paragraph 😀</p><p>Second paragraph<br />Next line</p><ul><li>One</li><li>Two <a href="https://example.com">readable link</a></li></ul></div></a>
+    </shreddit-post-text-body>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="text-body"></slot><rpl-action-bar thing-id="t3_abc123"><div data-testid="action-row" tabindex="0" aria-label="Actions available for this post"><button>Vote</button><button>Share</button></div></rpl-action-bar></template>
+  </shreddit-post>
+</section>
+<section data-case="detail">
+  <shreddit-post id="t3_abc123" permalink="/r/example/comments/abc123/changed_title/" post-title="A useful post" author="reader" subreddit-name="example" post-type="text" view-type="cardView" view-context="CommentsPage">
+    <h1 slot="title">A useful post</h1>
+    <shreddit-post-text-body slot="text-body" post-id="t3_abc123"><div slot="text-body"><div property="schema:articleBody"><p>Full available post text</p></div></div></shreddit-post-text-body>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="text-body"></slot><rpl-action-bar thing-id="t3_abc123"><div data-testid="action-row" tabindex="0" aria-label="Actions available for this post"><button>Share</button></div></rpl-action-bar></template>
+  </shreddit-post>
+</section>
+<section data-case="compact">
+  <shreddit-post id="t3_abc123" permalink="/r/example/comments/abc123/first_title/" post-title="A useful post" author="reader" subreddit-name="example" post-type="text" view-type="compactView" view-context="SubredditFeed">
+    <a slot="full-post-link" href="/r/example/comments/abc123/first_title/">A useful post</a>
+    <div slot="title"><a slot="title" href="/r/example/comments/abc123/first_title/">A useful post</a></div>
+    <div slot="desktop-cta-row"><div></div></div><div slot="mobile-cta-row"><div></div></div>
+    <div slot="expando-content"><shreddit-post-text-body slot="text-body" hidden><div property="schema:articleBody"><p>Unavailable collapsed body</p></div></shreddit-post-text-body></div>
+    <template shadowrootmode="open"><slot name="full-post-link"></slot><slot name="title"></slot><slot name="desktop-cta-row"></slot><slot name="mobile-cta-row"></slot><slot name="expando-content"></slot></template>
+  </shreddit-post>
+</section>
+<section data-case="gallery">
+  <shreddit-post id="t3_def456" permalink="/r/example/comments/def456/gallery/" post-title="Gallery" post-type="gallery" view-context="CommentsPage">
+    <h1 slot="title">Gallery</h1>
+    <div slot="post-media-container"><gallery-carousel post-id="t3_def456"><ul><li slot="page-1"><img role="presentation" src="https://preview.redd.it/background.png" /><zoomable-img><img src="https://preview.redd.it/one.png?width=640&amp;auto=webp" /></zoomable-img></li><li slot="page-2"><zoomable-img><img src="https://i.redd.it/two.jpg" /></zoomable-img></li></ul></gallery-carousel></div>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="post-media-container"></slot><div data-testid="action-row" tabindex="0"><button>Share</button></div></template>
+  </shreddit-post>
+</section>
+<section data-case="video">
+  <shreddit-post id="t3_vid123" permalink="/r/example/comments/vid123/video/" post-title="Video" post-type="video" view-context="CommentsPage">
+    <h1 slot="title">Video</h1>
+    <div slot="post-media-container"><shreddit-player post-id="t3_vid123" poster="https://external-preview.redd.it/poster.png?width=640"><img src="https://example.com/player-icon.png" /></shreddit-player></div>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="post-media-container"></slot><div data-testid="action-row" tabindex="0"><button>Share</button></div></template>
+  </shreddit-post>
+</section>
+<section data-case="crosspost">
+  <shreddit-post id="t3_outer1" permalink="/r/example/comments/outer1/outer/" post-title="Outer title" author="outerreader" subreddit-name="example" post-type="crosspost" view-context="CommentsPage" content-href="https://i.redd.it/embedded.png">
+    <h1 slot="title">Outer title</h1>
+    <div slot="post-media-container"><div><a href="/r/other/comments/inner1/original/">Embedded title</a><div property="schema:articleBody"><p>Embedded post text</p></div><zoomable-img><img src="https://i.redd.it/embedded.png" /></zoomable-img></div></div>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="post-media-container"></slot><div data-testid="action-row" tabindex="0"><button>Share</button></div></template>
+  </shreddit-post>
+</section>
+<section data-case="spoiler">
+  <shreddit-post id="t3_spoil1" permalink="/r/example/comments/spoil1/spoiler/" post-title="Spoiler title" post-type="gallery" spoiler="" view-context="SubredditFeed">
+    <a slot="title" href="/r/example/comments/spoil1/spoiler/">Spoiler title</a>
+    <div slot="post-media-container"><shreddit-blurred-container mode="slot" reason="spoiler" blurred="" embed-obscured=""><div slot="blurred">View spoiler</div><div slot="revealed"><zoomable-img><img src="https://i.redd.it/unrevealed.png" /></zoomable-img></div></shreddit-blurred-container></div>
+    <template shadowrootmode="open"><slot name="title"></slot><slot name="post-media-container"></slot><div data-testid="action-row" tabindex="0"><button>Share</button></div></template>
+  </shreddit-post>
+</section>

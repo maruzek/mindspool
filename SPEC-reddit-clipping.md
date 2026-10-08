@@ -58,18 +58,18 @@ The current [Reddit subreddit page](https://www.reddit.com/r/firefox/) and a [po
 
 Read the clicked post and only its explicitly selected comments. Do not use the first matching permalink in the whole document, which might belong to another card, a recommendation, an unrelated comment, or a crosspost preview.
 
-| Stored field | Required behavior |
-| --- | --- |
-| `inputType` | `"url"` |
-| `captureSource` | `"extension"` |
-| `captureKey` | `reddit:<lowercase post id>`, excluding a Reddit fullname's `t3_` prefix |
-| `originalInput` / derived `originalUrl` | One deterministic HTTPS Reddit post URL, identical across feed/detail views, tracking parameters, and title edits |
-| `sourceMetadata.title` | The outer post's title, trimmed; required and within the existing 300-character limit |
-| `sourceMetadata.author` | `u/<username>` when readable; omit if unavailable or deleted |
-| `sourceMetadata.siteName` | `"Reddit"` |
-| `sourceMetadata.description` | `r/<subreddit>` when readable; omit if unavailable |
-| `extractedText` | A deterministic plain-text representation of available post body/link and selected comment snapshots, with clear section separators, authors, and comment permalinks; at most 100,000 characters in total |
-| `imageAssets` | Unique, eligible images owned by the post, in document order, at most ten, as `{ kind: "external", url, purpose: "image" }` |
+| Stored field                            | Required behavior                                                                                                                                                                                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inputType`                             | `"url"`                                                                                                                                                                                                   |
+| `captureSource`                         | `"extension"`                                                                                                                                                                                             |
+| `captureKey`                            | `reddit:<lowercase post id>`, excluding a Reddit fullname's `t3_` prefix                                                                                                                                  |
+| `originalInput` / derived `originalUrl` | One deterministic HTTPS Reddit post URL, identical across feed/detail views, tracking parameters, and title edits                                                                                         |
+| `sourceMetadata.title`                  | The outer post's title, trimmed; required and within the existing 300-character limit                                                                                                                     |
+| `sourceMetadata.author`                 | `u/<username>` when readable; omit if unavailable or deleted                                                                                                                                              |
+| `sourceMetadata.siteName`               | `"Reddit"`                                                                                                                                                                                                |
+| `sourceMetadata.description`            | `r/<subreddit>` when readable; omit if unavailable                                                                                                                                                        |
+| `extractedText`                         | A deterministic plain-text representation of available post body/link and selected comment snapshots, with clear section separators, authors, and comment permalinks; at most 100,000 characters in total |
+| `imageAssets`                           | Unique, eligible images owned by the post, in document order, at most ten, as `{ kind: "external", url, purpose: "image" }`                                                                               |
 
 Each selected comment must retain its normalized comment ID, owning post ID, stable HTTPS permalink, optional author, plain-text body, and snapshot capture time. Its own body excludes nested replies, votes, controls, and awards. Do not interpret a Reddit comment fullname's `t1_` prefix as part of the normalized ID. A removed/deleted comment without readable text is not selectable; an anonymous/deleted author with readable text is allowed. Comment media downloads and image capture are outside scope; readable links and image alt text may remain in comment text.
 
@@ -78,8 +78,8 @@ The exact field name, validators, mutation interface, and inspector detail shape
 URL identity rules:
 
 - Validate the post's identity using its own Reddit post permalink and any available post identity attribute. Inconsistent identities are unreadable; comment IDs must never become post IDs.
-- Use one normalized URL format based on immutable post identity. Prefer `https://www.reddit.com/r/<normalized subreddit>/comments/<post id>/` where the post supplies a subreddit. Verify that format opens the intended post in Firefox before adopting it.
-- Select and document a deterministic fallback for posts without readable subreddit metadata during technical planning. A slug-bearing or comment-specific URL must not undermine deduplication. The chosen URL strategy is a prerequisite for implementation acceptance.
+- Use `https://www.reddit.com/comments/<post id>/` for every post and `https://www.reddit.com/comments/<post id>/_/<comment id>/` for comment source links. Both identity-only routes were verified in Firefox 144.0.2 during Task 1; Reddit redirects them to the intended post and highlighted comment.
+- These formats do not depend on readable subreddit metadata or title slugs. Feed, detail, and comment-specific links must produce the same post capture URL and key. See [the compatibility evidence](docs/verification/reddit-clipping.md).
 - Strip query parameters, fragments, and comment path segments. Never substitute an outbound article URL for the Reddit post URL.
 - Do not relax backend conflict rules to compensate for inconsistent extension URLs.
 
