@@ -1,6 +1,9 @@
 import { parseRedditPost } from "./reddit";
 import { buildRedditClip } from "./redditClip";
 import type { ClipResponse, RedditClipRequest } from "./messages";
+import { redditIdentityFromUrl } from "@mindspool/schema";
+import { RedditSelection } from "./redditSelection";
+import { redditCommentControls } from "./injectRedditComments";
 
 export type RedditSend = (request: RedditClipRequest) => Promise<ClipResponse>;
 const MARK = "data-mindspool-reddit";
@@ -14,6 +17,7 @@ type Control = {
   wrapper: HTMLElement;
   button: HTMLButtonElement;
   abort: AbortController;
+  count: HTMLElement;
 };
 type PostState = {
   identity: string;
@@ -44,6 +48,7 @@ function target(post: Element): Element | null {
 export function watchReddit(doc: Document, send: RedditSend): () => void {
   const states = new Map<Element, PostState>();
   const roots = new Map<ShadowRoot, MutationObserver>();
+  const selection = new RedditSelection();
   let stopped = false;
   let scheduled = false;
   const removeControl = (state: PostState) => {
@@ -60,8 +65,17 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
     if (state.control) {
       state.control.button.textContent = state.text;
       state.control.button.disabled = state.busy;
+      const isDetail =
+        state.identity.endsWith("|CommentsPage") && selection.postId !== null;
+      state.control.count.hidden = !isDetail;
+      const countText = `${selection.count} comments selected · Maximum 20 comments per save`;
+      if (state.control.count.textContent !== countText)
+        state.control.count.textContent = countText;
     }
   };
+  const comments = redditCommentControls(doc, selection, () => {
+    states.forEach(paint);
+  });
   const flash = (state: PostState, text: string) => {
     clearTimeout(state.timer);
     state.text = text;
@@ -88,8 +102,11 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
     button.style.cssText =
       "font:800 13px/1 system-ui,sans-serif;color:#fff;background:#5b2fc9;border:0;padding:7px 12px;margin-left:8px;cursor:pointer;position:relative;z-index:5;pointer-events:auto";
     const abort = new AbortController();
-    state.control = { wrapper, button, abort };
-    wrapper.append(button);
+    const count = doc.createElement("span");
+    count.setAttribute("aria-live", "polite");
+    count.style.cssText = "font:12px system-ui,sans-serif;margin-left:8px";
+    state.control = { wrapper, button, abort, count };
+    wrapper.append(button, count);
     parent.append(wrapper);
     paint(state);
     button.addEventListener(
@@ -100,27 +117,42 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
         if (!current(post, state) || state.busy) return;
         const parsed = parseRedditPost(post);
         if (!parsed) return flash(state, "Couldn't read this post");
+        const isDetail =
+          post.getAttribute("view-context") === "CommentsPage" &&
+          selection.postId === parsed.id;
+        const request = isDetail ? selection.begin(parsed) : null;
+        if (isDetail && !request) return;
         state.busy = true;
         state.text = "Clipping…";
         clearTimeout(state.timer);
         paint(state);
+        comments.sync();
         let reply: ClipResponse;
         try {
           reply = await send({
             type: "clip-reddit",
-            args: buildRedditClip(parsed),
+            args: request?.args ?? buildRedditClip(parsed),
           });
         } catch {
           reply = { ok: false, reason: "unknown" };
         }
-        if (!current(post, state)) return;
+        const success =
+          reply?.ok === true &&
+          typeof reply.itemId === "string" &&
+          Boolean(reply.itemId);
+        const accepted = request ? selection.finish(request, success) : true;
+        if (!current(post, state) || !accepted) return;
         state.busy = false;
+        comments.sync();
+        states.forEach(paint);
         flash(
           state,
-          reply?.ok === true && typeof reply.itemId === "string" && reply.itemId
+          success
             ? "Clipped"
             : reply?.ok === false
-              ? (failureText[reply.reason] ?? failureText.unknown)
+              ? reply.hint === "content_too_large"
+                ? "Deselect comments and try again"
+                : (failureText[reply.reason] ?? failureText.unknown)
               : failureText.unknown,
         );
       },
@@ -163,11 +195,30 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
         "post-title",
         "view-context",
         "view-type",
+        "thingid",
+        "postid",
+        "post-id",
+        "hidden",
+        "aria-hidden",
+        "open",
+        "blurred",
       ],
     });
     return observer;
   };
   const scan = () => {
+    const route = redditIdentityFromUrl(
+      doc.defaultView?.location.pathname ?? "",
+    );
+    const detail = [
+      ...doc.querySelectorAll('shreddit-post[view-context="CommentsPage"]'),
+    ].find((post) => parseRedditPost(post)?.id === route?.postId);
+    const generation = selection.generation;
+    selection.navigate(detail && route ? route.postId : null);
+    if (selection.generation !== generation)
+      for (const [post, state] of states)
+        if (post.getAttribute("view-context") === "CommentsPage")
+          removeState(post, state);
     for (const [post, state] of states)
       if (!post.isConnected || identity(post) !== state.identity)
         removeState(post, state);
@@ -195,9 +246,15 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
       removeControl(state);
       makeControl(post, state, parent);
     }
+    comments.sync();
+    states.forEach(paint);
   };
   const observer = observe(doc.body);
   scan();
+  const routeEvents = ["popstate", "hashchange", "wxt:locationchange"];
+  routeEvents.forEach((event) =>
+    doc.defaultView?.addEventListener(event, schedule),
+  );
   void doc.defaultView?.customElements
     .whenDefined("shreddit-post")
     .then(schedule);
@@ -206,6 +263,11 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
     observer.disconnect();
     roots.forEach((observer) => observer.disconnect());
     roots.clear();
+    routeEvents.forEach((event) =>
+      doc.defaultView?.removeEventListener(event, schedule),
+    );
+    comments.stop();
+    selection.navigate(null);
     for (const [post, state] of states) removeState(post, state);
   };
 }
