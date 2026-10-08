@@ -6,6 +6,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
 import { redditCaptureKey, redditPostUrl } from "../../schema/src/reddit";
 import {
+  mergeRedditCapture,
   prepareRedditCapture,
   redditExtractedText,
   validateRedditItemSize,
@@ -149,7 +150,25 @@ export const clipReddit = mutation({
           message: "Capture key already used",
         });
       }
-      return { itemId: existing._id, addedCommentCount: 0 };
+      const merged = mergeRedditCapture(
+        existing.redditCapture,
+        existing.extractedText,
+        prepared.capture,
+      );
+      if (!merged.addedCommentCount)
+        return { itemId: existing._id, addedCommentCount: 0 };
+      const patch = {
+        redditCapture: merged.capture,
+        extractedText: redditExtractedText(merged.capture),
+        updatedAt: now,
+      };
+      validateRedditItemSize({ ...existing, ...patch });
+      await ctx.db.patch(existing._id, patch);
+      await refreshItemState(ctx, existing._id);
+      return {
+        itemId: existing._id,
+        addedCommentCount: merged.addedCommentCount,
+      };
     }
     const input = {
       originalInput,

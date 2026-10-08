@@ -1,9 +1,13 @@
 import { convexTest } from "convex-test";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
 import { redditCommentUrl, redditPostUrl } from "../../schema/src/reddit";
+
+// Save/merge behavior must not race scheduled labeling actions in these tests.
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
 
 const post = {
   id: "t3_ABC123",
@@ -20,6 +24,333 @@ const comment = {
   author: "u/commenter",
   text: "A useful comment",
 };
+
+describe("Reddit repeated capture", () => {
+  it("appends only new IDs, preserves snapshots/labels/runs, and leaves unchanged repeats untouched", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const labelId = await alice.mutation(api.labels.create, { name: "Books" });
+    const initial = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [comment],
+    });
+    await alice.mutation(api.itemLabels.attach, {
+      itemId: initial.itemId,
+      labelId,
+    });
+    const before = await alice.query(api.items.get, { id: initial.itemId });
+    const runsBefore = await t.run((ctx) =>
+      ctx.db
+        .query("processingRuns")
+        .withIndex("by_owner_item", (q) =>
+          q.eq("ownerId", "alice").eq("itemId", initial.itemId),
+        )
+        .take(10),
+    );
+    const linksBefore = await t.run((ctx) =>
+      ctx.db
+        .query("itemLabels")
+        .withIndex("by_owner_pair", (q) =>
+          q.eq("ownerId", "alice").eq("itemId", initial.itemId),
+        )
+        .take(10),
+    );
+    await t.run((ctx) => ctx.db.patch(initial.itemId, { updatedAt: 1 }));
+    const result = await alice.mutation(api.items.clipReddit, {
+      post: {
+        ...post,
+        title: "Edited title",
+        text: "Edited post",
+        images: [],
+        outboundUrl: "https://example.com/edited",
+      },
+      comments: [
+        { ...comment, text: "Edited comment" },
+        { ...comment, id: "second", text: "SearchableAddition" },
+        { ...comment, id: "third", text: "Third comment" },
+        { ...comment, id: "second", text: "Duplicate changed" },
+      ],
+    });
+    expect(result).toEqual({ itemId: initial.itemId, addedCommentCount: 2 });
+    const after = await alice.query(api.items.get, { id: initial.itemId });
+    expect(after._creationTime).toBe(before._creationTime);
+    expect(after.updatedAt).toBeGreaterThan(1);
+    expect(after.sourceMetadata).toEqual(before.sourceMetadata);
+    expect(after.imageAssets).toEqual(before.imageAssets);
+    expect(after.redditCapture!.postText).toBe(post.text);
+    expect(after.redditCapture!.outboundUrl).toBe(post.outboundUrl);
+    expect(after.redditCapture!.comments.map((c) => c.commentId)).toEqual([
+      "def456",
+      "second",
+      "third",
+    ]);
+    expect(after.redditCapture!.comments[0]).toEqual(
+      before.redditCapture!.comments[0],
+    );
+    expect(after.redditCapture!.comments[1]!.text).toBe("SearchableAddition");
+    expect(after.searchText).toContain("SearchableAddition");
+    expect(after.inbox).toBe(true); // First labeling run remains pending.
+    const found = await alice.query(api.items.search, {
+      query: "SearchableAddition",
+      paginationOpts: { cursor: null, numItems: 10 },
+    });
+    expect(found.page.map((i) => i._id)).toEqual([initial.itemId]);
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query("processingRuns")
+          .withIndex("by_owner_item", (q) =>
+            q.eq("ownerId", "alice").eq("itemId", initial.itemId),
+          )
+          .take(10),
+      ),
+    ).toEqual(runsBefore);
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query("itemLabels")
+          .withIndex("by_owner_pair", (q) =>
+            q.eq("ownerId", "alice").eq("itemId", initial.itemId),
+          )
+          .take(10),
+      ),
+    ).toEqual(linksBefore);
+    const stats = await t.run((ctx) =>
+      ctx.db
+        .query("ownerStats")
+        .withIndex("by_owner", (q) => q.eq("ownerId", "alice"))
+        .unique(),
+    );
+    const repeat = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [
+        { ...comment, text: "Changed" },
+        { ...comment, id: "second", text: "Changed" },
+      ],
+    });
+    expect(repeat).toEqual({ itemId: initial.itemId, addedCommentCount: 0 });
+    expect(await alice.query(api.items.get, { id: initial.itemId })).toEqual(
+      after,
+    );
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query("ownerStats")
+          .withIndex("by_owner", (q) => q.eq("ownerId", "alice"))
+          .unique(),
+      ),
+    ).toEqual(stats);
+  });
+
+  it.each([false, true])(
+    "forms the same overlapping ID union in either serial order (%s)",
+    async (reverse) => {
+      const alice = convexTest(schema, modules).withIdentity({
+        subject: "alice",
+        tokenIdentifier: "alice",
+      });
+      const requests = [
+        ["first", "shared"],
+        ["shared", "last"],
+      ];
+      if (reverse) requests.reverse();
+      const results = [];
+      for (const ids of requests)
+        results.push(
+          await alice.mutation(api.items.clipReddit, {
+            post,
+            comments: ids.map((id) => ({ ...comment, id })),
+          }),
+        );
+      expect(results[0]!.itemId).toBe(results[1]!.itemId);
+      expect(results[1]!.addedCommentCount).toBe(1);
+      const saved = await alice.query(api.items.get, {
+        id: results[0]!.itemId,
+      });
+      expect(saved.redditCapture!.comments.map((c) => c.commentId)).toEqual(
+        reverse ? ["shared", "last", "first"] : ["first", "shared", "last"],
+      );
+    },
+  );
+
+  it("supports more than twenty saved comments through bounded requests", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const first = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: Array.from({ length: 20 }, (_, i) => ({
+        ...comment,
+        id: `c${i}`,
+      })),
+    });
+    const second = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: Array.from({ length: 20 }, (_, i) => ({
+        ...comment,
+        id: `d${i}`,
+      })),
+    });
+    expect(second).toEqual({ itemId: first.itemId, addedCommentCount: 20 });
+    expect(
+      (await alice.query(api.items.get, { id: first.itemId })).redditCapture!
+        .comments,
+    ).toHaveLength(40);
+  });
+
+  it("adopts matching legacy extension captures only when adding comments, preserving the first post", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const id = await alice.mutation(api.items.create, {
+      captureSource: "extension",
+      inputType: "url",
+      originalInput: redditPostUrl(post.id),
+      captureKey: "reddit:abc123",
+      sourceMetadata: { title: "Legacy title", siteName: "Reddit" },
+      extractedText: "Legacy available body",
+      imageAssets: [],
+    });
+    const before = await alice.query(api.items.get, { id });
+    expect(
+      await alice.mutation(api.items.clipReddit, { post, comments: [] }),
+    ).toEqual({ itemId: id, addedCommentCount: 0 });
+    expect(await alice.query(api.items.get, { id })).toEqual(before);
+    expect(
+      await alice.mutation(api.items.clipReddit, { post, comments: [comment] }),
+    ).toEqual({ itemId: id, addedCommentCount: 1 });
+    const after = await alice.query(api.items.get, { id });
+    expect(after.sourceMetadata).toEqual(before.sourceMetadata);
+    expect(after.imageAssets).toEqual(before.imageAssets);
+    expect(after.redditCapture!.postText).toBe("Legacy available body");
+    expect(after.redditCapture!.outboundUrl).toBeUndefined();
+    expect(after.extractedText).toContain("Legacy available body");
+    expect(after.extractedText).not.toContain(post.text);
+  });
+
+  it.each(["text", "bytes"])(
+    "rejects a combined %s overflow before updating anything",
+    async (kind) => {
+      const t = convexTest(schema, modules);
+      const alice = t.withIdentity({
+        subject: "alice",
+        tokenIdentifier: "alice",
+      });
+      const text = (kind === "text" ? "x" : "\u0000").repeat(45_000);
+      const result = await alice.mutation(api.items.clipReddit, {
+        post: { ...post, text, images: [] },
+        comments: [],
+      });
+      const before = await alice.query(api.items.get, { id: result.itemId });
+      const stats = await t.run((ctx) =>
+        ctx.db
+          .query("ownerStats")
+          .withIndex("by_owner", (q) => q.eq("ownerId", "alice"))
+          .unique(),
+      );
+      await expect(
+        alice.mutation(api.items.clipReddit, {
+          post,
+          comments: [
+            {
+              ...comment,
+              text: (kind === "text" ? "y" : "\u0000").repeat(
+                kind === "text" ? 60_000 : 35_000,
+              ),
+            },
+          ],
+        }),
+      ).rejects.toThrow("content_too_large");
+      expect(await alice.query(api.items.get, { id: result.itemId })).toEqual(
+        before,
+      );
+      expect(
+        await t.run((ctx) =>
+          ctx.db
+            .query("ownerStats")
+            .withIndex("by_owner", (q) => q.eq("ownerId", "alice"))
+            .unique(),
+        ),
+      ).toEqual(stats);
+    },
+  );
+
+  it("keeps owners independent and deletes embedded snapshots with their item", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const bob = t.withIdentity({ subject: "bob", tokenIdentifier: "bob" });
+    const a = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [comment],
+    });
+    const b = await bob.mutation(api.items.clipReddit, {
+      post,
+      comments: [{ ...comment, id: "bobcomment" }],
+    });
+    expect(a.itemId).not.toBe(b.itemId);
+    expect(
+      (
+        await alice.query(api.items.get, { id: a.itemId })
+      ).redditCapture!.comments.map((c) => c.commentId),
+    ).toEqual(["def456"]);
+    await expect(
+      bob.mutation(api.items.remove, { id: a.itemId }),
+    ).rejects.toThrow("Not found");
+    await alice.mutation(api.items.remove, { id: a.itemId });
+    expect(await t.run((ctx) => ctx.db.get(a.itemId))).toBeNull();
+    expect(await bob.query(api.items.get, { id: b.itemId })).toBeDefined();
+    const fresh = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [{ ...comment, id: "newcomment" }],
+    });
+    expect(fresh.itemId).not.toBe(a.itemId);
+    expect(
+      (
+        await alice.query(api.items.get, { id: fresh.itemId })
+      ).redditCapture!.comments.map((c) => c.commentId),
+    ).toEqual(["newcomment"]);
+  });
+
+  it.each([
+    {
+      inputType: "url" as const,
+      captureSource: "web" as const,
+      originalInput: redditPostUrl(post.id),
+    },
+    {
+      inputType: "url" as const,
+      captureSource: "extension" as const,
+      originalInput: "https://www.reddit.com/comments/other/",
+    },
+    {
+      inputType: "text" as const,
+      captureSource: "extension" as const,
+      originalInput: redditPostUrl(post.id),
+    },
+  ])("rejects unrelated key collisions (%j)", async (legacy) => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const id = await alice.mutation(api.items.create, {
+      ...legacy,
+      captureKey: "reddit:abc123",
+    });
+    const before = await alice.query(api.items.get, { id });
+    await expect(
+      alice.mutation(api.items.clipReddit, { post, comments: [comment] }),
+    ).rejects.toThrow("CONFLICT");
+    expect(await alice.query(api.items.get, { id })).toEqual(before);
+  });
+});
 
 describe("Reddit first capture", () => {
   it("includes initial comments in labeling and succeeds at the AI limit", async () => {

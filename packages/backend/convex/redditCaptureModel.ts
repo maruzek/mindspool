@@ -95,6 +95,27 @@ export function redditExtractedText(capture: RedditCapture) {
   return text;
 }
 
+/** Keep the original post/comment snapshots and append incoming unknown IDs. */
+export function mergeRedditCapture(
+  existing: RedditCapture | undefined,
+  legacyPostText: string | undefined,
+  incoming: RedditCapture,
+) {
+  const capture: RedditCapture = existing ?? {
+    postId: incoming.postId,
+    postText: legacyPostText ?? "",
+    comments: [],
+  };
+  const known = new Set(capture.comments.map((comment) => comment.commentId));
+  const additions = incoming.comments.filter(
+    (comment) => !known.has(comment.commentId),
+  );
+  return {
+    capture: { ...capture, comments: [...capture.comments, ...additions] },
+    addedCommentCount: additions.length,
+  };
+}
+
 /** Check both installed Convex document accounting and its serialized UTF-8 representation. */
 export function validateRedditItemSize(
   item: Record<string, Value> & {
