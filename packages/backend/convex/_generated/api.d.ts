@@ -20,6 +20,7 @@ import type * as itemState from "../itemState.js";
 import type * as items from "../items.js";
 import type * as labels from "../labels.js";
 import type * as processingRuns from "../processingRuns.js";
+import type * as redditCaptureModel from "../redditCaptureModel.js";
 import type * as sampleContent from "../sampleContent.js";
 import type * as seed from "../seed.js";
 import type * as validators from "../validators.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   items: typeof items;
   labels: typeof labels;
   processingRuns: typeof processingRuns;
+  redditCaptureModel: typeof redditCaptureModel;
   sampleContent: typeof sampleContent;
   seed: typeof seed;
   validators: typeof validators;
