@@ -143,6 +143,7 @@ export const itemDetail = v.object({
   enrichmentStatus: itemFields.enrichmentStatus,
   sourceMetadata: itemFields.sourceMetadata,
   extractedText: itemFields.extractedText,
+  redditCapture: itemFields.redditCapture,
   /** Omitted when empty. */
   imageAssets: v.optional(v.array(asset)),
 });

@@ -25,6 +25,90 @@ const comment = {
   text: "A useful comment",
 };
 
+describe("Reddit inspector detail", () => {
+  it("returns structured owned detail while keeping browsing/search previews bounded", async () => {
+    const alice = convexTest(schema, modules).withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const result = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [comment],
+    });
+    const item = await alice.query(api.items.get, { id: result.itemId });
+    const detail = await alice.query(api.items.detail, { id: result.itemId });
+    expect(detail!.redditCapture).toEqual(item.redditCapture);
+    expect(detail).not.toHaveProperty("captureKey");
+    expect(detail).not.toHaveProperty("ownerId");
+    expect(detail).not.toHaveProperty("pendingEnrichmentRunId");
+    expect(detail).not.toHaveProperty("searchText");
+    for (const page of [
+      await alice.query(api.items.list, {
+        paginationOpts: { cursor: null, numItems: 10 },
+      }),
+      await alice.query(api.items.search, {
+        query: "Reading",
+        paginationOpts: { cursor: null, numItems: 10 },
+      }),
+    ]) {
+      expect(page.page).toHaveLength(1);
+      expect(page.page[0]).not.toHaveProperty("redditCapture");
+      expect(page.page[0]).not.toHaveProperty("extractedText");
+    }
+  });
+
+  it("hides foreign, malformed, missing, and deleted detail and rejects anonymous reads", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({
+      subject: "alice",
+      tokenIdentifier: "alice",
+    });
+    const bob = t.withIdentity({ subject: "bob", tokenIdentifier: "bob" });
+    const result = await alice.mutation(api.items.clipReddit, {
+      post,
+      comments: [comment],
+    });
+    expect(await bob.query(api.items.detail, { id: result.itemId })).toBeNull();
+    expect(await alice.query(api.items.detail, { id: "malformed" })).toBeNull();
+    await expect(
+      t.query(api.items.detail, { id: result.itemId }),
+    ).rejects.toThrow("Authentication required");
+    await alice.mutation(api.items.remove, { id: result.itemId });
+    expect(
+      await alice.query(api.items.detail, { id: result.itemId }),
+    ).toBeNull();
+  });
+
+  it.each([
+    "https://example.com/article",
+    "https://x.com/reader/status/123",
+    redditPostUrl(post.id),
+  ])(
+    "preserves legacy detail without structured capture for %s",
+    async (url) => {
+      const alice = convexTest(schema, modules).withIdentity({
+        subject: "alice",
+        tokenIdentifier: "alice",
+      });
+      const id = await alice.mutation(api.items.create, {
+        originalInput: url,
+        inputType: "url",
+        captureSource: "extension",
+        captureKey: "legacy",
+        sourceMetadata: { title: "Legacy" },
+        extractedText: "Original text",
+      });
+      const detail = await alice.query(api.items.detail, { id });
+      expect(detail).toMatchObject({
+        originalInput: url,
+        sourceMetadata: { title: "Legacy" },
+        extractedText: "Original text",
+      });
+      expect(detail).not.toHaveProperty("redditCapture");
+    },
+  );
+});
+
 describe("Reddit repeated capture", () => {
   it("appends only new IDs, preserves snapshots/labels/runs, and leaves unchanged repeats untouched", async () => {
     const t = convexTest(schema, modules);

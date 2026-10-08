@@ -222,6 +222,7 @@ export const detail = query({
       enrichmentStatus: item.enrichmentStatus,
       ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
       ...(item.extractedText ? { extractedText: item.extractedText } : {}),
+      ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
       ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
     };
   },
