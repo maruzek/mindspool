@@ -28,6 +28,24 @@ payload returns the saved Item; different input with that key fails. Independent
 saves use new keys and remain distinct. This does not deduplicate equal URLs
 saved intentionally on separate occasions.
 
+Extension Reddit captures use the dedicated `items.clipReddit` mutation and an
+owner-scoped `reddit:<postId>` key. An optional `redditCapture` field embeds the
+first post text/outbound link and ordered selected comment snapshots. The backend
+derives canonical Reddit URLs and capture timestamps. Repeated saves append only
+new comment IDs atomically, keeping earlier post metadata, media, comment text,
+labels, and creation time. An unchanged repeat performs no writes; additions
+refresh derived text/search state without starting another automatic AI run.
+Deleting the item deletes its embedded discussion snapshots too.
+
+Each request may select at most 20 comments; later saves can grow the stored
+discussion beyond 20. Complete rendered text is limited to 100,000 characters
+and the prospective document to 900 KiB, including duplicated projection and
+state fields. Oversized captures fail atomically. Search retains its existing
+8,000-character projection budget and AI its existing 500-character context
+budget; keeping comments does not imply every comment is searched or classified.
+Owned detail includes snapshots, while list/search previews omit them. Images
+remain external URL references.
+
 Unsaved drafts belong to the signed-in Clerk session, outside the Convex query
 boundary (a `CaptureDraftProvider` mounted above the Convex auth gate). Authentication refresh can hide the library without discarding the
 input or capture key. Drafts use best-effort browser session storage to survive a

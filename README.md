@@ -32,6 +32,28 @@ MindSpool is also a personal playground for experimenting with typed AI decision
 - **Mobile Sharing (X links):** Uses open-source proxy APIs like **FxTwitter** or **VxTwitter** to fetch clean structured JSON metadata for shared X posts without needing an API key.
 - **Video Archiving:** Uses `yt-dlp` running on a worker to directly extract MP4 files from TikTok, Instagram, and X for permanent storage.
 
+## Reddit clipping
+
+The Firefox extension supports current Reddit on `reddit.com` and
+`www.reddit.com`. Sign in through the extension popup, then use **Clip** on a
+post in a card/compact feed or post detail. On detail pages, check **Keep comment**
+on the individual comments you want, then Clip. Parent comments and replies are
+independent; only selected loaded comments are included. The count shows the
+20-comment limit per save. Selection stays local until Clip, survives removed
+comment nodes and failed saves, and clears when you leave the post.
+
+Open or expand the post before its first capture when you want fuller available
+text. The first saved post and each comment are snapshots: later saves preserve
+them and append newly selected comment IDs to the same item. You can add more
+comments in later saves; deselecting does not remove saved comments. Oversized
+saves ask you to deselect and retry. Image URLs remain external references, and
+video clipping keeps an available poster. Old Reddit and unrevealed content are
+outside the supported flow. The inspector shows the post and saved comments
+with links to their sources.
+
+See [Reddit verification](docs/verification/reddit-clipping.md) for tested
+behavior and remaining live acceptance checks.
+
 ## Development Roadmap
 
 Prioritize a useful personal workspace and early decision-model experiments. Each phase should produce something usable or a concrete comparison; work can continue without waiting for the OpenAI Decisions API.

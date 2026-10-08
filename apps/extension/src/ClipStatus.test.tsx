@@ -21,7 +21,7 @@ async function render(webUrl: string) {
 describe("ClipStatus", () => {
   it("says clipping is on and links to the web app", async () => {
     await render("http://localhost:5173");
-    expect(host.textContent).toContain("Clipping on x.com is on");
+    expect(host.textContent).toContain("Clipping on X and Reddit is on");
     const link = host.querySelector("a")!;
     expect(link.getAttribute("href")).toBe("http://localhost:5173");
     expect(link.getAttribute("target")).toBe("_blank");
