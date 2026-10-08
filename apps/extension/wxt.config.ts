@@ -25,6 +25,8 @@ export default defineConfig({
     host_permissions: [
       "*://x.com/*",
       "*://twitter.com/*",
+      "*://reddit.com/*",
+      "*://www.reddit.com/*",
       ...originPermission("WXT_PUBLIC_CLERK_FRONTEND_API"),
       ...originPermission("WXT_PUBLIC_CONVEX_URL"),
     ],
