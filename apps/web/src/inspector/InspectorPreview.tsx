@@ -2,6 +2,7 @@ import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
 import { displayTitle, kindOf } from "../library/itemDisplay";
 import type { ItemDetail } from "./types";
 import { savedLine } from "./savedLine";
+import { RedditCapturePreview } from "./RedditCapturePreview";
 
 function Fact({ label, children }: { label: string; children: string }) {
   return (
@@ -49,7 +50,10 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
           {meta?.siteName && <Fact label="Site">{meta.siteName}</Fact>}
         </dl>
       )}
-      {kind === "link" && item.extractedText && (
+      {kind === "link" && item.redditCapture && (
+        <RedditCapturePreview capture={item.redditCapture} />
+      )}
+      {kind === "link" && !item.redditCapture && item.extractedText && (
         <div
           tabIndex={0}
           aria-label="Text"

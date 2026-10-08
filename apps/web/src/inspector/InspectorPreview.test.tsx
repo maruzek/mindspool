@@ -5,6 +5,43 @@ import type { ItemDetail } from "./types";
 
 afterEach(cleanup);
 
+it("renders a structured Reddit discussion without a second flattened copy", () => {
+  render(
+    <InspectorPreview
+      item={link({
+        originalInput: "https://www.reddit.com/comments/abc123/",
+        originalUrl: "https://www.reddit.com/comments/abc123/",
+        sourceMetadata: {
+          title: "Reddit post",
+          siteName: "Reddit",
+          author: "u/reader",
+          description: "r/example",
+        },
+        extractedText: "Flattened duplicate",
+        redditCapture: {
+          postId: "abc123",
+          postText: "Own post body",
+          comments: [
+            {
+              commentId: "reply1",
+              postId: "abc123",
+              author: "u/replyreader",
+              text: "Selected reply body",
+              permalink: "https://www.reddit.com/comments/abc123/_/reply1/",
+              capturedAt: 1,
+            },
+          ],
+        },
+      })}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "Reddit post" })).toBeTruthy();
+  expect(screen.getByLabelText("Post text").textContent).toBe("Own post body");
+  expect(screen.getByText("Selected reply body")).toBeTruthy();
+  expect(screen.queryByText("Flattened duplicate")).toBeNull();
+  expect(screen.queryByLabelText("Text")).toBeNull();
+});
+
 const link = (extra: Partial<ItemDetail> = {}): ItemDetail => ({
   _id: "a" as ItemDetail["_id"],
   _creationTime: 0,
