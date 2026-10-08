@@ -45,7 +45,10 @@ function target(post: Element): Element | null {
 }
 
 /** Watches public rendered posts and their accessible roots; owns every listener and timer. */
-export function watchReddit(doc: Document, send: RedditSend): () => void {
+export function watchReddit(
+  doc: Document,
+  send: RedditSend,
+): (() => void) & { refresh: () => void } {
   const states = new Map<Element, PostState>();
   const roots = new Map<ShadowRoot, MutationObserver>();
   const selection = new RedditSelection();
@@ -251,14 +254,14 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
   };
   const observer = observe(doc.body);
   scan();
-  const routeEvents = ["popstate", "hashchange", "wxt:locationchange"];
+  const routeEvents = ["popstate", "hashchange"];
   routeEvents.forEach((event) =>
     doc.defaultView?.addEventListener(event, schedule),
   );
   void doc.defaultView?.customElements
     .whenDefined("shreddit-post")
     .then(schedule);
-  return () => {
+  const stop = () => {
     stopped = true;
     observer.disconnect();
     roots.forEach((observer) => observer.disconnect());
@@ -270,4 +273,5 @@ export function watchReddit(doc: Document, send: RedditSend): () => void {
     selection.navigate(null);
     for (const [post, state] of states) removeState(post, state);
   };
+  return Object.assign(stop, { refresh: schedule });
 }

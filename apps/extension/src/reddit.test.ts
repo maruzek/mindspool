@@ -108,6 +108,18 @@ describe("rendered Reddit post extraction", () => {
     p.querySelector('[slot="text-body"]')!.textContent = "x".repeat(100001);
     expect(parseRedditPost(p)).toBeNull();
   });
+  it("rejects a recycled post while its body still identifies another post", () => {
+    const p = post("card-text");
+    p.setAttribute("id", "t3_other1");
+    p.setAttribute("permalink", "/comments/other1/");
+    p.setAttribute("content-href", "https://www.reddit.com/comments/other1/");
+    expect(parseRedditPost(p)).toBeNull();
+    p.querySelector("shreddit-post-text-body")!.setAttribute(
+      "post-id",
+      "t3_other1",
+    );
+    expect(parseRedditPost(p)?.id).toBe("other1");
+  });
   it("keeps at most ten unique HTTPS image references within URL bounds", () => {
     const p = post("gallery");
     const media = p.querySelector('[slot="post-media-container"]')!;

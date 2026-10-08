@@ -131,6 +131,18 @@ export function parseRedditPost(post: Element): RedditPostInput | null {
   );
   const text = body ? readPlainText(body) : "";
   if (
+    body?.hasAttribute("post-id") &&
+    normalizeRedditId(body.getAttribute("post-id")!, "post") !== identity.postId
+  )
+    return null;
+  for (const media of own(post, '[slot="post-media-container"] [post-id]'))
+    if (
+      post.getAttribute("post-type") !== "crosspost" &&
+      normalizeRedditId(media.getAttribute("post-id")!, "post") !==
+        identity.postId
+    )
+      return null;
+  if (
     !title ||
     title.length > 300 ||
     (author?.length ?? 0) > 300 ||

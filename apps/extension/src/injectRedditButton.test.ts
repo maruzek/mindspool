@@ -170,6 +170,10 @@ describe("Reddit Clip controls", () => {
     p.setAttribute("id", "t3_other1");
     p.setAttribute("permalink", "/r/example/comments/other1/new/");
     p.setAttribute("post-title", "New post");
+    p.querySelector("shreddit-post-text-body")!.setAttribute(
+      "post-id",
+      "t3_other1",
+    );
     await flush();
     expect(button(p).textContent).toBe("Clip");
     finish({ ok: true, itemId: "old-item" });

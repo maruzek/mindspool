@@ -11,5 +11,6 @@ export default defineContentScript({
         browser.runtime.sendMessage(request) as Promise<ClipResponse>,
     );
     ctx.onInvalidated(stop);
+    ctx.addEventListener(window, "wxt:locationchange", stop.refresh);
   },
 });
