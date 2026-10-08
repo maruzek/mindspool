@@ -10,6 +10,28 @@ beforeEach(() => {
 });
 
 describe("rendered Reddit post extraction", () => {
+  it("excludes CSS-hidden content and captures it only after reveal", () => {
+    const p = post("card-text");
+    const body = p.querySelector('[slot="text-body"]')!;
+    const style = document.createElement("style");
+    style.textContent = ".hidden-body { display:none }";
+    document.body.append(style);
+    body.classList.add("hidden-body");
+    expect(parseRedditPost(p)?.text).toBe("");
+    body.classList.remove("hidden-body");
+    expect(parseRedditPost(p)?.text).toContain("First paragraph");
+  });
+  it("respects the rendered slot's shadow ancestors", () => {
+    const p = post("card-text");
+    p.attachShadow({ mode: "open" }).innerHTML =
+      '<div style="display:none"><slot name="text-body"></slot></div>';
+    expect(parseRedditPost(p)?.text).toBe("");
+    const revealed = p.cloneNode(true) as Element;
+    revealed.attachShadow({ mode: "open" }).innerHTML =
+      '<div><slot name="text-body"></slot></div>';
+    document.body.append(revealed);
+    expect(parseRedditPost(revealed)?.text).toContain("First paragraph");
+  });
   it("reads the current outer post's identity, metadata and useful plain text", () => {
     expect(parseRedditPost(post("card-text"))).toEqual({
       id: "abc123",

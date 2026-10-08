@@ -21,6 +21,8 @@ type Control = {
 };
 type PostState = {
   identity: string;
+  postId: string;
+  detail: boolean;
   busy: boolean;
   text: string;
   control?: Control;
@@ -68,8 +70,7 @@ export function watchReddit(
     if (state.control) {
       state.control.button.textContent = state.text;
       state.control.button.disabled = state.busy;
-      const isDetail =
-        state.identity.endsWith("|CommentsPage") && selection.postId !== null;
+      const isDetail = state.detail && state.postId === selection.postId;
       state.control.count.hidden = !isDetail;
       const countText = `${selection.count} comments selected · Maximum 20 comments per save`;
       if (state.control.count.textContent !== countText)
@@ -129,7 +130,7 @@ export function watchReddit(
         state.text = "Clipping…";
         clearTimeout(state.timer);
         paint(state);
-        comments.sync();
+        comments.paint();
         let reply: ClipResponse;
         try {
           reply = await send({
@@ -144,20 +145,30 @@ export function watchReddit(
           typeof reply.itemId === "string" &&
           Boolean(reply.itemId);
         const accepted = request ? selection.finish(request, success) : true;
-        if (!current(post, state) || !accepted) return;
-        state.busy = false;
-        comments.sync();
-        states.forEach(paint);
-        flash(
-          state,
-          success
-            ? "Clipped"
-            : reply?.ok === false
-              ? reply.hint === "content_too_large"
-                ? "Deselect comments and try again"
-                : (failureText[reply.reason] ?? failureText.unknown)
-              : failureText.unknown,
-        );
+        if (stopped || !accepted) return;
+        const feedback = success
+          ? "Clipped"
+          : reply?.ok === false
+            ? reply.hint === "content_too_large"
+              ? "Deselect comments and try again"
+              : (failureText[reply.reason] ?? failureText.unknown)
+            : failureText.unknown;
+        if (request) {
+          comments.paint();
+          for (const [node, active] of states)
+            if (
+              active.detail &&
+              active.postId === request.args.post.id &&
+              current(node, active)
+            ) {
+              active.busy = false;
+              flash(active, feedback);
+            }
+          states.forEach(paint);
+        } else if (current(post, state)) {
+          state.busy = false;
+          flash(state, feedback);
+        }
       },
       { signal: abort.signal },
     );
@@ -205,6 +216,8 @@ export function watchReddit(
         "aria-hidden",
         "open",
         "blurred",
+        "class",
+        "style",
       ],
     });
     return observer;
@@ -217,7 +230,17 @@ export function watchReddit(
       ...doc.querySelectorAll('shreddit-post[view-context="CommentsPage"]'),
     ].find((post) => parseRedditPost(post)?.id === route?.postId);
     const generation = selection.generation;
-    selection.navigate(detail && route ? route.postId : null);
+    const closed = [...states].some(
+      ([post, state]) =>
+        state.detail &&
+        post.isConnected &&
+        post.getAttribute("view-context") !== "CommentsPage",
+    );
+    selection.navigate(
+      !closed && route && (detail || route.postId === selection.postId)
+        ? route.postId
+        : null,
+    );
     if (selection.generation !== generation)
       for (const [post, state] of states)
         if (post.getAttribute("view-context") === "CommentsPage")
@@ -235,10 +258,21 @@ export function watchReddit(
       if (post.shadowRoot && !roots.has(post.shadowRoot))
         roots.set(post.shadowRoot, observe(post.shadowRoot));
       const parent = target(post);
-      if (!parent || !parseRedditPost(post)) continue;
+      const parsed = parseRedditPost(post);
+      if (!parent || !parsed) continue;
       let state = states.get(post);
       if (!state) {
-        state = { identity: identity(post), busy: false, text: "Clip" };
+        const isDetail =
+          post.getAttribute("view-context") === "CommentsPage" &&
+          parsed.id === selection.postId;
+        const busy = isDetail && selection.isBusy;
+        state = {
+          identity: identity(post),
+          postId: parsed.id,
+          detail: post.getAttribute("view-context") === "CommentsPage",
+          busy,
+          text: busy ? "Clipping…" : "Clip",
+        };
         states.set(post, state);
       }
       if (

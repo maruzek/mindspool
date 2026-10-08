@@ -6,8 +6,11 @@ import {
 import type { RedditPostInput } from "@mindspool/schema";
 
 /** Check visible DOM boundaries before reading text or source references. */
-export function isReadable(element: Element): boolean {
-  for (let node: Element | null = element; node; node = node.parentElement) {
+export function isReadable(
+  element: Element,
+  styles = new Map<Element, CSSStyleDeclaration>(),
+): boolean {
+  for (let node: Element | null = element; node;) {
     if (
       node.hasAttribute("hidden") ||
       node.getAttribute("aria-hidden") === "true"
@@ -26,12 +29,29 @@ export function isReadable(element: Element): boolean {
       return false;
     const style = node.getAttribute("style") ?? "";
     if (/display\s*:\s*none|visibility\s*:\s*hidden/i.test(style)) return false;
+    const computed =
+      styles.get(node) ??
+      node.ownerDocument.defaultView?.getComputedStyle(node);
+    if (computed) styles.set(node, computed);
+    if (
+      computed &&
+      (computed.display === "none" ||
+        ["hidden", "collapse"].includes(computed.visibility) ||
+        computed.contentVisibility === "hidden")
+    )
+      return false;
+    const root = node.getRootNode();
+    node =
+      node.assignedSlot ??
+      node.parentElement ??
+      (root instanceof ShadowRoot ? root.host : null);
   }
   return true;
 }
 
 export function readPlainText(root: Element): string {
-  if (!isReadable(root)) return "";
+  const styles = new Map<Element, CSSStyleDeclaration>();
+  if (!isReadable(root, styles)) return "";
   const walk = (node: Node, pre = false): string => {
     if (node.nodeType === 3)
       return pre
@@ -40,7 +60,7 @@ export function readPlainText(root: Element): string {
     if (node.nodeType !== 1) return "";
     const element = node as Element;
     if (
-      !isReadable(element) ||
+      !isReadable(element, styles) ||
       element.matches(
         'script,style,svg,button,input,select,textarea,shreddit-post,shreddit-comment,[role="button"],[data-mindspool-reddit]',
       )

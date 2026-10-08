@@ -39,6 +39,65 @@ afterEach(() => {
   history.replaceState(null, "", "/");
 });
 describe("Keep comment controls", () => {
+  it("preserves snapshots and retry through a same-route detail rendering gap", async () => {
+    const post = setup();
+    const requests: RedditClipRequest[] = [];
+    stop = watchReddit(document, async (request) => {
+      requests.push(request);
+      return { ok: false, reason: "unknown" };
+    });
+    check("parent1").click();
+    clip(post).click();
+    await flush();
+    post.remove();
+    await flush();
+    expect(check("parent1").checked).toBe(true);
+    document.body.prepend(post);
+    await flush();
+    expect(post.shadowRoot!.textContent).toContain("1 comments selected");
+    document.querySelector('[slot="comment"]')!.textContent =
+      "Changed during gap";
+    clip(post).click();
+    await flush();
+    expect(requests[1]!.args).toEqual(requests[0]!.args);
+  });
+  it.each([true, false])(
+    "refreshes replacement detail controls after pending success=%s",
+    async (success) => {
+      const post = setup();
+      let finish!: (response: ClipResponse) => void;
+      const send = vi.fn(
+        () =>
+          new Promise<ClipResponse>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      stop = watchReddit(document, send);
+      check("parent1").click();
+      clip(post).click();
+      const next = post.cloneNode(true) as Element;
+      next.attachShadow({ mode: "open" }).innerHTML =
+        '<div data-testid="action-row"><button>Share</button></div>';
+      post.replaceWith(next);
+      await flush();
+      expect(clip(next).disabled).toBe(true);
+      finish(
+        success
+          ? { ok: true, itemId: "saved" }
+          : { ok: false, reason: "unknown" },
+      );
+      await flush();
+      expect(check("parent1").disabled).toBe(false);
+      expect(check("parent1").checked).toBe(!success);
+      expect(clip(next).disabled).toBe(false);
+      expect(clip(next).textContent).toBe(
+        success ? "Clipped" : "Something went wrong",
+      );
+      expect(next.shadowRoot!.textContent).toContain(
+        `${success ? 0 : 1} comments selected`,
+      );
+    },
+  );
   it("keeps independent parent/reply snapshots locally and sends removed nodes only on Clip", async () => {
     const post = setup();
     const requests: RedditClipRequest[] = [];

@@ -22,6 +22,12 @@ export function redditCommentControls(
     control?.label.remove();
     controls.delete(node);
   };
+  const paint = () => {
+    for (const control of controls.values()) {
+      control.input.checked = selection.has(control.id);
+      control.input.disabled = selection.isBusy;
+    }
+  };
   const sync = () => {
     for (const [node, control] of controls) {
       const parsed =
@@ -67,7 +73,7 @@ export function redditCommentControls(
             if (current && current.id === control!.id)
               selection.toggle(current, input.checked);
             changed();
-            sync();
+            paint();
           },
           { signal: abort.signal },
         );
@@ -78,6 +84,7 @@ export function redditCommentControls(
   };
   return {
     sync,
+    paint,
     stop: () => {
       for (const node of controls.keys()) remove(node);
     },
