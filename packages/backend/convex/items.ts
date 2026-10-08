@@ -4,6 +4,12 @@ import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
+import { redditCaptureKey, redditPostUrl } from "../../schema/src/reddit";
+import {
+  prepareRedditCapture,
+  redditExtractedText,
+  validateRedditItemSize,
+} from "./redditCaptureModel";
 import { startDecisionOrFail } from "./decisions";
 import {
   adjustStats,
@@ -16,6 +22,8 @@ import {
   asset,
   captureSource,
   inputType,
+  redditPostInput,
+  redditCommentInput,
   itemDetail,
   itemDoc,
   itemPage,
@@ -62,36 +70,107 @@ export const create = mutation({
       }
       return existing._id;
     }
-    const itemId = await ctx.db.insert("items", {
-      ...args,
+    return insertCapture(ctx, ownerId, args);
+  },
+});
+
+/** Shared initial save path; repeats never enter labeling/statistics insertion. */
+async function insertCapture(
+  ctx: MutationCtx,
+  ownerId: string,
+  input: Pick<
+    Doc<"items">,
+    "originalInput" | "inputType" | "captureSource" | "captureKey"
+  > &
+    Partial<
+      Pick<
+        Doc<"items">,
+        "sourceMetadata" | "extractedText" | "imageAssets" | "redditCapture"
+      >
+    >,
+) {
+  const itemId = await ctx.db.insert("items", {
+    ...input,
+    ownerId,
+    ...(input.inputType === "url" ? { originalUrl: input.originalInput } : {}),
+    captureStatus: "captured",
+    enrichmentStatus: "not_started",
+    imageAssets: input.imageAssets ?? [],
+    updatedAt: Date.now(),
+    sourceKind: sourceKindOf({
+      inputType: input.inputType,
+      ...(input.inputType === "url"
+        ? { originalUrl: input.originalInput }
+        : {}),
+    }),
+  });
+  await adjustStats(ctx, ownerId, { total: 1 });
+  // Best effort: a labeling problem must never fail the save.
+  try {
+    const hasLabel = await ctx.db
+      .query("labels")
+      .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+      .first();
+    const item = await ctx.db.get(itemId);
+    if (hasLabel && item) await startDecisionOrFail(ctx, item, "clef-flash");
+  } catch {
+    // Swallowed on purpose.
+  }
+  // Not best effort: flags and counters must agree with the stored item.
+  await refreshItemState(ctx, itemId);
+  return itemId;
+}
+
+export const clipReddit = mutation({
+  args: { post: redditPostInput, comments: v.array(redditCommentInput) },
+  returns: v.object({ itemId: v.id("items"), addedCommentCount: v.number() }),
+  handler: async (ctx, args) => {
+    const ownerId = await requireOwner(ctx);
+    const now = Date.now();
+    const prepared = prepareRedditCapture(args.post, args.comments, now);
+    const originalInput = redditPostUrl(prepared.capture.postId);
+    const captureKey = redditCaptureKey(prepared.capture.postId);
+    const existing = await ctx.db
+      .query("items")
+      .withIndex("by_owner_capture_key", (q) =>
+        q.eq("ownerId", ownerId).eq("captureKey", captureKey),
+      )
+      .unique();
+    if (existing) {
+      if (
+        existing.originalInput !== originalInput ||
+        existing.inputType !== "url" ||
+        existing.captureSource !== "extension" ||
+        (existing.redditCapture &&
+          existing.redditCapture.postId !== prepared.capture.postId)
+      ) {
+        throw new ConvexError({
+          code: "CONFLICT",
+          message: "Capture key already used",
+        });
+      }
+      return { itemId: existing._id, addedCommentCount: 0 };
+    }
+    const input = {
+      originalInput,
+      captureKey,
+      inputType: "url" as const,
+      captureSource: "extension" as const,
+      sourceMetadata: prepared.sourceMetadata,
+      imageAssets: prepared.imageAssets,
+      redditCapture: prepared.capture,
+      extractedText: redditExtractedText(prepared.capture),
+    };
+    validateRedditItemSize({
+      ...input,
       ownerId,
-      ...(args.inputType === "url" ? { originalUrl: args.originalInput } : {}),
+      originalUrl: originalInput,
       captureStatus: "captured",
       enrichmentStatus: "not_started",
-      imageAssets: args.imageAssets ?? [],
-      updatedAt: Date.now(),
-      sourceKind: sourceKindOf({
-        inputType: args.inputType,
-        ...(args.inputType === "url"
-          ? { originalUrl: args.originalInput }
-          : {}),
-      }),
+      updatedAt: now,
     });
-    await adjustStats(ctx, ownerId, { total: 1 });
-    // Best effort: a labeling problem must never fail the save.
-    try {
-      const hasLabel = await ctx.db
-        .query("labels")
-        .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
-        .first();
-      const item = await ctx.db.get(itemId);
-      if (hasLabel && item) await startDecisionOrFail(ctx, item, "clef-flash");
-    } catch {
-      // Swallowed on purpose.
-    }
-    // Not best effort: flags and counters must agree with the stored item.
-    await refreshItemState(ctx, itemId);
-    return itemId;
+    const itemId = await insertCapture(ctx, ownerId, input);
+    return { itemId, addedCommentCount: prepared.capture.comments.length };
   },
 });
 

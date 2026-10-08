@@ -39,6 +39,36 @@ export const sourceKind = v.union(
   v.literal("web"),
   v.literal("note"),
 );
+export const redditPostInput = v.object({
+  id: v.string(),
+  title: v.string(),
+  author: v.optional(v.string()),
+  subreddit: v.optional(v.string()),
+  text: v.string(),
+  outboundUrl: v.optional(v.string()),
+  images: v.array(v.string()),
+});
+export const redditCommentInput = v.object({
+  id: v.string(),
+  postId: v.string(),
+  author: v.optional(v.string()),
+  text: v.string(),
+});
+export const redditCapture = v.object({
+  postId: v.string(),
+  postText: v.string(),
+  outboundUrl: v.optional(v.string()),
+  comments: v.array(
+    v.object({
+      commentId: v.string(),
+      postId: v.string(),
+      permalink: v.string(),
+      author: v.optional(v.string()),
+      text: v.string(),
+      capturedAt: v.number(),
+    }),
+  ),
+});
 export const itemFields = {
   ownerId: v.string(),
   captureKey: v.string(),
@@ -63,6 +93,7 @@ export const itemFields = {
     }),
   ),
   extractedText: v.optional(v.string()),
+  redditCapture: v.optional(redditCapture),
   imageAssets: v.array(asset),
   updatedAt: v.number(),
   pendingEnrichmentRunId: v.optional(v.id("processingRuns")),
