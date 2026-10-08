@@ -5,10 +5,11 @@ Spec: [SPEC-reddit-clipping.md](../../SPEC-reddit-clipping.md).
 Plan: [tasks/plan.md](../../tasks/plan.md).
 Checklist: [tasks/todo.md](../../tasks/todo.md).
 
-**Status: local implementation and automated verification complete. The fresh
-review's three important defects are repaired and tested. Live public Firefox
-investigation and component smoke checks pass; authenticated extension-to-Library
-acceptance, official codegen, and actual concurrent clients remain unverified.**
+**Status: implemented, deployed to the authorized development target, and
+verified through the real Firefox extension and web Library. All 651 automated
+tests pass. Concurrent extension clients, second-owner isolation, retries,
+navigation, media boundaries, and AI-limit capture pass. The user chose to leave
+the remaining real-tweet X regression for manual verification.**
 
 ## Compatibility investigation
 
@@ -80,8 +81,8 @@ are not inspected or instrumented.
 | `pnpm --filter @mindspool/backend typecheck`       | Pass                                         |
 | `pnpm --filter @mindspool/extension test`          | Pass after review fixes: 13 files, 112 tests |
 | `pnpm --filter @mindspool/extension typecheck`     | Pass                                         |
-| `pnpm --filter @mindspool/extension build:firefox` | Pass: Firefox MV3, approximately 1.66 MB     |
-| `pnpm --filter @mindspool/extension build`         | Pass: Chrome MV3, approximately 1.66 MB      |
+| `pnpm --filter @mindspool/extension build:firefox` | Pass: Firefox MV3, approximately 2.71 MB     |
+| `pnpm --filter @mindspool/extension build`         | Pass: Chrome MV3, approximately 2.71 MB      |
 | `pnpm --filter @mindspool/web test`                | Pass: 27 files, 278 tests                    |
 | `pnpm --filter @mindspool/web typecheck`           | Pass                                         |
 | `pnpm --filter @mindspool/web build`               | Pass                                         |
@@ -128,36 +129,102 @@ failed, then passed after repair; the extension's final 112-test suite passes.
 Selection painting now updates existing checkboxes without reparsing all comment
 text on every local toggle. There were no critical or deferred minor findings.
 
-## Remaining live acceptance
+## Authenticated development acceptance
 
-The identified target is **dev: graceful-stork-346**. Backend and web public URLs
-agree on `https://graceful-stork-346.eu-west-1.convex.cloud`; no deploy key is set.
-The extension has no local public Clerk/Convex configuration. Development push,
-codegen, and authenticated live verification require the plan's separate
-approval; that approval has been requested. No deployment, codegen, live mutation,
-extension signing, or publishing has occurred.
+The user authorized the existing **dev: graceful-stork-346** deployment,
+configuration, and authenticated verification, then explicitly requested two
+dedicated development test accounts. `convex dev --once` and official codegen
+succeeded against `https://graceful-stork-346.eu-west-1.convex.cloud`.
+Only the generated API module map changed. Backend, extension, and web typechecks
+pass after generation; focused backend regression tests pass (80/80).
+Configured Firefox MV3 and Chrome MV3 builds pass (approximately 2.71 MB).
+The ignored extension environment contains the existing public Clerk/Convex
+settings, with no secret key.
 
-After authorization/configuration, load
-`apps/extension/.output/firefox-mv3/manifest.json` in a fresh Firefox profile and
-sign in through the popup. Verify feed/detail deduplication, parent plus unrelated
-reply capture, later additions and saved-ID reselection, source links, inspector
-and bounded search, AI-limit first capture, deletion, navigation during a pending
-save, interrupted retry, and existing X clipping. Use two independent
-authenticated clients for overlapping/disjoint saves, then verify one item's
-comment union, unchanged repeat timestamps, no extra AI run, and second-owner
-isolation. Actual contention and authenticated UI results remain unchecked.
+Clerk CLI created two users in the existing MindSpool development instance,
+using explicit development targeting and dry runs. Password sign-in and the
+normal new-device verification flow succeeded in the extension and web app.
+Clerk's [development test email convention](https://clerk.com/docs/guides/development/testing/test-emails-and-phones)
+provided the verification code without sending email. No authentication policy
+was changed. Generated passwords stayed in ignored, protected scratch files.
+
+The actual configured add-on was temporarily installed in an isolated headed
+Firefox 144.0.2 profile. Native Marionette automated normal UI interactions;
+Playwright/Juggler and Marionette were not mixed for acceptance. Public DOM
+inspection accessed no private Reddit state or personal browser profile.
+Actual saves used the extension's authenticated background transport. Separate
+read-only assertions used the development CLI with the dedicated test owners;
+no browser tokens were extracted. A local Vite server supplied the web Library.
+
+| Check                           | Observed result                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Selected comments               | Native detail clicks selected a parent and an unrelated nested reply on post `1wzzk6l`. Only their two snapshots reached the backend; success cleared the selection.                                                                                                                                                                                     |
+| Additive save                   | Selecting the saved parent plus a third comment retained one item with three unique snapshots. First comments, post, metadata, images, and creation time stayed unchanged; additions advanced `updatedAt`.                                                                                                                                               |
+| Inspector                       | The authenticated web inspector rendered one post section and three comment blocks, without flattened duplicates. Source links matched the selected comment IDs, with HTTPS, `_blank`, and `noopener noreferrer`.                                                                                                                                        |
+| Concurrent clients              | Two independent authenticated extension tabs scheduled overlapping requests for synthetic post `qatest01`: comments 1+2 and 2+3. Both returned the same item ID; addition counts were 2 and 1, and the final item contained all three IDs exactly once. No automatic AI run was created.                                                                 |
+| Repeat                          | Repeating the concurrent request returned zero additions and left the entire document, including timestamps, unchanged.                                                                                                                                                                                                                                  |
+| Ownership                       | The second user saved an independent item for the same synthetic post and a separate real-post capture. The first user's item stayed unchanged. Foreign `get` returned `NOT_FOUND`; foreign detail returned null.                                                                                                                                        |
+| Search/projections              | Short saved comment text was found by full-library search. List/search previews omitted structured comment payloads. Existing search limits remain unchanged.                                                                                                                                                                                            |
+| Feed/detail                     | Card and compact feeds and detail exposed controls. Both feed Clip controls succeeded with native pointer input without opening the post; feed/detail repeat retained the same item and snapshots.                                                                                                                                                       |
+| Image                           | Post `1wup3e1` saved one image reference with no comments, and completed one initial classification run. Later selected-comment additions retained the first media and the same run.                                                                                                                                                                     |
+| Gallery                         | Post `1wuw3yv` saved available own text/link and one eligible image reference.                                                                                                                                                                                                                                                                           |
+| Video                           | Post `1x020zn` saved a poster image reference and outbound link, with no player UI text.                                                                                                                                                                                                                                                                 |
+| Crosspost                       | Post `1wubgc7` saved the outer title, with no embedded body or images.                                                                                                                                                                                                                                                                                   |
+| Unrevealed spoiler              | Post `1x0xefl` saved no hidden body text or images.                                                                                                                                                                                                                                                                                                      |
+| New replies                     | Native “10 more replies” loading added five eligible controls; all started unchecked.                                                                                                                                                                                                                                                                    |
+| Signed out                      | Signing out of the real popup made Clip show sign-in guidance and retain the selected comment. Signing in as the second test user and retrying succeeded.                                                                                                                                                                                                |
+| Size error                      | An authenticated synthetic 100,001-character request returned only `invalid` / `content_too_large`; no item was created.                                                                                                                                                                                                                                 |
+| Network retry                   | Offline mode in the isolated Firefox produced “No connection, try again” and retained selection. Restoring connectivity and retrying showed Clipped and cleared it; no duplicate or extra AI run appeared.                                                                                                                                               |
+| Replacement while pending       | Replacing the public post host immediately after starting a real save preserved one current button. Completion left it enabled, showing Clipped, with selection cleared.                                                                                                                                                                                 |
+| Navigation/interrupted response | Navigation started while the real save was pending. The selected comment committed, the new post started unselected, and retrying the same comment after returning left the entire saved document unchanged.                                                                                                                                             |
+| AI limit                        | An append-only budget fixture affected only test owner A's previously absent daily usage row. With a label and usage at the existing 9,000-neuron limit, native Clip still saved the gallery. One classification run recorded “Daily AI limit reached”; capture succeeded. No shared budget setting changed and no paid budget exhaustion was performed. |
+| Deletion                        | Removing owner B's synthetic discussion removed its detail and list entry; owner A's independent item stayed unchanged.                                                                                                                                                                                                                                  |
+| X transport                     | The real authenticated background's unchanged `clip` path saved and replayed a synthetic X payload to the same item ID, with X source kind and no Reddit field. This synthetic item was then deleted.                                                                                                                                                    |
+
+The concurrency case uses synthetic content on the actual development deployment.
+It demonstrates simultaneous independent clients and their resulting union; it
+does not claim that logs proved a forced OCC conflict. The network/lifecycle
+cases inspect stored snapshots and current selections, in addition to feedback.
+
+The AI-limit fixture is deliberate test state for a dedicated account's UTC day;
+it does not represent paid AI consumption. Real captures and dedicated accounts
+remain available for development review. Temporary test credentials and browser
+artifacts are removed after verification.
+
+## Remaining manual check
+
+Opening `https://x.com/OpenAI` in the isolated Firefox displayed X's sign-in gate
+and zero tweet articles. The user explicitly chose **“Leave this check documented
+for my manual verification.”** Real-tweet parsing/injection regression on this
+branch therefore remains unchecked. Existing X tests, the authenticated synthetic
+transport check, and [the previous real-X report](extension-clipper.md) provide
+separate evidence, not a substitute for this remaining check.
+
+To complete it, load `apps/extension/.output/firefox-mv3/manifest.json`, sign in to
+the extension and X, clip a real tweet with text/media, then repeat it. Confirm one
+X-branded Library item with the expected text/images and no duplicate or Reddit
+comment section. Record the result here.
 
 ## Spec success criteria
 
-| Criteria                                                           | Evidence status                                                                                                 |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| 1–2: Live controls and exact capture payloads                      | Live detail component smoke plus exact fixtures; authenticated extension feed/detail capture remains unverified |
-| 3–4: Owned persistence, canonical identity, atomic comment merging | Backend and shared helper tests pass; actual concurrent deployed clients remain unverified                      |
-| 5: Library, inspector, source links, bounded search                | Backend/web tests and web build pass; authenticated visible inspector remains unverified                        |
-| 6: Initial labeling and AI-limit behavior                          | Backend tests pass; live initial run/limit acceptance remains unverified                                        |
-| 7: Error feedback and retry                                        | Extension tests and live fake signed-out transport pass; real lost-response save remains unverified             |
-| 8: X/auth regression and required automated matrix                 | All required automated commands pass; real Firefox X/auth regression remains unverified                         |
-| 9: Real Firefox verification report                                | Compatibility and component evidence recorded; full authenticated matrix remains incomplete                     |
+| Criteria                                                           | Evidence status                                                                                                                                                                |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1–2: Live controls and exact capture payloads                      | Real configured Firefox detail/compact capture, selected parent/reply, loaded replies, media cases, lifecycle checks; exact fixture payload assertions pass.                   |
+| 3–4: Owned persistence, canonical identity, atomic comment merging | Real saves, independent concurrent extension tabs, unchanged repeats, second-owner isolation, deletion, and backend tests pass.                                                |
+| 5: Library, inspector, source links, bounded search                | Authenticated three-comment inspector and post-only gallery inspector pass; source links/search/projections and backend/web suites pass.                                       |
+| 6: Initial labeling and AI-limit behavior                          | One real initial run succeeded; later additions preserved it. A scoped daily-budget fixture proved a real save succeeds at the limit.                                          |
+| 7: Error feedback and retry                                        | Actual signed-out, oversized, offline/retry, pending replacement, navigation/interrupted-response cases pass; invalid/unreadable cases additionally have automated coverage.   |
+| 8: X/auth regression and required automated matrix                 | All 651 tests, typechecks, and builds pass. Real extension/web sign-in and synthetic authenticated X transport pass; real-tweet X regression is explicitly handed to the user. |
+| 9: Real Firefox verification report                                | Browser, layouts, representative content, authenticated results, and the one remaining manual X gap are recorded above.                                                        |
 
-The checklist records automated and live checks separately. No live criterion is
-marked complete from fixture tests or the fake transport.
+The checklist keeps the remaining X-dependent criteria unchecked. No fixture,
+synthetic payload, or earlier report is represented as a current real-tweet check.
+Production deployment, extension signing, and publishing were not performed.
+
+## Implementation ruling
+
+The shared schema workspace includes TypeScript DOM typings so the pure identity
+helpers can type-check the universal `URL` API. It imports no browser runtime.
+This makes other DOM globals visible to that workspace's compiler, which is the
+recorded tradeoff; the helpers themselves use no DOM. No minor review finding
+was deferred.

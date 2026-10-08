@@ -1,8 +1,10 @@
 # Tasks: Reddit post clipping with selected comments
 
-Status: local implementation and automated verification complete, 2026-10-08.
-Firefox compatibility is established. Automated results are checked individually;
-authenticated development acceptance and actual concurrent clients remain unchecked.
+Status: implementation, automated verification, and authenticated Reddit development
+acceptance complete, 2026-10-08. Concurrent extension clients, owner isolation,
+media, retries/navigation, inspector, search, deletion, and AI-limit checks pass.
+The user chose to leave real-tweet X regression for manual verification; criteria
+containing that check remain unchecked.
 See [the investigation report](../docs/verification/reddit-clipping.md).
 Spec: [SPEC-reddit-clipping.md](../SPEC-reddit-clipping.md).
 Design and API contracts: [plan.md](plan.md).
@@ -140,7 +142,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 - [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
 - [x] `pnpm --filter @mindspool/backend typecheck`
-- [ ] After target identification and authorization: `pnpm --filter @mindspool/backend codegen`; inspect only changed generated artifacts and split if the file ceiling would be exceeded.
+- [x] After target identification and authorization: `pnpm --filter @mindspool/backend codegen`; inspect only changed generated artifacts and split if the file ceiling would be exceeded.
 
 **Dependencies:** Task 4.
 
@@ -183,9 +185,9 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: Saved discussion
 
-- [ ] Backend and web suites/typechecks pass and the web builds; one owned capture with comments reads correctly through detail and the inspector.
+- [x] Backend and web suites/typechecks pass and the web builds; one owned capture with comments reads correctly through detail and the inspector.
 - [x] Search/counter changes, unchanged repeat behavior, no new AI run on merge, legacy compatibility, and ownership isolation are verified.
-- [ ] Review the merge and reader results before enabling extension capture. Any live dev verification uses the separately authorized, announced target.
+- [x] Review the merge and reader results before enabling extension capture. Any live dev verification uses the separately authorized, announced target.
 
 ## Task 7: Extract a rendered Reddit post
 
@@ -257,7 +259,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 - [x] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditButton.test.ts src/injectButton.test.ts`
 - [x] `pnpm --filter @mindspool/extension typecheck`
 - [x] `pnpm --filter @mindspool/extension build:firefox` and `pnpm --filter @mindspool/extension build`
-- [ ] Manual on authorized dev: load `.output/firefox-mv3/manifest.json`, sign in, clip the same post from feed/detail, and confirm one Reddit-branded Library item with captured context.
+- [x] Manual on authorized dev: load `.output/firefox-mv3/manifest.json`, sign in, clip the same post from feed/detail, and confirm one Reddit-branded Library item with captured context.
 
 **Dependencies:** Tasks 7 and 8.
 
@@ -272,9 +274,9 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: Post clipping
 
-- [ ] The extension suite/typecheck and both browser builds pass; real Firefox post clipping reaches the authorized dev Library with stable deduplication.
+- [x] The extension suite/typecheck and both browser builds pass; real Firefox post clipping reaches the authorized dev Library with stable deduplication.
 - [ ] Relevant backend/web checks still pass; a post-only capture has no empty comments section and existing X clipping works.
-- [ ] Review the end-to-end post slice before integrating selected comments.
+- [x] Review the end-to-end post slice before integrating selected comments.
 
 ## Task 10: Extract individual comments
 
@@ -340,7 +342,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 - [x] `pnpm --filter @mindspool/extension exec vitest run src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditSelection.test.ts`
 - [x] `pnpm --filter @mindspool/extension typecheck`
 - [x] `pnpm --filter @mindspool/extension build:firefox`
-- [ ] Manual on authorized dev: select a parent and an unrelated nested reply, clip, inspect their source links, then add a third comment and reselect one saved ID; confirm one item with three comments.
+- [x] Manual on authorized dev: select a parent and an unrelated nested reply, clip, inspect their source links, then add a third comment and reselect one saved ID; confirm one item with three comments.
 
 **Dependencies:** Tasks 4, 9, and 11.
 
@@ -356,9 +358,9 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: Selected comments
 
-- [ ] Extension tests/typecheck/build pass and the reader/backend checks remain green; the real selected-comments flow works on the authorized development target.
-- [ ] Loading replies, independent selection, retained failure state, repeat additions, and safe source links are demonstrated; no unselected content is saved.
-- [ ] Review the selection interaction before lifecycle hardening and final verification.
+- [x] Extension tests/typecheck/build pass and the reader/backend checks remain green; the real selected-comments flow works on the authorized development target.
+- [x] Loading replies, independent selection, retained failure state, repeat additions, and safe source links are demonstrated; no unselected content is saved.
+- [x] Review the selection interaction before lifecycle hardening and final verification.
 
 ## Task 13: Harden navigation and ambiguous retries
 
@@ -375,7 +377,7 @@ Use the numbered order by default. Each task must leave existing captures workin
 - [x] `pnpm --filter @mindspool/extension test`
 - [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
 - [x] `pnpm --filter @mindspool/extension typecheck`
-- [ ] Manual: navigate to another post during a pending save, replace controls, and interrupt then retry a request; inspect the saved item and current selection, not just button text.
+- [x] Manual: navigate to another post during a pending save, replace controls, and interrupt then retry a request; inspect the saved item and current selection, not just button text.
 
 **Dependencies:** Task 12.
 
@@ -422,15 +424,15 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 **Acceptance criteria:**
 
-- [ ] Supported feed/detail layouts and text/link/image/gallery/video/crosspost cases save correct outer content; selected parent/reply comments, later additions, navigation/loading, source links, bounded search, signed-out/error feedback, and initial AI-limit behavior match the spec.
+- [x] Supported feed/detail layouts and text/link/image/gallery/video/crosspost cases save correct outer content; selected parent/reply comments, later additions, navigation/loading, source links, bounded search, signed-out/error feedback, and initial AI-limit behavior match the spec.
 - [ ] Two independent authenticated clients/tabs save overlapping/disjoint comment selections for the same owner/post concurrently; one item contains the union without duplicates, lost updates, or extra AI runs. A second owner remains isolated and existing X clipping works.
-- [ ] Required automated checks pass and the verification report maps every spec criterion to actual evidence; any unverified criterion remains incomplete and is presented for review rather than described as passed.
+- [x] Required automated checks pass and the verification report maps every spec criterion to actual evidence; any unverified criterion remains incomplete and is presented for review rather than described as passed.
 
 **Verification:**
 
 - [x] Run all commands in `plan.md` under “Verification checkpoints and commands,” plus formatter checks for changed implementation files.
-- [ ] Push/codegen only after classifying and authorizing the development target; load the Firefox MV3 bundle and exercise the manual matrix above. Record browser/version and test-case evidence without tokens or private content.
-- [ ] Check deletion of a captured discussion, independent owner capture, unchanged-repeat timestamps, additions without paid reruns, and the visible inspector after the concurrent-save case.
+- [x] Push/codegen only after classifying and authorizing the development target; load the Firefox MV3 bundle and exercise the manual matrix above. Record browser/version and test-case evidence without tokens or private content.
+- [x] Check deletion of a captured discussion, independent owner capture, unchanged-repeat timestamps, additions without paid reruns, and the visible inspector after the concurrent-save case.
 
 **Dependencies:** Tasks 6 and 14, plus all earlier checkpoint outcomes.
 
@@ -444,6 +446,10 @@ Use the numbered order by default. Each task must leave existing captures workin
 
 ### Checkpoint: Complete
 
+The real-tweet X check is explicitly reserved for the user's manual verification;
+see the report's remaining-check instructions. The mixed criteria below stay
+unchecked until that evidence is supplied.
+
 - [ ] Final automated checks pass and required live Firefox evidence is complete, including actual concurrent save results and X regression.
-- [ ] No secrets/private fixtures, generated-file hand edits, scope additions, or silently weakened criteria entered the change.
+- [x] No secrets/private fixtures, generated-file hand edits, scope additions, or silently weakened criteria entered the change.
 - [ ] Review the completed implementation and evidence with the user. Deployment to production, extension signing, and publishing remain outside this task list.

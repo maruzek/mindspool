@@ -1,6 +1,6 @@
 # Spec: Reddit post clipping via the extension
 
-Status: implemented and verified locally on 2026-10-08 under [tasks/plan.md](tasks/plan.md) and [tasks/todo.md](tasks/todo.md). Live Firefox compatibility and component checks pass; development deployment, codegen, and authenticated acceptance remain pending separate authorization. See [the verification report](docs/verification/reddit-clipping.md).
+Status: implemented, automatically tested, deployed to the authorized development target, and verified through the real Firefox extension and web Library on 2026-10-08 under [tasks/plan.md](tasks/plan.md) and [tasks/todo.md](tasks/todo.md). The user reserved real-tweet X regression for manual verification. See [the verification report](docs/verification/reddit-clipping.md).
 
 Single capability: save a rendered Reddit post with explicitly selected comments into the existing MindSpool library. Extends the implemented [extension clipper](SPEC-extension-clipper.md); no capability map is needed. Comment selection is part of the post capture action, with the same owner, item, and save lifecycle; standalone comment clipping is outside scope.
 
