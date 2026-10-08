@@ -57,11 +57,11 @@ describe("Keep comment controls", () => {
     await flush();
     clip(post).click();
     await flush();
-    expect(requests[0].args.comments.map((c) => c.id)).toEqual([
+    expect(requests[0]!.args.comments.map((c) => c.id)).toEqual([
       "reply1",
       "parent1",
     ]);
-    expect(requests[0].args.comments[0].text).toBe("Independent reply");
+    expect(requests[0]!.args.comments[0]!.text).toBe("Independent reply");
     expect(post.shadowRoot!.textContent).toContain("0 comments selected");
   });
   it("retains a frozen selection after an oversized or ambiguous failure and clears after success", async () => {
@@ -85,7 +85,7 @@ describe("Keep comment controls", () => {
     result = { ok: false, reason: "unknown" };
     clip(post).click();
     await flush();
-    expect(requests[1].args).toEqual(requests[0].args);
+    expect(requests[1]!.args).toEqual(requests[0]!.args);
     expect(check("parent1").checked).toBe(true);
     result = { ok: true, itemId: "saved" };
     clip(post).click();
@@ -118,6 +118,24 @@ describe("Keep comment controls", () => {
     await flush();
     expect(check("parent1").checked).toBe(true);
     expect(clip(post).textContent).toBe("Clip");
+  });
+  it("refreshes detail state through the content context navigation hook", async () => {
+    const post = setup();
+    const watcher = watchReddit(document, async () => ({
+      ok: true,
+      itemId: "ok",
+    }));
+    stop = watcher;
+    check("parent1").click();
+    history.replaceState(null, "", "/");
+    watcher.refresh();
+    await flush();
+    expect(check("parent1")).toBeNull();
+    history.replaceState(null, "", "/comments/abc123/");
+    watcher.refresh();
+    await flush();
+    expect(check("parent1").checked).toBe(false);
+    expect(post.shadowRoot!.textContent).toContain("0 comments selected");
   });
   it("limits selection to 20 while allowing deselection and adding newly loaded comments", async () => {
     const post = setup();
