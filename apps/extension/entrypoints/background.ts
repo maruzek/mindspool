@@ -30,6 +30,10 @@ export default defineBackground({
           if (!convex) throw new Error("Convex is not configured");
           return convex.mutation(api.items.create, args);
         },
+        clipReddit: (args) => {
+          if (!convex) throw new Error("Convex is not configured");
+          return convex.mutation(api.items.clipReddit, args);
+        },
       },
     });
 

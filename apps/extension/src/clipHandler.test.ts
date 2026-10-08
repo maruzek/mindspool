@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { buildClip } from "./clip";
 import { createClipHandler } from "./clipHandler";
 import type { ClipResponse } from "./messages";
+import { isClipRequest } from "./messages";
+import type { ClipRedditArgs } from "./redditClip";
 
 const args = buildClip({
   id: "1",
@@ -13,11 +15,127 @@ const args = buildClip({
   images: [],
 });
 
+describe("Reddit transport", () => {
+  const redditArgs: ClipRedditArgs = {
+    post: { id: "abc123", title: "Post", text: "Body", images: [] },
+    comments: [{ id: "reply1", postId: "abc123", text: "Kept reply" }],
+  };
+  function client(
+    outcome = async () => ({ itemId: "reddit-item", addedCommentCount: 1 }),
+  ) {
+    const redditSent: ClipRedditArgs[] = [];
+    const xSent: unknown[] = [];
+    const tokens: string[] = [];
+    return {
+      redditSent,
+      xSent,
+      tokens,
+      client: {
+        setAuth: (token: string) => {
+          tokens.push(token);
+        },
+        createItem: async (a: typeof args) => {
+          xSent.push(a);
+          return "x-item";
+        },
+        clipReddit: async (a: ClipRedditArgs) => {
+          redditSent.push(a);
+          return outcome();
+        },
+      },
+    };
+  }
+  it("dispatches Reddit through its mutation using the current token and preserves X dispatch", async () => {
+    const fake = client();
+    const handle = createClipHandler({
+      getToken: async () => "current-token",
+      client: fake.client,
+    });
+    expect(await handle({ type: "clip-reddit", args: redditArgs })).toEqual({
+      ok: true,
+      itemId: "reddit-item",
+      addedCommentCount: 1,
+    });
+    expect(fake.redditSent).toEqual([redditArgs]);
+    expect(fake.xSent).toEqual([]);
+    expect(fake.tokens).toEqual(["current-token"]);
+    expect(await handle({ type: "clip", args })).toEqual({
+      ok: true,
+      itemId: "x-item",
+    });
+    expect(fake.xSent).toEqual([args]);
+  });
+  it("rejects malformed and unrelated messages before obtaining a token", async () => {
+    const fake = client();
+    const getToken = vi.fn(async () => "token");
+    const handle = createClipHandler({ getToken, client: fake.client });
+    for (const message of [
+      { type: "other", args: redditArgs },
+      { type: "clip-reddit", args: { post: redditArgs.post } },
+      {
+        type: "clip-reddit",
+        args: {
+          ...redditArgs,
+          comments: [{ id: "c1", postId: "abc123", text: 3 }],
+        },
+      },
+      null,
+    ]) {
+      expect(isClipRequest(message)).toBe(false);
+      expect(await handle(message as never)).toEqual({
+        ok: false,
+        reason: "invalid",
+      });
+    }
+    expect(getToken).not.toHaveBeenCalled();
+    expect(fake.redditSent).toEqual([]);
+  });
+  it("retains signed-out behavior for Reddit without sending content", async () => {
+    const fake = client();
+    expect(
+      await createClipHandler({
+        getToken: async () => null,
+        client: fake.client,
+      })({ type: "clip-reddit", args: redditArgs }),
+    ).toEqual({ ok: false, reason: "signed_out" });
+    expect(fake.redditSent).toEqual([]);
+  });
+  it("returns a bounded oversized-selection hint without exposing exception text", async () => {
+    const fake = client(async () => {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        hint: "content_too_large",
+        message: "private content secret-token",
+      });
+    });
+    expect(
+      await createClipHandler({
+        getToken: async () => "token",
+        client: fake.client,
+      })({ type: "clip-reddit", args: redditArgs }),
+    ).toEqual({ ok: false, reason: "invalid", hint: "content_too_large" });
+  });
+  it("never converts a conflicting save into success", async () => {
+    const fake = client(async () => {
+      throw new ConvexError({ code: "CONFLICT", message: "private" });
+    });
+    expect(
+      await createClipHandler({
+        getToken: async () => "token",
+        client: fake.client,
+      })({ type: "clip-reddit", args: redditArgs }),
+    ).toEqual({ ok: false, reason: "unknown" });
+  });
+});
+
 /** A stand-in for the Convex client: records what was sent and what auth it used. */
 function fakeClient(outcome: () => Promise<string> = async () => "item-1"): {
   client: {
     setAuth(token: string): void;
     createItem(a: typeof args): Promise<string>;
+    clipReddit(
+      a: ClipRedditArgs,
+    ): Promise<{ itemId: string; addedCommentCount: number }>;
   };
   sent: unknown[];
   tokens: string[];
@@ -33,6 +151,10 @@ function fakeClient(outcome: () => Promise<string> = async () => "item-1"): {
         sent.push(a);
         return outcome();
       },
+      clipReddit: async () => ({
+        itemId: await outcome(),
+        addedCommentCount: 0,
+      }),
     },
   };
 }
