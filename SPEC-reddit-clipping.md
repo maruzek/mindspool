@@ -1,6 +1,6 @@
 # Spec: Reddit post clipping via the extension
 
-Status: the original checkbox flow was verified in Firefox on 2026-10-08. The immediate-comment revision is implemented and automatically tested on 2026-10-09 under [tasks/plan.md](tasks/plan.md) and [tasks/todo.md](tasks/todo.md); revised authenticated Firefox acceptance remains pending. Real-tweet X regression remains reserved for the user's manual verification. See [the verification report](docs/verification/reddit-clipping.md).
+Status: the original checkbox flow was verified in Firefox on 2026-10-08. The immediate-comment revision is implemented and automatically tested on 2026-10-09 under [archived Reddit plan](tasks/archive/reddit-clipping-plan.md) and [archived Reddit checklist](tasks/archive/reddit-clipping-todo.md); revised authenticated Firefox acceptance remains pending. Real-tweet X regression remains reserved for the user's manual verification. See [the verification report](docs/verification/reddit-clipping.md).
 
 Single capability: save a rendered Reddit post and explicitly clipped comments into the existing MindSpool library. Extends the implemented [extension clipper](SPEC-extension-clipper.md). Each comment button saves immediately into its containing post's item; standalone comment items are outside scope.
 
@@ -215,4 +215,4 @@ Record exact checks, browser/version, tested page types, results, and any unveri
 4. Approve snapshot behavior and labeling policy: capture only available post/comment content; keep prior snapshots on merges; run AI on the first save only, within its existing budget.
 5. Technical planning must verify live post/comment/control boundaries, accessible insertion placement including any shadow-root constraints, and stable post/comment URL strategies. It must specify optional comment storage, validation bounds, and atomic save/update contracts. These are unresolved implementation facts, not claims of compatibility.
 
-The technical plan is saved to `tasks/plan.md`, with the task checklist in `tasks/todo.md`. Plan review resolves the remaining interaction, storage, and compatibility decisions before implementation.
+The technical plan is archived at `tasks/archive/reddit-clipping-plan.md`, with the task checklist at `tasks/archive/reddit-clipping-todo.md`. Outstanding verification remains open. Plan review resolves the remaining interaction, storage, and compatibility decisions before implementation.

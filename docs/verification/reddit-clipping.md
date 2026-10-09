@@ -2,8 +2,8 @@
 
 Historical checkbox evidence: 2026-10-08. Branch: `reddit-integration`.
 Spec: [SPEC-reddit-clipping.md](../../SPEC-reddit-clipping.md).
-Plan: [tasks/plan.md](../../tasks/plan.md).
-Checklist: [tasks/todo.md](../../tasks/todo.md).
+Plan: [archived Reddit plan](../../tasks/archive/reddit-clipping-plan.md).
+Checklist: [archived Reddit checklist](../../tasks/archive/reddit-clipping-todo.md).
 
 **Historical checkbox status: implemented, deployed to the authorized development target, and
 verified through the real Firefox extension and web Library. All 651 automated
