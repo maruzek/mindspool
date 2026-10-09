@@ -560,7 +560,7 @@ checkbox test results. Verify visible behavior and saved Library content.
 
 **Acceptance criteria:**
 
-- [ ] The spec describes immediate comment buttons, post-only post buttons,
+- [x] The spec describes immediate comment buttons, post-only post buttons,
       same-item additive persistence, independent save/retry state, and session-only
       success indication; checkbox/batch-selection instructions are superseded.
 - [ ] Real browser evidence covers readable parent/reply buttons, newly loaded
@@ -584,7 +584,7 @@ checkbox test results. Verify visible behavior and saved Library content.
 - [ ] Retry after an offline or signed-out failure and navigate during a pending
       request; verify frozen payload behavior and absence of feedback on the new
       page's controls.
-- [ ] `pnpm exec prettier --check SPEC-reddit-clipping.md docs/verification/reddit-clipping.md tasks/plan.md tasks/todo.md`
+- [x] `pnpm exec prettier --check SPEC-reddit-clipping.md docs/verification/reddit-clipping.md tasks/plan.md tasks/todo.md`
 
 **Dependencies:** Tasks 16–17 and their implementation checkpoint.
 
@@ -604,3 +604,9 @@ checkbox test results. Verify visible behavior and saved Library content.
 - [ ] Review the concrete implementation and evidence with the user. Existing
       pending X verification remains visible; production deployment and extension
       publishing are outside this revision.
+
+Revision evidence (2026-10-09): Tasks 16–17 and automated implementation checks
+pass. Task 18 documentation is updated; T3 live Reddit DOM checks used the actual
+watcher with mocked transport. Revised authenticated Firefox saves, inspector
+results, and keyboard acceptance remain open, alongside the separately reserved
+real-tweet X check. See the dated revision in the verification report.

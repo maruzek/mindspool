@@ -1,11 +1,11 @@
 # Reddit clipping verification
 
-Date: 2026-10-08. Branch: `reddit-integration`.
+Historical checkbox evidence: 2026-10-08. Branch: `reddit-integration`.
 Spec: [SPEC-reddit-clipping.md](../../SPEC-reddit-clipping.md).
 Plan: [tasks/plan.md](../../tasks/plan.md).
 Checklist: [tasks/todo.md](../../tasks/todo.md).
 
-**Status: implemented, deployed to the authorized development target, and
+**Historical checkbox status: implemented, deployed to the authorized development target, and
 verified through the real Firefox extension and web Library. All 651 automated
 tests pass. Concurrent extension clients, second-owner isolation, retries,
 navigation, media boundaries, and AI-limit capture pass. The user chose to leave
@@ -228,3 +228,80 @@ helpers can type-check the universal `URL` API. It imports no browser runtime.
 This makes other DOM globals visible to that workspace's compiler, which is the
 recorded tradeoff; the helpers themselves use no DOM. No minor review finding
 was deferred.
+
+## Immediate comment buttons — 2026-10-09
+
+Tasks 16–17 implement the approved interaction revision. The preceding Firefox,
+backend-deployment, Library, concurrency, and checkbox results remain historical;
+they do not certify the revised buttons. No backend/schema/deployment changes
+were needed. The revision reuses extraction, authenticated transport, and atomic
+comment merging.
+
+### Automated evidence
+
+- Focused Task 16 checks: five test files, 27 tests passed. The new tests first
+  failed against the checkbox implementation.
+- Final extension regression: 13 files, 112 tests passed. Coverage includes exact
+  parent/reply payloads, simultaneous independent comment/post requests, zero
+  additions as success, repeat suppression, frozen retries after edited DOM,
+  signed-out/network/size feedback, three-second error reset, same-route gaps,
+  comment/action-row replacement, recycled identity validation, navigation
+  away/back, newly loaded comments, and listener/timer cleanup.
+- Post replacement regression first failed twice, then passed after preserving
+  post pending/feedback state independently from comment requests.
+- The live site's suppressed focus outline prompted an explicit focus/blur
+  styling repair using inline `!important`, covered by a test that failed before the repair and then passed.
+- Fresh final review found and repaired retained off-route detail saves that stayed
+  busy and overlapping detail renders that repeatedly replaced one shared control.
+  Both reproductions failed first, then passed; idle observation is covered. Only
+  one active detail render owns the post control during overlapping renders.
+- Extension typecheck, Firefox MV3 build, and Chromium MV3 build passed.
+- Existing backend capture/items regression: 2 files, 80 tests passed, preserving
+  atomic merges, duplicate handling, first snapshots, and labeling behavior.
+- Changed TypeScript and current documentation pass Prettier. Obsolete selection
+  modules/tests were deleted; runtime source has no old selection imports or UI.
+
+### Live DOM evidence with mocked transport
+
+The T3 collaborative preview opened the public r/firefox discussion linked in
+this report. Browser: T3Code Alpha 0.0.45, Electron 44.4.2, Chromium
+152.0.7977.130 on Linux. The page exposed one post and 25 comment nodes. The
+preview has no extension runtime. A temporary IIFE bundle of the actual watcher
+was evaluated on that page with an in-memory mocked sender; it did not send
+captures to MindSpool or the backend.
+
+- The watcher injected 22 eligible comment buttons and zero checkboxes.
+- A parent and its distinct reply sent separate one-comment requests for the
+  same post. The post button sent zero comments. Repeating a pending comment
+  click sent no additional request, while the other comment/post remained usable.
+- Mock successes with `addedCommentCount: 0` produced disabled Clipped buttons.
+- Cloning/replacing the parent's action row preserved exactly one own button,
+  disabled with Clipped feedback.
+- Mock network failure followed by changed comment text retried the identical
+  frozen request. Navigation away/back during that retry ignored its late success;
+  the new visit stayed enabled at Clip. Cleanup left zero injected controls.
+- Focus styling was checked against Reddit's actual CSS using a synthetic focus
+  event because the preview reported `document.hasFocus() === false`. The repaired
+  outline computed to solid, 2px. This verifies CSS behavior, not native keyboard
+  focus. T3 snapshot and
+  keyboard-press automation returned execution errors, so this evidence does not
+  certify keyboard activation. DOM evaluation remained usable.
+
+All collected request bodies stayed in page memory; only identity/count/status
+results were inspected. Temporary controls and the watcher were removed after
+inspection. No real Library item was created by these checks.
+
+### Remaining revised acceptance
+
+Task 18 stays partially incomplete until an extension-capable Firefox session
+loads `apps/extension/.output/firefox-mv3/manifest.json` and signs in through the
+popup. Verify keyboard activation, newly loaded live comments, pending/error
+feedback, frozen offline/signed-out retry, replacements, and navigation. Clip a
+comment first, another comment with overlapping pending actions, then the post;
+inspect one Library item containing exactly both comments and the unchanged
+first post snapshot. Repeat a comment on a new visit and confirm no duplicate,
+extra labeling run, or false success. Inspect source links and inspector content.
+
+Authenticated revised persistence and inspector results remain unverified.
+The user's existing real-tweet X manual check remains pending separately.
+Production deployment, signing, and publishing remain outside this revision.

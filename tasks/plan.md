@@ -2,7 +2,7 @@
 
 ## Current revision: individual comment Clip buttons (2026-10-09)
 
-Status: planned, awaiting review; no product code changed in this planning turn.
+Status: Tasks 16–17 implemented and verified on 2026-10-09; Task 18 documentation and mocked live-DOM checks recorded, with authenticated Firefox acceptance pending.
 Tasks 16–18 in [todo.md](todo.md) are the active revision. The original plan below
 records the checkbox implementation; this revision supersedes its selection UI
 and retry behavior. Existing completion evidence and pending manual X checks are
@@ -17,7 +17,7 @@ reply buttons each capture only their own comment text.
 
 Keep one Library item per owner/post. A first comment clip saves the containing
 post plus that comment; later comment clips append to the same item. This is the
-proposed interpretation of separate buttons, preserving the existing storage and
+approved interpretation of separate buttons, preserving the existing storage and
 inspector model. The post Clip button sends no comments in feed or detail views.
 Remove the selected-count and 20-comments-per-save guidance from the interface.
 
@@ -101,7 +101,7 @@ verification remains a separate pending check rather than being marked complete.
 
 Each button saves immediately into the containing post's existing Library item.
 Separate standalone comment items would require a different data model and are
-not included in this revision. Review this plan before implementation.
+not included in this revision. The user approved implementation on 2026-10-09.
 
 ## Original implementation plan (historical)
 
