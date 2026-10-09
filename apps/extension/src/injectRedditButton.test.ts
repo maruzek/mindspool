@@ -240,4 +240,34 @@ describe("Reddit Clip controls", () => {
     expect(button(p).textContent).toBe("Clip");
     history.replaceState(null, "", "/");
   });
+  it("finishes a post-only save from a retained detail node outside the active route", async () => {
+    history.replaceState(null, "", "/");
+    const p = load("detail");
+    const send = vi.fn(async () => ({ ok: true as const, itemId: "saved" }));
+    stop = watchReddit(document, send);
+    button(p).click();
+    await flush();
+    expect(send.mock.calls[0]).toBeDefined();
+    expect(button(p).disabled).toBe(false);
+    expect(button(p).textContent).toBe("Clipped");
+  });
+
+  it("owns only one active control across overlapping same-post detail renders", async () => {
+    history.replaceState(null, "", "/comments/abc123/");
+    const first = load("detail");
+    const duplicate = load("detail");
+    stop = watchReddit(document, ok);
+    expect(button(first)).toBeTruthy();
+    expect(button(duplicate)).toBeNull();
+    await vi.advanceTimersByTimeAsync(0);
+    const query = vi.spyOn(first.shadowRoot!, "querySelector");
+    await vi.advanceTimersByTimeAsync(0);
+    await flush();
+    expect(query).not.toHaveBeenCalled();
+    first.remove();
+    await vi.advanceTimersByTimeAsync(0);
+    await flush();
+    expect(button(duplicate)).toBeTruthy();
+    history.replaceState(null, "", "/");
+  });
 });

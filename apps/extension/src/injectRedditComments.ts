@@ -85,6 +85,21 @@ export function redditCommentControls(
       button.style.cssText =
         "font:800 13px/1 system-ui,sans-serif;color:#fff;background:#5b2fc9;border:0;padding:7px 12px;margin-left:8px;cursor:pointer;position:relative;z-index:5;pointer-events:auto";
       const abort = new AbortController();
+      button.addEventListener(
+        "focus",
+        () => {
+          button.style.setProperty("outline", "2px solid #ad8bf1", "important");
+          button.style.outlineOffset = "2px";
+        },
+        { signal: abort.signal },
+      );
+      button.addEventListener(
+        "blur",
+        () => {
+          button.style.removeProperty("outline");
+        },
+        { signal: abort.signal },
+      );
       const control = {
         button,
         row,

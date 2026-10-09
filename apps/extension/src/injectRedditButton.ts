@@ -144,9 +144,9 @@ export function watchReddit(
           Boolean(reply.itemId);
         if (stopped) return;
         scan();
-        const active = state.detail
-          ? requestGeneration === clips.generation && detailState === state
-          : current(post, state);
+        const active =
+          current(post, state) ||
+          (requestGeneration === clips.generation && detailState === state);
         if (!active) return;
         const feedback = success
           ? "Clipped"
@@ -236,7 +236,11 @@ export function watchReddit(
         if (state.detail) removeState(post, state);
     }
     for (const [post, state] of states)
-      if (!post.isConnected || identity(post) !== state.identity)
+      if (
+        !post.isConnected ||
+        identity(post) !== state.identity ||
+        (state === detailState && post !== detail)
+      )
         removeState(
           post,
           state,
@@ -254,6 +258,14 @@ export function watchReddit(
       const parent = target(post);
       const parsed = parseRedditPost(post);
       if (!parent || !parsed) continue;
+      // Framework transitions can temporarily render the same detail post twice.
+      // Only the chosen active detail node owns its visit's DOM control.
+      if (
+        post.getAttribute("view-context") === "CommentsPage" &&
+        parsed.id === clips.postId &&
+        post !== detail
+      )
+        continue;
       let state = states.get(post);
       if (!state) {
         const isDetail =

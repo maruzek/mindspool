@@ -55,6 +55,13 @@ describe("immediate comment Clip controls", () => {
       "Clip comment to MindSpool",
     );
     expect(button("parent1").type).toBe("button");
+    button("parent1").focus();
+    expect(button("parent1").style.outline).toContain("solid");
+    expect(button("parent1").style.getPropertyPriority("outline")).toBe(
+      "important",
+    );
+    button("parent1").blur();
+    expect(button("parent1").style.outline).toBe("");
     button("parent1").click();
     button("parent1").click();
     expect(button("parent1").disabled).toBe(true);
