@@ -12,8 +12,16 @@ const failureText = {
 };
 const mark = "data-mindspool-reddit";
 function actionRow(node: Element): Element | undefined {
-  return [...node.querySelectorAll('[slot="actionRow"]')].find(
-    (row) => row.closest("shreddit-comment") === node,
+  // Current Reddit wraps its visible toolbar in another actionRow element.
+  // Use the native component's slots rather than adding a separate wrapper row.
+  const toolbar = [
+    ...node.querySelectorAll("shreddit-comment-action-row"),
+  ].find((row) => row.closest("shreddit-comment") === node);
+  return (
+    toolbar ??
+    [...node.querySelectorAll('[slot="actionRow"]')].find(
+      (row) => row.closest("shreddit-comment") === node,
+    )
   );
 }
 
@@ -79,6 +87,8 @@ export function redditCommentControls(
         stale.remove();
       const button = doc.createElement("button");
       button.type = "button";
+      if (row.tagName === "SHREDDIT-COMMENT-ACTION-ROW")
+        button.slot = "comment-share";
       button.setAttribute(mark, "comment-clip");
       button.setAttribute("aria-label", "Clip comment to MindSpool");
       button.setAttribute("aria-live", "polite");

@@ -41,6 +41,50 @@ afterEach(() => {
   history.replaceState(null, "", "/");
 });
 describe("immediate comment Clip controls", () => {
+  it("places Clip alongside native actions and preserves pending state when their component is replaced", async () => {
+    setup();
+    const comment = document.querySelector("shreddit-comment")!;
+    const wrapper = comment.querySelector('[slot="actionRow"]')!;
+    const makeRow = () => {
+      const row = document.createElement("shreddit-comment-action-row");
+      row.slot = "actionRow";
+      row.innerHTML =
+        '<button slot="comment-reply">Reply</button><button slot="comment-share">Share</button>';
+      row.attachShadow({ mode: "open" }).innerHTML =
+        '<div style="display:flex;align-items:center"><button>Upvote</button><button>Downvote</button><slot name="comment-reply"></slot><slot name="comment-share"></slot><slot name="overflow"></slot></div>';
+      return row;
+    };
+    const native = makeRow();
+    wrapper.replaceChildren(native);
+    let finish!: (response: ClipResponse) => void;
+    const send = vi.fn(
+      () =>
+        new Promise<ClipResponse>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    stop = watchReddit(document, send);
+    expect(button("parent1").parentElement).toBe(native);
+    expect(button("parent1").slot).toBe("comment-share");
+    expect(button("parent1").assignedSlot).toBe(
+      native.shadowRoot!.querySelector('slot[name="comment-share"]'),
+    );
+    expect(
+      native.querySelector('button[slot="comment-share"]')!.textContent,
+    ).toBe("Share");
+    button("parent1").click();
+    const next = makeRow();
+    native.replaceWith(next);
+    await flush();
+    expect(button("parent1").parentElement).toBe(next);
+    expect(button("parent1").disabled).toBe(true);
+    button("parent1").click();
+    expect(send).toHaveBeenCalledTimes(1);
+    finish({ ok: true, itemId: "saved" });
+    await flush();
+    expect(button("parent1").textContent).toBe("Clipped");
+    expect(button("parent1").disabled).toBe(true);
+  });
   it("sends only the activated comment with independent parent/reply/post requests", async () => {
     const post = setup();
     const finishes: Array<(r: ClipResponse) => void> = [];
