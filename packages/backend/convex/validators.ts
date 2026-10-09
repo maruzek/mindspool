@@ -178,6 +178,7 @@ export const decisionProvider = v.union(
   v.literal("openai-decisions"),
 );
 export const itemLabelFields = {
+  boardGeneration: v.optional(v.number()),
   ownerId: v.string(),
   itemId: v.id("items"),
   labelId: v.id("labels"),
