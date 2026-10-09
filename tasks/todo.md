@@ -468,25 +468,25 @@ retry coverage as part of this working feature slice.
 
 **Acceptance criteria:**
 
-- [ ] Each readable loaded comment has exactly one accessible Clip button in its
+- [x] Each readable loaded comment has exactly one accessible Clip button in its
       own action row. Clicking or keyboard-activating it sends exactly its own
       snapshot plus the containing post, with no selection/count UI or required post
       click; the post button always sends `comments: []`.
-- [ ] Pending and successful comment buttons suppress repeats for the current
+- [x] Pending and successful comment buttons suppress repeats for the current
       visit without blocking another comment or post. Failures remain retryable with
       the identical frozen request and useful signed-out/network/size feedback;
       `addedCommentCount: 0` is success.
-- [ ] State survives same-post DOM/action-row replacement and rendering gaps;
+- [x] State survives same-post DOM/action-row replacement and rendering gaps;
       recycled identities are validated, route changes reject stale completions,
       dynamically loaded eligible comments receive controls, and cleanup releases
       controls, handlers, observers, and feedback timers.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension exec vitest run src/redditCommentClips.test.ts src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditComment.test.ts src/redditClip.test.ts`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] `pnpm --filter @mindspool/extension build:firefox`
-- [ ] Fixture checks cover exact parent/reply payloads, two simultaneously pending
+- [x] `pnpm --filter @mindspool/extension exec vitest run src/redditCommentClips.test.ts src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditComment.test.ts src/redditClip.test.ts`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension build:firefox`
+- [x] Fixture checks cover exact parent/reply payloads, two simultaneously pending
       comments, independent post saves, ambiguous failure followed by changed DOM,
       signed-out/size failures, zero-addition success, replaced action rows, and
       navigation away/back before a response. Manual browser evidence follows in

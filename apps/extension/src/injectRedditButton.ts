@@ -2,7 +2,7 @@ import { parseRedditPost } from "./reddit";
 import { buildRedditClip } from "./redditClip";
 import type { ClipResponse, RedditClipRequest } from "./messages";
 import { redditIdentityFromUrl } from "@mindspool/schema";
-import { RedditSelection } from "./redditSelection";
+import { RedditCommentClips } from "./redditCommentClips";
 import { redditCommentControls } from "./injectRedditComments";
 
 export type RedditSend = (request: RedditClipRequest) => Promise<ClipResponse>;
@@ -17,7 +17,6 @@ type Control = {
   wrapper: HTMLElement;
   button: HTMLButtonElement;
   abort: AbortController;
-  count: HTMLElement;
 };
 type PostState = {
   identity: string;
@@ -53,7 +52,7 @@ export function watchReddit(
 ): (() => void) & { refresh: () => void } {
   const states = new Map<Element, PostState>();
   const roots = new Map<ShadowRoot, MutationObserver>();
-  const selection = new RedditSelection();
+  const clips = new RedditCommentClips();
   let stopped = false;
   let scheduled = false;
   const removeControl = (state: PostState) => {
@@ -70,16 +69,21 @@ export function watchReddit(
     if (state.control) {
       state.control.button.textContent = state.text;
       state.control.button.disabled = state.busy;
-      const isDetail = state.detail && state.postId === selection.postId;
-      state.control.count.hidden = !isDetail;
-      const countText = `${selection.count} comments selected · Maximum 20 comments per save`;
-      if (state.control.count.textContent !== countText)
-        state.control.count.textContent = countText;
     }
   };
-  const comments = redditCommentControls(doc, selection, () => {
-    states.forEach(paint);
-  });
+  const comments = redditCommentControls(
+    doc,
+    clips,
+    () => {
+      scan();
+      return (
+        [...doc.querySelectorAll('shreddit-post[view-context="CommentsPage"]')]
+          .map(parseRedditPost)
+          .find((post) => post?.id === clips.postId) ?? null
+      );
+    },
+    send,
+  );
   const flash = (state: PostState, text: string) => {
     clearTimeout(state.timer);
     state.text = text;
@@ -106,11 +110,8 @@ export function watchReddit(
     button.style.cssText =
       "font:800 13px/1 system-ui,sans-serif;color:#fff;background:#5b2fc9;border:0;padding:7px 12px;margin-left:8px;cursor:pointer;position:relative;z-index:5;pointer-events:auto";
     const abort = new AbortController();
-    const count = doc.createElement("span");
-    count.setAttribute("aria-live", "polite");
-    count.style.cssText = "font:12px system-ui,sans-serif;margin-left:8px";
-    state.control = { wrapper, button, abort, count };
-    wrapper.append(button, count);
+    state.control = { wrapper, button, abort };
+    wrapper.append(button);
     parent.append(wrapper);
     paint(state);
     button.addEventListener(
@@ -121,21 +122,15 @@ export function watchReddit(
         if (!current(post, state) || state.busy) return;
         const parsed = parseRedditPost(post);
         if (!parsed) return flash(state, "Couldn't read this post");
-        const isDetail =
-          post.getAttribute("view-context") === "CommentsPage" &&
-          selection.postId === parsed.id;
-        const request = isDetail ? selection.begin(parsed) : null;
-        if (isDetail && !request) return;
         state.busy = true;
         state.text = "Clipping…";
         clearTimeout(state.timer);
         paint(state);
-        comments.paint();
         let reply: ClipResponse;
         try {
           reply = await send({
             type: "clip-reddit",
-            args: request?.args ?? buildRedditClip(parsed),
+            args: buildRedditClip(parsed),
           });
         } catch {
           reply = { ok: false, reason: "unknown" };
@@ -144,31 +139,16 @@ export function watchReddit(
           reply?.ok === true &&
           typeof reply.itemId === "string" &&
           Boolean(reply.itemId);
-        const accepted = request ? selection.finish(request, success) : true;
-        if (stopped || !accepted) return;
+        if (!current(post, state)) return;
         const feedback = success
           ? "Clipped"
           : reply?.ok === false
             ? reply.hint === "content_too_large"
-              ? "Deselect comments and try again"
+              ? "This capture is too large to save"
               : (failureText[reply.reason] ?? failureText.unknown)
             : failureText.unknown;
-        if (request) {
-          comments.paint();
-          for (const [node, active] of states)
-            if (
-              active.detail &&
-              active.postId === request.args.post.id &&
-              current(node, active)
-            ) {
-              active.busy = false;
-              flash(active, feedback);
-            }
-          states.forEach(paint);
-        } else if (current(post, state)) {
-          state.busy = false;
-          flash(state, feedback);
-        }
+        state.busy = false;
+        flash(state, feedback);
       },
       { signal: abort.signal },
     );
@@ -229,19 +209,19 @@ export function watchReddit(
     const detail = [
       ...doc.querySelectorAll('shreddit-post[view-context="CommentsPage"]'),
     ].find((post) => parseRedditPost(post)?.id === route?.postId);
-    const generation = selection.generation;
+    const generation = clips.generation;
     const closed = [...states].some(
       ([post, state]) =>
         state.detail &&
         post.isConnected &&
         post.getAttribute("view-context") !== "CommentsPage",
     );
-    selection.navigate(
-      !closed && route && (detail || route.postId === selection.postId)
+    clips.navigate(
+      !closed && route && (detail || route.postId === clips.postId)
         ? route.postId
         : null,
     );
-    if (selection.generation !== generation)
+    if (clips.generation !== generation)
       for (const [post, state] of states)
         if (post.getAttribute("view-context") === "CommentsPage")
           removeState(post, state);
@@ -262,10 +242,7 @@ export function watchReddit(
       if (!parent || !parsed) continue;
       let state = states.get(post);
       if (!state) {
-        const isDetail =
-          post.getAttribute("view-context") === "CommentsPage" &&
-          parsed.id === selection.postId;
-        const busy = isDetail && selection.isBusy;
+        const busy = false;
         state = {
           identity: identity(post),
           postId: parsed.id,
@@ -304,7 +281,7 @@ export function watchReddit(
       doc.defaultView?.removeEventListener(event, schedule),
     );
     comments.stop();
-    selection.navigate(null);
+    clips.navigate(null);
     for (const [post, state] of states) removeState(post, state);
   };
   return Object.assign(stop, { refresh: schedule });

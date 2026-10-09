@@ -20,213 +20,195 @@ function setup() {
 const flush = async () => {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 };
-const check = (id: string) =>
-  document.querySelector<HTMLInputElement>(
-    `shreddit-comment[thingid="t1_${id}"] input[data-mindspool-reddit="keep"]`,
+const button = (id: string) =>
+  document.querySelector<HTMLButtonElement>(
+    `shreddit-comment[thingid="t1_${id}"] button[data-mindspool-reddit="comment-clip"]`,
   )!;
 const clip = (p: Element) =>
   p.shadowRoot!.querySelector<HTMLButtonElement>(
     'button[data-mindspool-reddit="clip"]',
   )!;
 beforeEach(() => {
+  vi.useFakeTimers();
   document.body.innerHTML = "";
   history.replaceState(null, "", "/comments/abc123/");
 });
 afterEach(() => {
   stop?.();
   stop = undefined;
+  vi.useRealTimers();
   document.body.innerHTML = "";
   history.replaceState(null, "", "/");
 });
-describe("Keep comment controls", () => {
-  it("preserves snapshots and retry through a same-route detail rendering gap", async () => {
+describe("immediate comment Clip controls", () => {
+  it("sends only the activated comment with independent parent/reply/post requests", async () => {
     const post = setup();
+    const finishes: Array<(r: ClipResponse) => void> = [];
     const requests: RedditClipRequest[] = [];
-    stop = watchReddit(document, async (request) => {
-      requests.push(request);
-      return { ok: false, reason: "unknown" };
+    const native = vi.fn();
+    document.body.addEventListener("click", native, { once: true });
+    stop = watchReddit(document, (r) => {
+      requests.push(r);
+      return new Promise((resolve) => finishes.push(resolve));
     });
-    check("parent1").click();
+    expect(button("parent1").getAttribute("aria-label")).toBe(
+      "Clip comment to MindSpool",
+    );
+    expect(button("parent1").type).toBe("button");
+    button("parent1").click();
+    button("parent1").click();
+    expect(button("parent1").disabled).toBe(true);
+    expect(button("reply1").disabled).toBe(false);
+    button("reply1").click();
     clip(post).click();
+    expect(native).not.toHaveBeenCalled();
+    expect(requests.map((r) => r.args.comments.map((c) => c.id))).toEqual([
+      ["parent1"],
+      ["reply1"],
+      [],
+    ]);
+    expect(requests[0]!.args.comments[0]!.text).toBe(
+      "Parent paragraph 😀\n\nSecond line\n\nFirst\nSecond link text",
+    );
+    expect(requests[1]!.args.comments[0]!.text).toBe("Independent reply");
+    finishes.forEach((f) =>
+      f({ ok: true, itemId: "saved", addedCommentCount: 0 }),
+    );
     await flush();
-    post.remove();
-    await flush();
-    expect(check("parent1").checked).toBe(true);
-    document.body.prepend(post);
-    await flush();
-    expect(post.shadowRoot!.textContent).toContain("1 comments selected");
-    document.querySelector('[slot="comment"]')!.textContent =
-      "Changed during gap";
-    clip(post).click();
-    await flush();
-    expect(requests[1]!.args).toEqual(requests[0]!.args);
+    expect(button("parent1").textContent).toBe("Clipped");
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(button("parent1").disabled).toBe(true);
+    expect(document.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(post.shadowRoot!.textContent).not.toMatch(/selected|Maximum 20/);
   });
-  it.each([true, false])(
-    "refreshes replacement detail controls after pending success=%s",
-    async (success) => {
+  it.each([
+    [{ ok: false, reason: "unknown" }, "Something went wrong"],
+    [{ ok: false, reason: "signed_out" }, "Sign in via the extension popup"],
+    [{ ok: false, reason: "network" }, "No connection, try again"],
+    [
+      { ok: false, reason: "invalid", hint: "content_too_large" },
+      "This capture is too large to save",
+    ],
+  ] as const)(
+    "keeps an immutable retry through feedback reset, action-row replacement and a detail gap: %s",
+    async (result, text) => {
       const post = setup();
-      let finish!: (response: ClipResponse) => void;
-      const send = vi.fn(
+      const requests: RedditClipRequest[] = [];
+      stop = watchReddit(document, async (r) => {
+        requests.push(r);
+        return result;
+      });
+      button("parent1").click();
+      await flush();
+      expect(button("parent1").textContent).toBe(text);
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(button("parent1").textContent).toBe("Clip");
+      const node = document.querySelector("shreddit-comment")!;
+      const oldRow = node.querySelector('[slot="actionRow"]')!;
+      const row = oldRow.cloneNode(false) as Element;
+      oldRow.replaceWith(row);
+      await flush();
+      expect(row.querySelectorAll("[data-mindspool-reddit]")).toHaveLength(1);
+      node.querySelector('[slot="comment"]')!.textContent = "Edited later";
+      post.remove();
+      await flush();
+      button("parent1").click();
+      await flush();
+      expect(requests).toHaveLength(2);
+      expect(requests[1]!.args).toEqual(requests[0]!.args);
+    },
+  );
+  it.each([true, false])(
+    "preserves pending state across comment replacement (success=%s)",
+    async (success) => {
+      setup();
+      let finish!: (r: ClipResponse) => void;
+      stop = watchReddit(
+        document,
         () =>
-          new Promise<ClipResponse>((resolve) => {
+          new Promise((resolve) => {
             finish = resolve;
           }),
       );
-      stop = watchReddit(document, send);
-      check("parent1").click();
-      clip(post).click();
-      const next = post.cloneNode(true) as Element;
-      next.attachShadow({ mode: "open" }).innerHTML =
-        '<div data-testid="action-row"><button>Share</button></div>';
-      post.replaceWith(next);
+      button("parent1").click();
+      const node = document.querySelector("shreddit-comment")!;
+      const next = node.cloneNode(true) as Element;
+      node.replaceWith(next);
       await flush();
-      expect(clip(next).disabled).toBe(true);
+      expect(button("parent1").disabled).toBe(true);
+      expect(
+        next.querySelectorAll('[data-mindspool-reddit="comment-clip"]'),
+      ).toHaveLength(2);
       finish(
         success
           ? { ok: true, itemId: "saved" }
           : { ok: false, reason: "unknown" },
       );
       await flush();
-      expect(check("parent1").disabled).toBe(false);
-      expect(check("parent1").checked).toBe(!success);
-      expect(clip(next).disabled).toBe(false);
-      expect(clip(next).textContent).toBe(
+      expect(button("parent1").disabled).toBe(success);
+      expect(button("parent1").textContent).toBe(
         success ? "Clipped" : "Something went wrong",
-      );
-      expect(next.shadowRoot!.textContent).toContain(
-        `${success ? 0 : 1} comments selected`,
       );
     },
   );
-  it("keeps independent parent/reply snapshots locally and sends removed nodes only on Clip", async () => {
-    const post = setup();
-    const requests: RedditClipRequest[] = [];
-    stop = watchReddit(document, async (r) => {
-      requests.push(r);
-      return { ok: true, itemId: "saved" };
-    });
-    expect(check("parent1").checked).toBe(false);
-    expect(check("reply1").checked).toBe(false);
-    check("reply1").click();
-    expect(check("parent1").checked).toBe(false);
-    check("parent1").click();
-    expect(requests).toHaveLength(0);
-    expect(post.shadowRoot!.textContent).toContain("2 comments selected");
-    document.querySelector("shreddit-comment")!.remove();
-    await flush();
-    clip(post).click();
-    await flush();
-    expect(requests[0]!.args.comments.map((c) => c.id)).toEqual([
-      "reply1",
-      "parent1",
-    ]);
-    expect(requests[0]!.args.comments[0]!.text).toBe("Independent reply");
-    expect(post.shadowRoot!.textContent).toContain("0 comments selected");
-  });
-  it("retains a frozen selection after an oversized or ambiguous failure and clears after success", async () => {
-    const post = setup();
-    const requests: RedditClipRequest[] = [];
-    let result: ClipResponse = {
-      ok: false,
-      reason: "invalid",
-      hint: "content_too_large",
-    };
-    stop = watchReddit(document, async (r) => {
-      requests.push(r);
-      return result;
-    });
-    check("parent1").click();
-    clip(post).click();
-    await flush();
-    expect(check("parent1").checked).toBe(true);
-    expect(clip(post).textContent).toMatch(/Deselect.*try again/);
-    document.querySelector('[slot="comment"]')!.textContent = "Changed later";
-    result = { ok: false, reason: "unknown" };
-    clip(post).click();
-    await flush();
-    expect(requests[1]!.args).toEqual(requests[0]!.args);
-    expect(check("parent1").checked).toBe(true);
-    result = { ok: true, itemId: "saved" };
-    clip(post).click();
-    await flush();
-    expect(check("parent1").checked).toBe(false);
-  });
-  it("disables selection while pending and ignores late completion after navigation away and back", async () => {
-    const post = setup();
+  it("rejects recycled identities on activation and stale completions after navigation away/back", async () => {
+    setup();
     let finish!: (r: ClipResponse) => void;
-    stop = watchReddit(
-      document,
+    const send = vi.fn(
       () =>
-        new Promise((resolve) => {
+        new Promise<ClipResponse>((resolve) => {
           finish = resolve;
         }),
     );
-    check("reply1").click();
-    clip(post).click();
-    expect(check("reply1").disabled).toBe(true);
+    const watcher = watchReddit(document, send);
+    stop = watcher;
+    const node = document.querySelector("shreddit-comment")!;
+    node.setAttribute("thingid", "t1_other1");
+    button("reply1").click();
+    const old = node.querySelector<HTMLButtonElement>(
+      '[data-mindspool-reddit="comment-clip"]',
+    )!;
+    old.click();
+    expect(send).toHaveBeenCalledTimes(1);
     history.replaceState(null, "", "/");
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    watcher.refresh();
     await flush();
-    expect(check("reply1")).toBeNull();
+    expect(button("reply1")).toBeNull();
     history.replaceState(null, "", "/comments/abc123/");
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    watcher.refresh();
     await flush();
-    expect(check("reply1").checked).toBe(false);
-    check("parent1").click();
     finish({ ok: true, itemId: "old" });
     await flush();
-    expect(check("parent1").checked).toBe(true);
-    expect(clip(post).textContent).toBe("Clip");
+    expect(button("reply1").textContent).toBe("Clip");
+    expect(button("reply1").disabled).toBe(false);
   });
-  it("refreshes detail state through the content context navigation hook", async () => {
-    const post = setup();
-    const watcher = watchReddit(document, async () => ({
-      ok: true,
-      itemId: "ok",
+  it("adds newly loaded comments and releases feedback timers/listeners on cleanup", async () => {
+    setup();
+    stop = watchReddit(document, async () => ({
+      ok: false,
+      reason: "network",
     }));
-    stop = watcher;
-    check("parent1").click();
-    history.replaceState(null, "", "/");
-    watcher.refresh();
-    await flush();
-    expect(check("parent1")).toBeNull();
-    history.replaceState(null, "", "/comments/abc123/");
-    watcher.refresh();
-    await flush();
-    expect(check("parent1").checked).toBe(false);
-    expect(post.shadowRoot!.textContent).toContain("0 comments selected");
-  });
-  it("limits selection to 20 while allowing deselection and adding newly loaded comments", async () => {
-    const post = setup();
     const base = document.querySelector("shreddit-comment")!;
-    base.querySelector("shreddit-comment")!.remove();
-    for (let i = 0; i < 21; i++) {
-      const node = base.cloneNode(true) as Element;
-      node.setAttribute("thingid", `t1_c${i}`);
-      node.setAttribute("permalink", `/comments/abc123/_/c${i}/`);
-      document.body.append(node);
-    }
-    base.remove();
-    const send = vi.fn(async (): Promise<ClipResponse> => ({
-      ok: true,
-      itemId: "ok",
-    }));
-    stop = watchReddit(document, send);
-    for (let i = 0; i < 21; i++) check(`c${i}`).click();
-    expect(check("c20").checked).toBe(false);
-    expect(post.shadowRoot!.textContent).toMatch(/20.*per save/);
-    check("c0").click();
-    check("c20").click();
-    expect(check("c20").checked).toBe(true);
-    expect(send).not.toHaveBeenCalled();
     const fresh = base.cloneNode(true) as Element;
+    fresh.querySelector("shreddit-comment")!.remove();
     fresh.setAttribute("thingid", "t1_fresh1");
     fresh.setAttribute("permalink", "/comments/abc123/_/fresh1/");
     document.body.append(fresh);
     await flush();
-    expect(check("fresh1").checked).toBe(false);
+    expect(button("fresh1")).toBeTruthy();
+    button("fresh1").click();
+    await flush();
+    const detached = button("fresh1");
     stop();
     stop = undefined;
-    expect(document.querySelector('[data-mindspool-reddit="keep"]')).toBeNull();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(
+      document.querySelector('[data-mindspool-reddit="comment-clip"]'),
+    ).toBeNull();
+    detached.click();
+    await flush();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
