@@ -16,6 +16,7 @@
     "@mindspool/schema": "workspace:*",
     "@mindspool/ui": "workspace:*",
     "@tanstack/react-router": "1.170.41",
+    "@xyflow/react": "12.12.0",
     "convex": "1.46.0",
     "lucide-react": "1.52.0",
     "react": "19.2.3",

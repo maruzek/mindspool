@@ -8,7 +8,32 @@ import {
   runFields,
 } from "./validators";
 
+import {
+  boardFields,
+  elementFields,
+  connectionFields,
+  receiptFields,
+} from "./boardValidators";
+
 export default defineSchema({
+  boards: defineTable(boardFields).index("by_owner_label", [
+    "ownerId",
+    "labelId",
+  ]),
+  boardElements: defineTable(elementFields)
+    .index("by_owner_board", ["ownerId", "boardId"])
+    .index("by_owner_board_key", ["ownerId", "boardId", "key"])
+    .index("by_owner_item", ["ownerId", "data.itemId"])
+    .index("by_owner_board_item", ["ownerId", "boardId", "data.itemId"])
+    .index("by_owner_column", ["ownerId", "boardId", "data.columnKey"]),
+  boardConnections: defineTable(connectionFields)
+    .index("by_owner_board", ["ownerId", "boardId"])
+    .index("by_owner_board_key", ["ownerId", "boardId", "key"])
+    .index("by_source", ["ownerId", "boardId", "source"])
+    .index("by_target", ["ownerId", "boardId", "target"]),
+  boardReceipts: defineTable(receiptFields)
+    .index("by_operation", ["ownerId", "boardId", "session", "sequence"])
+    .index("by_expiry", ["expiresAt"]),
   processingRuns: defineTable(runFields).index("by_owner_item", [
     "ownerId",
     "itemId",
