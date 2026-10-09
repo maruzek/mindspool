@@ -163,6 +163,17 @@ The web imports them through `@mindspool/backend/api` and
 `@mindspool/backend/data-model`. A clean checkout needs no runtime credentials to
 run `pnpm check`. After changing backend contracts, regenerate against your
 selected development deployment with `pnpm --filter @mindspool/backend codegen`.
+This generates local definitions only; it does not deploy functions or schema.
+Keep `pnpm dev:backend` running while developing backend changes, or sync the
+selected development deployment once with:
+
+```sh
+pnpm --filter @mindspool/backend exec convex dev --once
+```
+
+`pnpm dev` starts the web app only. Before testing a newly added backend feature,
+confirm the frontend URL matches the selected deployment and inspect its live
+functions with `pnpm --filter @mindspool/backend exec convex function-spec`.
 
 ### Development examples
 

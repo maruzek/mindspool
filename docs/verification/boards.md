@@ -181,3 +181,26 @@ feature, shared-contract, composition or repair slices. The existing shared
 checkout was retained for T3 preview access. `.mcp.json` received formatting only
 to allow the existing repository-wide check to run. No deferred minor review
 findings remain.
+
+## Missing-function deployment repair (2026-10-09)
+
+A user opening the actual Board view received `Could not find public function for
+boards:open`. Both frontend and backend configuration pointed to development
+deployment `graceful-stork-346`; its live function metadata contained 36 functions
+and no board functions. Earlier `convex codegen` completed successfully but did
+not deploy them. Its component-upload progress was incorrectly treated as a
+completed deployment. Installed Convex 1.46.0 CLI source explicitly defines
+codegen as read-only. The prior automated/mocked checks did not detect this gap.
+
+After classifying the development target, `pnpm --filter @mindspool/backend exec
+convex dev --once` completed successfully. A new `convex function-spec` read listed
+46 deployed functions, including public `boards.js:open`, board reads, viewport
+mutation, operation mutation, tray/previews and internal cleanup. A direct
+unauthenticated HTTP probe with an intentionally invalid label ID reached the
+argument validator; it no longer returned function-not-found and created no data.
+This verifies deployment availability, not authenticated Board behavior.
+
+The README now distinguishes type generation from deployment and records the
+watch/one-shot development sync and live function-metadata check. Use that live
+check after backend changes before declaring integration ready. Remaining
+authenticated acceptance items above are still open.

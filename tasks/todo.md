@@ -929,3 +929,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ## Execution evidence (2026-10-09)
 
 Focused slices used RED/GREEN tests, followed by repository checkpoints. Final `pnpm check` passed with 702 tests (277 backend, 312 web, 113 extension), six workspace typechecks and three app builds, covering every listed test file; it does not supply live browser evidence. The typed development fixture records synthetic 1440×900/1100×760 checks and a 100-card/10-column/100-connection 10-second performance run at 16.7ms p95. Full evidence, review repairs, query costs and remaining authenticated checks are in [boards verification](../docs/verification/boards.md). The complete checkpoint remains open because the preview is signed out.
+
+Deployment repair: the initial implementation generated types without deploying
+board functions. On 2026-10-09, the existing development target was synced with
+`convex dev --once`; live metadata and an HTTP probe now confirm `boards:open` is
+available. Type generation alone is not deployment evidence. See the
+[repair record](../docs/verification/boards.md#missing-function-deployment-repair-2026-10-09).
