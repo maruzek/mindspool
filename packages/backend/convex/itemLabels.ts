@@ -1,3 +1,4 @@
+import { decideMembership } from "./libraryWriters";
 import { paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
@@ -34,39 +35,7 @@ async function decide(
   manualDecision: "include" | "exclude",
 ) {
   const ownerId = await requireOwner(ctx);
-  const item = requireOwned(await ctx.db.get(itemId), ownerId);
-  requireOwned(await ctx.db.get(labelId), ownerId);
-  const existing = await ctx.db
-    .query("itemLabels")
-    .withIndex("by_owner_pair", (q) =>
-      q.eq("ownerId", ownerId).eq("itemId", itemId).eq("labelId", labelId),
-    )
-    .unique();
-  if (!existing)
-    await ctx.db.insert("itemLabels", {
-      ownerId,
-      itemId,
-      labelId,
-      manualDecision,
-      updatedAt: Date.now(),
-      ...linkSearchFields(item),
-      unsure: false,
-    });
-  else if (existing.manualDecision !== manualDecision)
-    // A user decision replaces any model attribution on the row.
-    await ctx.db.patch(existing._id, {
-      manualDecision,
-      updatedAt: Date.now(),
-      origin: "manual",
-      provider: undefined,
-      model: undefined,
-      confidence: undefined,
-      runId: undefined,
-      confirmedAt: undefined,
-      ...linkSearchFields(item),
-      unsure: false,
-    });
-  await refreshItemState(ctx, itemId);
+  await decideMembership(ctx, ownerId, { itemId, labelId }, manualDecision);
   return null;
 }
 export const attach = mutation({
