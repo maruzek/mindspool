@@ -116,3 +116,31 @@ describe("hasFilters", () => {
     expect(hasFilters({})).toBe(false);
   });
 });
+
+describe("label board search", () => {
+  it("restricts Board to labels and keeps inspector state when tray filters change", async () => {
+    const { validateLabelSearch, changeBoardFilters } =
+      await import("./searchParams");
+    expect(validateLibrarySearch({ layout: "board" }).layout).toBeUndefined();
+    const search = validateLabelSearch({
+      layout: "board",
+      item: "selected",
+      trayScope: "all",
+      traySort: "oldest",
+      trayLabel: "label",
+    });
+    expect(search).toMatchObject({
+      layout: "board",
+      trayScope: "all",
+      traySort: "oldest",
+    });
+    expect(changeBoardFilters(search, { q: "hello" }).item).toBe("selected");
+    expect(
+      validateLabelSearch({ layout: "bad", trayScope: "bad", traySort: "bad" }),
+    ).toMatchObject({
+      layout: undefined,
+      trayScope: undefined,
+      traySort: undefined,
+    });
+  });
+});

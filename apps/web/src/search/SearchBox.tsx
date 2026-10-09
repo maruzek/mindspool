@@ -47,7 +47,7 @@ export function SearchBox() {
   const searchTo = (next: string | undefined) =>
     void navigate({
       to: SEARCHABLE.test(pathname) ? "." : "/library",
-      search: (prev: LibrarySearch) =>
+      search: (prev) =>
         changeFilters(
           SEARCHABLE.test(pathname) ? prev : { layout: prev.layout },
           {

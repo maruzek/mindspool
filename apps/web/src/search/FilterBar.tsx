@@ -15,7 +15,7 @@ export function FilterBar() {
   const change = (patch: Parameters<typeof changeFilters>[1]) =>
     void navigate({
       to: ".",
-      search: (prev: LibrarySearch) => changeFilters(prev, patch),
+      search: (prev) => changeFilters(prev, patch),
       replace: true,
       resetScroll: false,
     });

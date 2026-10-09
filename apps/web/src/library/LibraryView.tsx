@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
-import { LayoutGridIcon, ListIcon, XIcon } from "lucide-react";
+import { Columns3Icon, LayoutGridIcon, ListIcon, XIcon } from "lucide-react";
 import { toast } from "@mindspool/ui/components/sonner";
 import { Button } from "@mindspool/ui/components/button";
 import { SegmentedControl } from "@mindspool/ui/components/mindspool/segmented-control";
@@ -53,8 +53,7 @@ export function LibraryView({
     (which: "q" | "source" | "review") =>
       void navigate({
         to: ".",
-        search: (prev: LibrarySearch) =>
-          changeFilters(prev, { [which]: undefined }),
+        search: (prev) => changeFilters(prev, { [which]: undefined }),
         resetScroll: false,
       }),
     [navigate],
@@ -62,7 +61,7 @@ export function LibraryView({
   const searchAll = () =>
     void navigate({
       to: "/library",
-      search: (prev: LibrarySearch) => changeFilters(prev, {}),
+      search: (prev) => changeFilters(prev, {}),
     });
   // Exact counts only describe the whole library: not a search, a filter, the inbox or a label.
   const wholeLibrary = scope === "library" && !hasFilters(filters);
@@ -128,13 +127,21 @@ export function LibraryView({
                 to: ".",
                 search: (prev) => ({
                   ...prev,
-                  layout: next === "grid" ? "grid" : "list",
+                  layout:
+                    next === "board" && scope === "label"
+                      ? "board"
+                      : next === "grid"
+                        ? "grid"
+                        : "list",
                 }),
               })
             }
             options={[
               { value: "list", label: "List", icon: <ListIcon /> },
               { value: "grid", label: "Grid", icon: <LayoutGridIcon /> },
+              ...(scope === "label"
+                ? [{ value: "board", label: "Board", icon: <Columns3Icon /> }]
+                : []),
             ]}
           />
         </div>

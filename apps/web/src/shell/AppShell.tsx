@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { Outlet } from "@tanstack/react-router";
+import { RailShell } from "./RailShell";
+import { Outlet, useRouterState } from "@tanstack/react-router";
 import {
   SidebarInset,
   SidebarProvider,
@@ -12,6 +13,14 @@ import { SkipLink } from "./SkipLink";
 
 /** The 240px sidebar frame used by Inbox, Library and label pages. */
 export function AppShell() {
+  const isBoard = useRouterState({
+    select: (s) =>
+      s.matches.some(
+        (m) =>
+          m.routeId === "/_app/labels/$labelId" && m.search.layout === "board",
+      ),
+  });
+  if (isBoard) return <RailShell />;
   return (
     <TooltipProvider>
       <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>

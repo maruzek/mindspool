@@ -62,7 +62,7 @@ export function validateLibrarySearch(
  * `layout` kept, and `item` dropped because the selected item may no longer be listed.
  */
 export function changeFilters(
-  prev: LibrarySearch,
+  prev: LabelSearch,
   patch: Partial<Pick<LibrarySearch, "q" | "source" | "review">>,
 ): LibrarySearch {
   return { ...validateLibrarySearch({ ...prev, ...patch }), item: undefined };
@@ -70,4 +70,40 @@ export function changeFilters(
 
 export function hasFilters({ q, source, review }: LibrarySearch) {
   return Boolean(q || source || review);
+}
+
+export interface LabelSearch extends Omit<LibrarySearch, "layout"> {
+  layout?: Layout | "board";
+  trayScope?: "label" | "all";
+  traySort?: "newest" | "oldest";
+  trayLabel?: string;
+}
+export function validateLabelSearch(
+  search: Record<string, unknown>,
+): LabelSearch {
+  return {
+    ...validateLibrarySearch(search),
+    layout:
+      search.layout === "board"
+        ? "board"
+        : validateLibrarySearch(search).layout,
+    trayScope:
+      search.trayScope === "all" || search.trayScope === "label"
+        ? search.trayScope
+        : undefined,
+    traySort:
+      search.traySort === "oldest" || search.traySort === "newest"
+        ? search.traySort
+        : undefined,
+    trayLabel:
+      typeof search.trayLabel === "string" && search.trayLabel
+        ? search.trayLabel
+        : undefined,
+  };
+}
+export function changeBoardFilters(
+  prev: LabelSearch,
+  patch: Partial<LabelSearch>,
+): LabelSearch {
+  return validateLabelSearch({ ...prev, ...patch });
 }

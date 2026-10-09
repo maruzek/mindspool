@@ -10,6 +10,13 @@ import { isActivePath, mainNav } from "./nav";
 
 /** The 60px icon rail used by the Board and Graph canvases. */
 export function IconRail() {
+  const board = useRouterState({
+    select: (s) =>
+      s.matches.some(
+        (m) =>
+          m.routeId === "/_app/labels/$labelId" && m.search.layout === "board",
+      ),
+  });
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <aside className="dark-sidebar flex w-15 shrink-0 flex-col items-center gap-1.5 border-r-2 border-sidebar-border bg-sidebar py-4 text-sidebar-foreground">
@@ -18,7 +25,8 @@ export function IconRail() {
       </Link>
       <nav aria-label="Primary" className="flex flex-col items-center gap-1.5">
         {mainNav.map(({ to, label, icon: Icon }) => {
-          const active = isActivePath(pathname, to);
+          const active =
+            (to === "/boards" && board) || isActivePath(pathname, to);
           return (
             <Tooltip key={to}>
               <TooltipTrigger
