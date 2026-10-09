@@ -36,17 +36,19 @@ MindSpool is also a personal playground for experimenting with typed AI decision
 
 The Firefox extension supports current Reddit on `reddit.com` and
 `www.reddit.com`. Sign in through the extension popup, then use **Clip** on a
-post in a card/compact feed or post detail. On detail pages, check **Keep comment**
-on the individual comments you want, then Clip. Parent comments and replies are
-independent; only selected loaded comments are included. The count shows the
-20-comment limit per save. Selection stays local until Clip, survives removed
-comment nodes and failed saves, and clears when you leave the post.
+post in a card/compact feed or post detail to save the post alone. On detail
+pages, each readable loaded comment has its own **Clip** button: clicking saves
+that comment immediately with the containing post. Parent and reply buttons are
+independent. Pending and successful comment buttons suppress repeat clicks for
+this visit; other buttons remain usable. A new visit starts at Clip, with backend
+deduplication preventing duplicate saved comments. Failures can be retried with
+the original frozen capture even if the page text changes.
 
 Open or expand the post before its first capture when you want fuller available
 text. The first saved post and each comment are snapshots: later saves preserve
-them and append newly selected comment IDs to the same item. You can add more
-comments in later saves; deselecting does not remove saved comments. Oversized
-saves ask you to deselect and retry. Image URLs remain external references, and
+them and append newly clipped comment IDs to the same item. You can add more
+comments in later saves. Oversized captures report “This capture is too large to
+save.” Image URLs remain external references, and
 video clipping keeps an available poster. Old Reddit and unrevealed content are
 outside the supported flow. The inspector shows the post and saved comments
 with links to their sources.

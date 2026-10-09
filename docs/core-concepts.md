@@ -37,8 +37,9 @@ labels, and creation time. An unchanged repeat performs no writes; additions
 refresh derived text/search state without starting another automatic AI run.
 Deleting the item deletes its embedded discussion snapshots too.
 
-Each request may select at most 20 comments; later saves can grow the stored
-discussion beyond 20. Complete rendered text is limited to 100,000 characters
+Each comment button sends one comment immediately; post buttons send none.
+The backend still accepts at most 20 comments per request, and later saves can
+grow the stored discussion beyond 20. Complete rendered text is limited to 100,000 characters
 and the prospective document to 900 KiB, including duplicated projection and
 state fields. Oversized captures fail atomically. Search retains its existing
 8,000-character projection budget and AI its existing 500-character context
