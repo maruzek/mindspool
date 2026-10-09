@@ -1,5 +1,9 @@
 # Tasks: Reddit post clipping with selected comments
 
+Current revision (2026-10-09): individual comment Clip buttons are planned in
+Tasks 16–18 below, awaiting review. Earlier tasks and pending manual X checks
+remain intact. See the current revision at the start of [plan.md](plan.md).
+
 Status: implementation, automated verification, and authenticated Reddit development
 acceptance complete, 2026-10-08. Concurrent extension clients, owner isolation,
 media, retries/navigation, inspector, search, deletion, and AI-limit checks pass.
@@ -453,3 +457,150 @@ unchecked until that evidence is supplied.
 - [ ] Final automated checks pass and required live Firefox evidence is complete, including actual concurrent save results and X regression.
 - [x] No secrets/private fixtures, generated-file hand edits, scope additions, or silently weakened criteria entered the change.
 - [ ] Review the completed implementation and evidence with the user. Deployment to production, extension signing, and publishing remain outside this task list.
+
+## Task 16: Clip each comment immediately
+
+**Description:** Replace checkbox injection with a native Clip button on each
+eligible comment. Connect each button to one immediate post-plus-single-comment
+request, with state independent of other comment buttons. Remove selection/count
+wiring from the watcher and keep its post button post-only. Include lifecycle and
+retry coverage as part of this working feature slice.
+
+**Acceptance criteria:**
+
+- [ ] Each readable loaded comment has exactly one accessible Clip button in its
+      own action row. Clicking or keyboard-activating it sends exactly its own
+      snapshot plus the containing post, with no selection/count UI or required post
+      click; the post button always sends `comments: []`.
+- [ ] Pending and successful comment buttons suppress repeats for the current
+      visit without blocking another comment or post. Failures remain retryable with
+      the identical frozen request and useful signed-out/network/size feedback;
+      `addedCommentCount: 0` is success.
+- [ ] State survives same-post DOM/action-row replacement and rendering gaps;
+      recycled identities are validated, route changes reject stale completions,
+      dynamically loaded eligible comments receive controls, and cleanup releases
+      controls, handlers, observers, and feedback timers.
+
+**Verification:**
+
+- [ ] `pnpm --filter @mindspool/extension exec vitest run src/redditCommentClips.test.ts src/injectRedditComments.test.ts src/injectRedditButton.test.ts src/redditComment.test.ts src/redditClip.test.ts`
+- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [ ] `pnpm --filter @mindspool/extension build:firefox`
+- [ ] Fixture checks cover exact parent/reply payloads, two simultaneously pending
+      comments, independent post saves, ambiguous failure followed by changed DOM,
+      signed-out/size failures, zero-addition success, replaced action rows, and
+      navigation away/back before a response. Manual browser evidence follows in
+      Task 18.
+
+**Dependencies:** Existing Reddit extraction, transport, and atomic merge
+implementation (Tasks 1–15); their unrelated pending manual X check does not
+block this UI revision.
+
+**Files likely touched:**
+
+- `apps/extension/src/redditCommentClips.ts` (new)
+- `apps/extension/src/redditCommentClips.test.ts` (new)
+- `apps/extension/src/injectRedditComments.ts`
+- `apps/extension/src/injectRedditComments.test.ts`
+- `apps/extension/src/injectRedditButton.ts`
+
+**Estimated scope:** Medium: 5 files.
+
+## Task 17: Retire the obsolete selection flow
+
+**Description:** Remove unused bulk-selection code and its obsolete tests once
+Task 16 is connected. Extend the post-button regression tests to prove detail and
+feed post clips remain independent of comment saves, then check the whole
+extension and the existing backend capture behavior.
+
+**Acceptance criteria:**
+
+- [ ] The obsolete `RedditSelection` module and tests are removed with no remaining
+      runtime imports; extension controls contain no Keep comment checkboxes,
+      selected counts, or deselect-to-retry instructions.
+- [ ] Post buttons work in feed/detail views, suppress their own repeated pending
+      clicks, and retain existing failure/replacement/navigation behavior while
+      always sending zero comments.
+- [ ] Extension tests/typechecking and both browser builds pass; existing backend
+      capture tests still prove repeated IDs, atomic merges, unchanged snapshots,
+      and no additional automatic labeling run.
+
+**Verification:**
+
+- [ ] `pnpm --filter @mindspool/extension test`
+- [ ] `pnpm --filter @mindspool/extension typecheck`
+- [ ] `pnpm --filter @mindspool/extension build:firefox`
+- [ ] `pnpm --filter @mindspool/extension build`
+- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
+- [ ] Search extension source for obsolete selection imports and UI wording;
+      check formatter output for changed source files. Browser confirmation follows
+      in Task 18.
+
+**Dependencies:** Task 16.
+
+**Files likely touched:**
+
+- `apps/extension/src/redditSelection.ts` (delete)
+- `apps/extension/src/redditSelection.test.ts` (delete)
+- `apps/extension/src/injectRedditButton.test.ts`
+
+**Estimated scope:** Medium: 3 files.
+
+### Checkpoint: Individual clipping implementation
+
+- [ ] Tasks 16–17 acceptance criteria and focused/full checks pass.
+- [ ] Review exact request payloads and lifecycle coverage; no backend or schema
+      changes are required by the implemented flow.
+
+## Task 18: Document and verify the revised interaction
+
+**Description:** Update the current product specification to describe immediate
+per-comment clipping and append dated browser evidence without rewriting earlier
+checkbox test results. Verify visible behavior and saved Library content.
+
+**Acceptance criteria:**
+
+- [ ] The spec describes immediate comment buttons, post-only post buttons,
+      same-item additive persistence, independent save/retry state, and session-only
+      success indication; checkbox/batch-selection instructions are superseded.
+- [ ] Real browser evidence covers readable parent/reply buttons, newly loaded
+      comments, keyboard activation, pending/retry feedback, node replacement, and
+      navigation. Authenticated saves demonstrate comment-first item creation,
+      another comment added to the same item, and duplicate-safe repeat clipping.
+- [ ] The inspector shows the post and exactly the saved comments; earlier
+      verification remains historical, any unavailable live check stays explicitly
+      incomplete, and the existing manual real-tweet X check remains pending until
+      separately verified.
+
+**Verification:**
+
+- [ ] Load the Firefox MV3 build in an available extension-capable browser and
+      inspect both the clicked controls and resulting Library item. Use T3 preview
+      tools first when available; record browser/extension setup and whether the
+      transport was authenticated or mocked.
+- [ ] Clip two distinct comments independently, including overlapping pending
+      actions, then clip the post; confirm one item, both snapshots, unchanged first
+      post snapshot, and no extra automatic labeling run.
+- [ ] Retry after an offline or signed-out failure and navigate during a pending
+      request; verify frozen payload behavior and absence of feedback on the new
+      page's controls.
+- [ ] `pnpm exec prettier --check SPEC-reddit-clipping.md docs/verification/reddit-clipping.md tasks/plan.md tasks/todo.md`
+
+**Dependencies:** Tasks 16–17 and their implementation checkpoint.
+
+**Files likely touched:**
+
+- `SPEC-reddit-clipping.md`
+- `docs/verification/reddit-clipping.md`
+- `tasks/plan.md` (revision status only)
+- `tasks/todo.md` (actual completion state)
+
+**Estimated scope:** Medium: 4 documentation files plus browser verification.
+
+### Checkpoint: Individual clipping complete
+
+- [ ] Every revision acceptance criterion has automated or live evidence as
+      appropriate; gaps remain clearly identified rather than marked passed.
+- [ ] Review the concrete implementation and evidence with the user. Existing
+      pending X verification remains visible; production deployment and extension
+      publishing are outside this revision.

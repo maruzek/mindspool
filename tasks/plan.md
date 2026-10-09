@@ -1,5 +1,110 @@
 # Implementation Plan: Reddit post clipping with selected comments
 
+## Current revision: individual comment Clip buttons (2026-10-09)
+
+Status: planned, awaiting review; no product code changed in this planning turn.
+Tasks 16–18 in [todo.md](todo.md) are the active revision. The original plan below
+records the checkbox implementation; this revision supersedes its selection UI
+and retry behavior. Existing completion evidence and pending manual X checks are
+preserved.
+
+### Intent and proposed behavior
+
+Replace each eligible loaded comment's **Keep comment** checkbox with a native
+**Clip** button in that comment's own action row. Clicking immediately saves that
+comment; there is no selection step or subsequent post-button click. Parent and
+reply buttons each capture only their own comment text.
+
+Keep one Library item per owner/post. A first comment clip saves the containing
+post plus that comment; later comment clips append to the same item. This is the
+proposed interpretation of separate buttons, preserving the existing storage and
+inspector model. The post Clip button sends no comments in feed or detail views.
+Remove the selected-count and 20-comments-per-save guidance from the interface.
+
+Each comment independently shows **Clip → Clipping… → Clipped**. Suppress repeat
+clicks while that comment is pending and keep its successful button disabled for
+the current post visit. Other comments and the post button remain usable. A new
+visit starts with Clip because the extension does not fetch saved-comment state;
+backend deduplication makes a repeat safe. Failed actions show actionable feedback
+and remain retryable; transient errors reset after three seconds without losing
+the retry payload. Size errors say “This capture is too large to save,” replacing
+the instruction to deselect comments.
+
+### Architecture decisions
+
+- Reuse `buildRedditClip(post, [comment])`, the `clip-reddit` message, and
+  `items.clipReddit`. The existing mutation already creates a post with comments,
+  merges comment IDs atomically, and returns `addedCommentCount`. Zero additions
+  still count as success. No schema, backend, inspector, generated API, or
+  deployment changes are needed.
+- Introduce a small `redditCommentClips.ts` state module keyed by the active
+  post/navigation generation and comment ID. It owns pending requests, immutable
+  snapshot retries, and session success state. Replace the bulk-selection store
+  once the new path is connected. Keep post saves independent of comment saves.
+- Resolve the active detail post from the current route and readable DOM, then
+  reparse and validate the comment on activation. A first save requires readable
+  containing-post data. Retry uses the frozen original post/comment payload after
+  verifying the control still belongs to the active post and comment. Never save
+  ancestor text, descendants, or another post's comments.
+- Persist pending/retry/success state through same-post node and action-row
+  replacement, including temporary detail-rendering gaps. Reset it on navigation
+  to a different post, leaving detail, or content-script invalidation. Late replies
+  cannot change a new navigation generation's controls, even after returning to
+  the same post.
+- Keep the watcher as the lifecycle owner and reuse its DOM observation. Comment
+  controls own their listeners and feedback timers. Reconcile action-row parent
+  identity as well as node/comment identity, avoid observer loops from our own
+  button changes, and release all controls/listeners/timers on cleanup.
+- Use native keyboard-accessible buttons, an accessible name such as “Clip comment
+  to MindSpool,” visible focus, and a polite status announcement. Stop event
+  propagation so clicking never toggles the Reddit thread or another native action.
+  Preserve existing authentication and network guidance.
+
+### Ordered task index and dependencies
+
+1. **Task 16:** deliver immediate per-comment saves with independent state and
+   lifecycle-safe controls; make post saves post-only.
+2. **Task 17:** remove the obsolete selection modules and verify the complete
+   extension regression suite.
+3. **Task 18:** update the product spec and record new live interaction evidence.
+
+Dependency chain: existing extraction/transport/atomic merge → Task 16 → Task 17
+→ implementation checkpoint → Task 18 → completion checkpoint. Execute
+sequentially because these tasks share watcher behavior. Each task anticipates at
+most five files; split any repair that exceeds that scope.
+
+### Verification and risks
+
+Focused commands, acceptance criteria, and checkpoints are in `todo.md`. Verify
+one immediate request containing exactly the clicked comment, independent pending
+saves, duplicate suppression, immutable retries, same-route replacements, route
+changes, keyboard activation, and complete cleanup. Run extension typechecking,
+the extension regression suite, Firefox and Chromium builds, and existing backend
+capture tests. These checks use workspace commands directly; no Turbo change is
+planned.
+
+Record real Reddit interaction and persistence evidence separately from fixtures.
+Use the T3 collaborative preview if it can exercise the extension; do not describe
+a page-only or mocked browser result as an authenticated Firefox save. If a live
+extension browser is unavailable, state the gap explicitly. Existing real-tweet X
+verification remains a separate pending check rather than being marked complete.
+
+| Risk                                                        | Mitigation                                                                                                                      |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Concurrent comment/post clicks lose data                    | Keep independent requests; reuse atomic backend merging; run its existing regression tests and inspect a real two-comment save. |
+| A stale or recycled node clips the wrong comment            | Revalidate route, post/comment identity, and own-node extraction before sending; test changed identities and late replies.      |
+| Re-rendering creates duplicate requests or loses retry data | Store request state outside DOM nodes, reconcile replacement controls, and preserve immutable retry snapshots.                  |
+| Button updates trigger observer loops or leak timers        | Retain extension mutation filtering and assert cleanup and idle reconciliation in integration tests.                            |
+| Historical docs appear to describe the new interaction      | Update the spec in Task 18 and append dated verification evidence; label the earlier checkbox evidence as historical.           |
+
+### Review assumption
+
+Each button saves immediately into the containing post's existing Library item.
+Separate standalone comment items would require a different data model and are
+not included in this revision. Review this plan before implementation.
+
+## Original implementation plan (historical)
+
 Status: local implementation, automated verification, and review repairs complete,
 2026-10-08. Live Firefox compatibility and component checks pass. Development
 deployment/codegen and authenticated acceptance remain pending authorization.
