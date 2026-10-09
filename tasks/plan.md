@@ -1,6 +1,6 @@
 # Implementation Plan: Label board views
 
-Status: **Approved for implementation; work in progress.**
+Status: **Feature implemented; Tasks 30–31 verification partially open.**
 Spec: [SPEC-boards.md](../SPEC-boards.md). Tasks: [todo.md](todo.md).
 The user invoked planning after reviewing the spec, authorizing this phase.
 Proposed spec defaults are carried into this plan as recommendations, not silently

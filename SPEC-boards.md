@@ -1,9 +1,9 @@
 # Spec: boards
 
 Module id `boards` in [CAPABILITY-MAP-web-redesign.md](CAPABILITY-MAP-web-redesign.md).
-Status: **Plan approved; implementation in progress.**
+Status: **Implemented; authenticated acceptance partially open.**
 The user invoked planning after spec review. See [the implementation plan](tasks/plan.md)
-and [task checklist](tasks/todo.md). Implementation is in progress; production deployment is outside this plan.
+and [task checklist](tasks/todo.md). Implementation and automated checks are recorded in [verification](docs/verification/boards.md); authenticated desktop checks remain open. Production deployment is outside this plan.
 
 ## Objective
 

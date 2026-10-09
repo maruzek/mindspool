@@ -1,8 +1,10 @@
 # Tasks: Label board views
 
-Status: **Approved; implementation in progress.**
+Status: **Feature implemented; authenticated verification partially open.**
 
 Source: [SPEC-boards.md](../SPEC-boards.md). Architecture and risks: [plan.md](plan.md).
+Feature slices 1–29 are implemented. Automated command checks and source-backed backend/pure-state criteria are checked below; combined browser acceptance claims stay open until exercised with authenticated transport. See [verification evidence and remaining checks](../docs/verification/boards.md).
+
 Previous Reddit tasks remain in [archive/reddit-clipping-todo.md](archive/reddit-clipping-todo.md), including unfinished checks.
 
 Execute the numbered order by default. Task dependencies are explicit below. Each task leaves existing apps working. Do not start until the plan is reviewed; approval of a plan is not evidence that tasks pass.
@@ -39,15 +41,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Authenticated owner can lazily open one empty board per existing label; anonymous/foreign/missing-label calls fail without leaking identity.
-- [ ] Storage has reviewed element/connection/receipt indexes and finite geometry, type, text, and batch validation; concurrent opens cannot duplicate the board.
-- [ ] Layout reads are bounded and expose revision/cursor metadata for coherent frontend assembly; initial open places no items.
+- [x] Authenticated owner can lazily open one empty board per existing label; anonymous/foreign/missing-label calls fail without leaking identity.
+- [x] Storage has reviewed element/connection/receipt indexes and finite geometry, type, text, and batch validation; concurrent opens cannot duplicate the board.
+- [x] Layout reads are bounded and expose revision/cursor metadata for coherent frontend assembly; initial open places no items.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
-- [ ] Exercise repeated open, foreign label, invalid geometry, and more-than-one-page reads with convex-test; codegen output is handled by Task 3.
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
+- [x] Exercise repeated open, foreign label, invalid geometry, and more-than-one-page reads with convex-test; codegen output is handled by Task 3.
 
 **Dependencies:** Task 1.
 
@@ -66,16 +68,16 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Installed package compatibility and license are verified from primary documentation/package metadata; no paid Pro dependency is introduced.
-- [ ] Convex definitions are regenerated rather than hand-edited; regeneration uses the established classified development target, not a new/rebound project.
-- [ ] Dependency and generated-type changes leave backend/web typechecks and the existing web build working.
+- [x] Installed package compatibility and license are verified from primary documentation/package metadata; no paid Pro dependency is introduced.
+- [x] Convex definitions are regenerated rather than hand-edited; regeneration uses the established classified development target, not a new/rebound project.
+- [x] Dependency and generated-type changes leave backend/web typechecks and the existing web build working.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend codegen` (after development-target verification)
-- [ ] `pnpm --filter @mindspool/backend typecheck`
-- [ ] `pnpm --filter @mindspool/web typecheck`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/backend codegen` (after development-target verification)
+- [x] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/web typecheck`
+- [x] `pnpm --filter @mindspool/web build`
 
 **Dependencies:** Task 2.
 
@@ -91,8 +93,8 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 1–3
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
 
 ## Task 4: Open the empty label Board view
 
@@ -100,15 +102,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] layout=board is valid on a label route, while Library/Inbox retain List/Grid validation and malformed layouts fall back safely.
-- [ ] BoardView opens the actual owned board, waits for coherent layout pages, and exposes loading/not-found/retry rather than rendering a partial board.
+- [x] layout=board is valid on a label route, while Library/Inbox retain List/Grid validation and malformed layouts fall back safely.
+- [x] BoardView opens the actual owned board, waits for coherent layout pages, and exposes loading/not-found/retry rather than rendering a partial board.
 - [ ] Direct URL, reload, and browser back/forward work without auto-placing the label's items; narrow screens offer List/Grid.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/search/searchParams.test.ts src/boards/BoardView.test.tsx`
-- [ ] `pnpm --filter @mindspool/web typecheck`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/search/searchParams.test.ts src/boards/BoardView.test.tsx`
+- [x] `pnpm --filter @mindspool/web typecheck`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: open a label with existing items using layout=board; confirm canvas remains empty.
 
 **Dependencies:** Task 3.
@@ -129,14 +131,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Label List/Grid exposes Board; switching retains the public label route and relevant validated search state.
+- [x] Label List/Grid exposes Board; switching retains the public label route and relevant validated search state.
 - [ ] Only a label's Board view uses the 60px rail/full-bleed frame; returning restores the normal sidebar with one main region and unchanged authentication.
-- [ ] Library/Inbox layout controls and inspector behavior regressions pass; board navigation indicates the active canvas correctly.
+- [x] Library/Inbox layout controls and inspector behavior regressions pass; board navigation indicates the active canvas correctly.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/shell/AppShell.test.tsx src/library/LibraryView.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/shell/AppShell.test.tsx src/library/LibraryView.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: List → Board → Grid and back/forward; inspect frame, rail highlight, and nested main/provider structure.
 
 **Dependencies:** Task 4.
@@ -157,14 +159,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Public capture and membership mutations retain input validation, retry identity, manual/model attribution, search projections, and owner counter behavior.
-- [ ] Shared helpers support note creation and manual inclusion inside a board mutation without calling another public mutation.
-- [ ] Existing web/extension capture, Reddit capture, labeling, and item-state regression tests remain passing.
+- [x] Public capture and membership mutations retain input validation, retry identity, manual/model attribution, search projections, and owner counter behavior.
+- [x] Shared helpers support note creation and manual inclusion inside a board mutation without calling another public mutation.
+- [x] Existing web/extension capture, Reddit capture, labeling, and item-state regression tests remain passing.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/items.test.ts convex/redditCapture.test.ts convex/itemLabels.test.ts convex/itemState.test.ts convex/decisions.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/items.test.ts convex/redditCapture.test.ts convex/itemLabels.test.ts convex/itemState.test.ts convex/decisions.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 2.
 
@@ -180,8 +182,8 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 4–6
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
 
 ## Task 7: Place items atomically on their label board
 
@@ -189,15 +191,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Placing an owned outside item includes the board label and creates one placement atomically; already-included membership retains attribution.
-- [ ] Retries and concurrent placement attempts cannot duplicate a placement; conflicting payloads or stale revisions are rejected predictably.
-- [ ] Removing placement preserves item/membership, rejects foreign references, and advances the layout revision only for effective changes.
+- [x] Placing an owned outside item includes the board label and creates one placement atomically; already-included membership retains attribution.
+- [x] Retries and concurrent placement attempts cannot duplicate a placement; conflicting payloads or stale revisions are rejected predictably.
+- [x] Removing placement preserves item/membership, rejects foreign references, and advances the layout revision only for effective changes.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
-- [ ] Assert a failed placement writes neither membership nor placement, and an ambiguous acknowledged retry returns the recorded result.
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
+- [x] Assert a failed placement writes neither membership nor placement, and an ambiguous acknowledged retry returns the recorded result.
 
 **Dependencies:** Task 6.
 
@@ -216,14 +218,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Manual exclusion immediately hides/rejects the affected placement and incident connections; assigning that label again leaves the item unplaced.
-- [ ] Remove/re-add before asynchronous cleanup cannot restore old geometry or allow stale saves/history to resurrect it.
-- [ ] Current model completion preserves manual decisions; all current membership writers are inventoried and future exclusion paths share the invalidation helper.
+- [x] Manual exclusion immediately hides/rejects the affected placement and incident connections; assigning that label again leaves the item unplaced.
+- [x] Remove/re-add before asynchronous cleanup cannot restore old geometry or allow stale saves/history to resurrect it.
+- [x] Current model completion preserves manual decisions; all current membership writers are inventoried and future exclusion paths share the invalidation helper.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardState.test.ts convex/itemLabels.test.ts convex/decisions.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardState.test.ts convex/itemLabels.test.ts convex/decisions.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 7.
 
@@ -243,14 +245,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Deleting the owned item immediately makes all placements unreadable and stale operations invalid.
-- [ ] Indexed continuation removes all placements/incident connections in bounded batches and preserves existing storage/link/run cleanup.
-- [ ] Deleting content never retains a preview snapshot; partial cleanup and repeated continuations cannot lose unrelated board records.
+- [x] Deleting the owned item immediately makes all placements unreadable and stale operations invalid.
+- [x] Indexed continuation removes all placements/incident connections in bounded batches and preserves existing storage/link/run cleanup.
+- [x] Deleting content never retains a preview snapshot; partial cleanup and repeated continuations cannot lose unrelated board records.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/items.test.ts convex/boardState.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/items.test.ts convex/boardState.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 - [ ] Seed more affected boards than one cleanup batch and drain scheduled functions; assert complete cleanup and intact unrelated cards.
 
 **Dependencies:** Task 8.
@@ -267,8 +269,8 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 7–9
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
 
 ## Task 10: Return bounded board card previews
 
@@ -276,14 +278,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Placed-item batches verify board ownership, item ownership, and current membership and return only bounded title/body/source/label/media data.
-- [ ] First external/stored image or poster resolves correctly; missing/deleted media has an explicit fallback and full saved text is not copied into board records.
-- [ ] Preview reads preserve byte/document limits and can be refreshed without resetting placement geometry.
+- [x] Placed-item batches verify board ownership, item ownership, and current membership and return only bounded title/body/source/label/media data.
+- [x] First external/stored image or poster resolves correctly; missing/deleted media has an explicit fallback and full saved text is not copied into board records.
+- [x] Preview reads preserve byte/document limits and can be refreshed without resetting placement geometry.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardPreviews.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardPreviews.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 9.
 
@@ -301,14 +303,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Newest/Oldest uses item creation time even when an older item is newly assigned a label; All-library/current-label scope and filters are correct.
-- [ ] Search uses the approved relevance order and current source/review semantics; current-label review checks the matching link.
-- [ ] Sparse/empty intermediate pages retain continuation and split metadata; owner isolation and byte/row bounds hold without a mandatory existing-data backfill.
+- [x] Newest/Oldest uses item creation time even when an older item is newly assigned a label; All-library/current-label scope and filters are correct.
+- [x] Search uses the approved relevance order and current source/review semantics; current-label review checks the matching link.
+- [x] Sparse/empty intermediate pages retain continuation and split metadata; owner isolation and byte/row bounds hold without a mandatory existing-data backfill.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardTray.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardTray.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 - [ ] Test an old item assigned today, sparse labels, empty nonterminal pages, selected-label All-library searches, and changing reactive page sizes.
 
 **Dependencies:** Task 10.
@@ -327,14 +329,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Tray defaults to Current label and Newest; All library exposes the optional label filter, source/review filters, and search; clearing search restores chronological sort.
+- [x] Tray defaults to Current label and Newest; All library exposes the optional label filter, source/review filters, and search; clearing search restores chronological sort.
 - [ ] Collapse/height preferences are local per board; empty-board first use opens the tray and displays clear instructions/loading/retry/load-more states.
-- [ ] Placed items remain discoverable and show On this board/Locate; filters never remove existing canvas placements, and sparse pages are not mislabeled exhausted.
+- [x] Placed items remain discoverable and show On this board/Locate; filters never remove existing canvas placements, and sparse pages are not mislabeled exhausted.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/LibraryTray.test.tsx src/boards/useBoardTray.test.ts`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/LibraryTray.test.tsx src/boards/useBoardTray.test.ts`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: resize/collapse tray, search, change scope, and fetch another page without moving canvas content.
 
 **Dependencies:** Task 5, Task 11.
@@ -352,9 +354,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 10–12
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 13: Drag a real item onto the canvas
 
@@ -368,8 +370,8 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardCanvas.test.tsx src/boards/BoardView.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardCanvas.test.tsx src/boards/BoardView.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Authenticated desktop browser: search an outside item, drop at nondefault zoom, reopen, remove membership, and confirm the card disappears.
 
 **Dependencies:** Task 7, Task 8, Task 9, Task 10, Task 12.
@@ -390,14 +392,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] One completed drag persists one validated move; pointer ticks perform no writes and invalid batches are all-or-nothing.
-- [ ] Expected revision prevents stale-session overwrites; same operation retry returns its acknowledgment and key reuse with a new payload fails.
-- [ ] Receipt lookup/cleanup is indexed and bounded; expired/stale operations require resynchronization instead of duplicating effects.
+- [x] One completed drag persists one validated move; pointer ticks perform no writes and invalid batches are all-or-nothing.
+- [x] Expected revision prevents stale-session overwrites; same operation retry returns its acknowledgment and key reuse with a new payload fails.
+- [x] Receipt lookup/cleanup is indexed and bounded; expired/stale operations require resynchronization instead of duplicating effects.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts convex/boards.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts convex/boards.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 13.
 
@@ -416,14 +418,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Local moves render immediately while Saving/Saved tracks server acknowledgment; stale reactive echoes cannot erase pending edits.
-- [ ] Ambiguous failures retry the same identity/payload; failed writes stop dependent mutations while retaining the draft and providing Retry.
+- [x] Local moves render immediately while Saving/Saved tracks server acknowledgment; stale reactive echoes cannot erase pending edits.
+- [x] Ambiguous failures retry the same identity/payload; failed writes stop dependent mutations while retaining the draft and providing Retry.
 - [ ] Revision conflicts keep the draft until explicit Reload latest; offline/retry/navigation guards behave honestly without claiming durable offline recovery.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/boardSession.test.ts src/boards/BoardView.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/boardSession.test.ts src/boards/BoardView.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: move/reload; simulate lost acknowledgment/network failure; open the same board in two owner sessions and confirm a visible conflict.
 
 **Dependencies:** Task 14.
@@ -441,9 +443,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 13–15
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 16: Restore pan and zoom
 
@@ -457,9 +459,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardControls.test.tsx`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardControls.test.tsx`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Real desktop: Space pan, trackpad pan/pinch, Fit, percent controls, reopen at saved viewport.
 
 **Dependencies:** Task 15.
@@ -480,15 +482,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Default text region matches with/without media; combined/image/text mode switches retain region geometry and enforce reviewed minimum dimensions.
-- [ ] Independent width/height resizing and proportional combined-region changes persist once per completed interaction.
-- [ ] Backend rejects nonfinite/invalid geometry or unsupported modes without changing content or partially applying updates.
+- [x] Default text region matches with/without media; combined/image/text mode switches retain region geometry and enforce reviewed minimum dimensions.
+- [x] Independent width/height resizing and proportional combined-region changes persist once per completed interaction.
+- [x] Backend rejects nonfinite/invalid geometry or unsupported modes without changing content or partially applying updates.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/cardGeometry.test.ts`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/web typecheck`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/cardGeometry.test.ts`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/web typecheck`
 
 **Dependencies:** Task 16.
 
@@ -508,14 +510,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Cards show the first attached image above truncated text, keep original data untouched, and apply saved modes/geometry with restrained fallback states.
+- [x] Cards show the first attached image above truncated text, keep original data untouched, and apply saved modes/geometry with restrained fallback states.
 - [ ] Single-click selects and double-click/Open details opens the existing inspector using item URL state; tray filters do not accidentally close selected placed-item details.
 - [ ] Selection toolbar/handles follow the Claude reference; no note edit/style control appears; inspector overlay does not move persisted cards.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/ItemCardNode.test.tsx src/boards/BoardView.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/ItemCardNode.test.tsx src/boards/BoardView.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: resize mixed/no-image cards, change modes, open full text in inspector, and reload.
 
 **Dependencies:** Task 10, Task 17.
@@ -533,9 +535,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 16–18
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 19: Create a note and its placement atomically
 
@@ -543,14 +545,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Create saves exactly one plain-text library item, manually includes the current label, and creates its placement in one transaction.
-- [ ] Nonblank validation, 100,000-character limit, original whitespace, capture idempotency, and URL-looking text-as-note behavior are preserved.
-- [ ] Retries start no duplicate labeling run and preserve counters/search state; failures create no partial note/assignment/placement.
+- [x] Create saves exactly one plain-text library item, manually includes the current label, and creates its placement in one transaction.
+- [x] Nonblank validation, 100,000-character limit, original whitespace, capture idempotency, and URL-looking text-as-note behavior are preserved.
+- [x] Retries start no duplicate labeling run and preserve counters/search state; failures create no partial note/assignment/placement.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts convex/libraryWriters.test.ts convex/itemState.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts convex/libraryWriters.test.ts convex/itemState.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 6, Task 15.
 
@@ -569,14 +571,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Dialog creates plain-text notes at visible canvas center, has explicit Create/Cancel, and displays backend validation/network errors without losing input.
+- [x] Dialog creates plain-text notes at visible canvas center, has explicit Create/Cancel, and displays backend validation/network errors without losing input.
 - [ ] Created note is visible on the board and in the library with the current label; cancellation creates nothing and retries do not duplicate it.
-- [ ] No URL/scraping, inline edit, or formatting control is exposed; later undo will remove only its placement.
+- [x] No URL/scraping, inline edit, or formatting control is exposed; later undo will remove only its placement.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/NewNoteDialog.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/NewNoteDialog.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Authenticated browser: create whitespace-preserving and URL-looking notes; verify library/label membership and retry.
 
 **Dependencies:** Task 18, Task 19.
@@ -596,15 +598,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Column operations validate same-board item children, reject nesting/cycles, and compute ordered vertical stacks without changing labels.
-- [ ] Column width determines child width while preserving independently resizable region heights; attach/remap remembers free-standing size.
-- [ ] Detach produces a valid canvas position and restored dimensions, and stale/oversized operations are atomically rejected.
+- [x] Column operations validate same-board item children, reject nesting/cycles, and compute ordered vertical stacks without changing labels.
+- [x] Column width determines child width while preserving independently resizable region heights; attach/remap remembers free-standing size.
+- [x] Detach produces a valid canvas position and restored dimensions, and stale/oversized operations are atomically rejected.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/columnLayout.test.ts`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/columnLayout.test.ts`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 18, Task 20.
 
@@ -621,9 +623,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 19–21
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 22: Organize cards in interactive columns
 
@@ -637,8 +639,8 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/ColumnNode.test.tsx src/boards/BoardCanvas.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/ColumnNode.test.tsx src/boards/BoardCanvas.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser at nondefault zoom: reorder, move between columns, resize column/card, create note in column, detach, and reload.
 
 **Dependencies:** Task 21.
@@ -659,15 +661,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Deleting only a column leaves cards at computed canvas positions and current displayed dimensions; no label/content changes occur.
-- [ ] Existing connections survive container deletion and later history restoration has the column title/order/geometry needed to undo exactly.
-- [ ] Tests distinguish deleting the container alone from explicitly removing selected children; spec retains the later-revision flag.
+- [x] Deleting only a column leaves cards at computed canvas positions and current displayed dimensions; no label/content changes occur.
+- [x] Existing connections survive container deletion and later history restoration has the column title/order/geometry needed to undo exactly.
+- [x] Tests distinguish deleting the container alone from explicitly removing selected children; spec retains the later-revision flag.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/columnLayout.test.ts src/boards/ColumnNode.test.tsx`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/columnLayout.test.ts src/boards/ColumnNode.test.tsx`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/web build`
 
 **Dependencies:** Task 22.
 
@@ -687,15 +689,15 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Create/rename/move/remove heading persists organization only and never creates or modifies a library item.
-- [ ] Text is validated and rendered as text; heading typography follows the tracked design and no arbitrary rich formatting is exposed.
-- [ ] Heading operations participate in the session revision/save pipeline and expose state later usable by history.
+- [x] Create/rename/move/remove heading persists organization only and never creates or modifies a library item.
+- [x] Text is validated and rendered as text; heading typography follows the tracked design and no arbitrary rich formatting is exposed.
+- [x] Heading operations participate in the session revision/save pipeline and expose state later usable by history.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/HeadingNode.test.tsx`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/HeadingNode.test.tsx`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: create a heading, rename/move it, and reopen.
 
 **Dependencies:** Task 23.
@@ -713,9 +715,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 22–24
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 25: Persist card connections
 
@@ -723,14 +725,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Connections reference eligible item placements on the same board; only one unordered-pair connection is allowed and self links are rejected.
-- [ ] Arrowheads, bounded plain-text label, and palette color persist through revisioned operations; no global relationship is created.
-- [ ] Placement deletion, membership invalidation, and item cleanup remove incident edges while column deletion preserves them.
+- [x] Connections reference eligible item placements on the same board; only one unordered-pair connection is allowed and self links are rejected.
+- [x] Arrowheads, bounded plain-text label, and palette color persist through revisioned operations; no global relationship is created.
+- [x] Placement deletion, membership invalidation, and item cleanup remove incident edges while column deletion preserves them.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardConnections.test.ts convex/boardState.test.ts`
-- [ ] `pnpm --filter @mindspool/backend typecheck`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardConnections.test.ts convex/boardState.test.ts`
+- [x] `pnpm --filter @mindspool/backend typecheck`
 
 **Dependencies:** Task 8, Task 9, Task 23.
 
@@ -751,13 +753,13 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 **Acceptance criteria:**
 
 - [ ] User connects two cards and changes None/End/Both arrows, label, or palette color; invalid endpoints and duplicates give clear feedback.
-- [ ] Edges render beneath cards and follow movement/resizing/reorder/detach; controls do not expose permanent flowchart ports.
+- [x] Edges render beneath cards and follow movement/resizing/reorder/detach; controls do not expose permanent flowchart ports.
 - [ ] Edges and settings survive reload and use real save/error status; no network-graph side effect occurs.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/ConnectionEdge.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/ConnectionEdge.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: connect cards in/outside columns, move/resize endpoints, and verify persistence at several zoom levels.
 
 **Dependencies:** Task 24, Task 25.
@@ -779,13 +781,13 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 **Acceptance criteria:**
 
 - [ ] Selection supports cards/columns/headings/connections without intercepting inputs; Escape clears or cancels interaction.
-- [ ] Group move includes selected column children once; one completion creates one atomic operation; removing container alone preserves unselected children.
-- [ ] Canvas Delete removes organization only and incident edges as appropriate, with no item or membership deletion.
+- [x] Group move includes selected column children once; one completion creates one atomic operation; removing container alone preserves unselected children.
+- [x] Canvas Delete removes organization only and incident edges as appropriate, with no item or membership deletion.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/boardSelection.test.ts src/boards/BoardCanvas.test.tsx`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/boardSelection.test.ts src/boards/BoardCanvas.test.tsx`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Real browser: select a column and its child, move once, then compare container-only and explicit child removal.
 
 **Dependencies:** Task 23, Task 24, Task 26.
@@ -802,9 +804,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: After Tasks 25–27
 
 - [ ] The completed slice meets its task criteria with focused test evidence; review concrete behavior and unresolved risks before continuing.
-- [ ] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
-- [ ] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
-- [ ] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
+- [x] `pnpm --filter @mindspool/backend test` and `pnpm --filter @mindspool/web test` pass.
+- [x] `pnpm --filter @mindspool/backend typecheck`, `pnpm --filter @mindspool/web typecheck`, and `pnpm --filter @mindspool/web build` pass.
+- [x] Exercise the current usable board path in an available desktop browser and record authenticated versus mocked coverage.
 
 ## Task 28: Model board-only undo and redo
 
@@ -812,16 +814,16 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] One placement/move/resize/group/column/heading/edge action is one history entry; viewport/filters/selection are excluded and new edits clear redo.
-- [ ] Inverse/restored stable keys and incident connections reconstruct organization while never deleting a created note or changing membership.
-- [ ] Removed items/memberships invalidate replay, including remove/re-add races; history has the approved 100-entry session limit and reload resets it.
+- [x] One placement/move/resize/group/column/heading/edge action is one history entry; viewport/filters/selection are excluded and new edits clear redo.
+- [x] Inverse/restored stable keys and incident connections reconstruct organization while never deleting a created note or changing membership.
+- [x] Removed items/memberships invalidate replay, including remove/re-add races; history has the approved 100-entry session limit and reload resets it.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/boardHistory.test.ts`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
-- [ ] `pnpm --filter @mindspool/web typecheck`
-- [ ] Regression: undo outside-item placement leaves assigned label; undo new-note placement leaves the library note.
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/boardHistory.test.ts`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/boardOperations.test.ts`
+- [x] `pnpm --filter @mindspool/web typecheck`
+- [x] Regression: undo outside-item placement leaves assigned label; undo new-note placement leaves the library note.
 
 **Dependencies:** Task 27.
 
@@ -840,14 +842,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, and Ctrl+Y work in focused canvas and leave input editing intact; buttons show availability.
-- [ ] Undo/redo persists through the same optimistic/revisioned pipeline; failures/conflicts retain the correct draft and history pointer.
+- [x] Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, and Ctrl+Y work in focused canvas and leave input editing intact; buttons show availability.
+- [x] Undo/redo persists through the same optimistic/revisioned pipeline; failures/conflicts retain the correct draft and history pointer.
 - [ ] Complete card/column/heading/connection/group actions restore precisely, and unavailable replay explains invalid membership/deleted items.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardView.test.tsx src/boards/boardHistory.test.ts src/boards/boardSession.test.ts`
-- [ ] `pnpm --filter @mindspool/web build`
+- [x] `pnpm --filter @mindspool/web exec vitest run src/boards/BoardView.test.tsx src/boards/boardHistory.test.ts src/boards/boardSession.test.ts`
+- [x] `pnpm --filter @mindspool/web build`
 - [ ] Browser: undo/redo column deletion and card removal with edges; undo note and All-library placements; verify library data remains.
 
 **Dependencies:** Task 20, Task 28.
@@ -874,10 +876,10 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/web test`
-- [ ] `pnpm --filter @mindspool/backend test`
-- [ ] `pnpm --filter @mindspool/web build`
-- [ ] Use T3 preview first (status, then open if needed); distinguish authenticated transport from mocked component tests; create focused repair tasks for defects.
+- [x] `pnpm --filter @mindspool/web test`
+- [x] `pnpm --filter @mindspool/backend test`
+- [x] `pnpm --filter @mindspool/web build`
+- [x] Use T3 preview first (status, then open if needed); distinguish authenticated transport from mocked component tests; create focused repair tasks for defects.
 
 **Dependencies:** Task 29.
 
@@ -895,16 +897,16 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] 100 mixed cards, 10 columns, and 100 connections meet the reviewed 33ms p95 frame target on a recorded desktop; measure a 10-second pan/drag interaction after load.
-- [ ] No per-pointer mutations or full-library loads occur; sparse-label tray pagination cost and coherent layout assembly are documented.
+- [x] 100 mixed cards, 10 columns, and 100 connections meet the reviewed 33ms p95 frame target on a recorded desktop; measure a 10-second pan/drag interaction after load.
+- [x] No per-pointer mutations or full-library loads occur; sparse-label tray pagination cost and coherent layout assembly are documented.
 - [ ] All spec criteria have appropriate evidence, focused/full checks pass, status docs are accurate, design remains ignored, and archived Reddit gaps remain unchanged.
 
 **Verification:**
 
-- [ ] `pnpm check`
-- [ ] `pnpm exec prettier --check SPEC-boards.md docs/design/boards.md docs/verification/boards.md CAPABILITY-MAP-web-redesign.md README.md tasks/plan.md tasks/todo.md`
-- [ ] `git diff --check`
-- [ ] `git check-ignore -v deisgn.html`
+- [x] `pnpm check`
+- [x] `pnpm exec prettier --check SPEC-boards.md docs/design/boards.md docs/verification/boards.md CAPABILITY-MAP-web-redesign.md README.md tasks/plan.md tasks/todo.md`
+- [x] `git diff --check`
+- [x] `git check-ignore -v deisgn.html`
 - [ ] Record browser/hardware/network/fixture and frame/write/query metrics; do not infer them from unit tests.
 
 **Dependencies:** Task 30.
@@ -921,5 +923,9 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 ### Checkpoint: Complete
 
 - [ ] Tasks 1–31 and every applicable SPEC-boards success criterion are verified; browser/performance gaps are not silently marked complete.
-- [ ] `pnpm check` and `git diff --check` pass; `deisgn.html` remains ignored.
+- [x] `pnpm check` and `git diff --check` pass; `deisgn.html` remains ignored.
 - [ ] Review the implemented behavior, design comparison, measured performance, and recorded limitations with the user. Production deployment and publishing remain outside this plan.
+
+## Execution evidence (2026-10-09)
+
+Focused slices used RED/GREEN tests, followed by repository checkpoints. Final `pnpm check` passed with 702 tests (277 backend, 312 web, 113 extension), six workspace typechecks and three app builds, covering every listed test file; it does not supply live browser evidence. The typed development fixture records synthetic 1440×900/1100×760 checks and a 100-card/10-column/100-connection 10-second performance run at 16.7ms p95. Full evidence, review repairs, query costs and remaining authenticated checks are in [boards verification](../docs/verification/boards.md). The complete checkpoint remains open because the preview is signed out.
