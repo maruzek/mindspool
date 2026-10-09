@@ -1,9 +1,9 @@
 # Spec: boards
 
 Module id `boards` in [CAPABILITY-MAP-web-redesign.md](CAPABILITY-MAP-web-redesign.md).
-Status: **Product scope accepted for planning; proposed defaults await plan review.**
+Status: **Plan approved; implementation in progress.**
 The user invoked planning after spec review. See [the implementation plan](tasks/plan.md)
-and [task checklist](tasks/todo.md). Implementation and deployment have not started.
+and [task checklist](tasks/todo.md). Implementation is in progress; production deployment is outside this plan.
 
 ## Objective
 
@@ -297,6 +297,28 @@ avoid one ever-growing layout document.
 
 No automatic board-data migration or production mutation in this specification.
 Existing labels/items require no backfill to become eligible for Board view.
+
+### Reviewed transaction details
+
+The implementation request approves the defaults in [the design reference](docs/design/boards.md).
+Operation receipts are indexed by owner, board, session and sequence. Store an
+exact canonical request fingerprint and acknowledgment; identical retry returns
+the acknowledgment, different payload with the same identity fails. Receipts
+expire after seven days and indexed bounded cleanup removes them. Expired retries
+must pass expected-revision checks; an already committed operation is stale and
+cannot replay. A no-op does not advance layout revision.
+
+Each included membership has a generation (the link's stable id plus an optional
+invalidation counter). Exclusion increments its counter transactionally. A new
+inclusion cannot revive a placement from the prior generation. Reads and history
+replay validate generation before exposing or restoring a placement. Cleanup uses
+indexed bounded continuations and never stores item content.
+
+Bounds: coordinates ±1,000,000; dimensions 80–10,000 (card width at least 160);
+zoom 0.25–2; element keys/session ids at most 100 characters; organizational text
+at most 200 characters; 100 elements/connections per atomic action, 512 KiB request
+bytes, 50 rows per layout page, 20 previews per batch. Oversized actions fail
+before writes. These are transaction limits, not a 100-card board limit.
 
 ### Proposed operations
 

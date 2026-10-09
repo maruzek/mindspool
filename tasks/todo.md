@@ -1,6 +1,6 @@
 # Tasks: Label board views
 
-Status: **Draft for review. No implementation tasks are complete.**
+Status: **Approved; implementation in progress.**
 
 Source: [SPEC-boards.md](../SPEC-boards.md). Architecture and risks: [plan.md](plan.md).
 Previous Reddit tasks remain in [archive/reddit-clipping-todo.md](archive/reddit-clipping-todo.md), including unfinished checks.
@@ -15,14 +15,14 @@ Tasks list no more than five likely feature files. If generated outputs or a rep
 
 **Acceptance criteria:**
 
-- [ ] Board reference records rail/grid/tools/tray/card styling and distinguishes agreed behavior from illustrative export content.
-- [ ] Spec records reviewed geometry/search/history/connection/performance defaults and the operation-receipt and membership-invalidation technical contracts.
-- [ ] Independent boards, virtual-label semantics, frames, text editing, and provisional column deletion are explicitly preserved at their agreed scope.
+- [x] Board reference records rail/grid/tools/tray/card styling and distinguishes agreed behavior from illustrative export content.
+- [x] Spec records reviewed geometry/search/history/connection/performance defaults and the operation-receipt and membership-invalidation technical contracts.
+- [x] Independent boards, virtual-label semantics, frames, text editing, and provisional column deletion are explicitly preserved at their agreed scope.
 
 **Verification:**
 
-- [ ] `pnpm exec prettier --check SPEC-boards.md docs/design/boards.md`
-- [ ] Compare recorded values with the local export; confirm git check-ignore deisgn.html succeeds.
+- [x] `pnpm exec prettier --check SPEC-boards.md docs/design/boards.md`
+- [x] Compare recorded values with the local export; confirm git check-ignore deisgn.html succeeds.
 
 **Dependencies:** None.
 
