@@ -18,6 +18,8 @@ export const elementData = v.union(
     columnKey: v.optional(v.string()),
     order: v.optional(v.number()),
     freeWidth: v.optional(v.number()),
+    freeImageHeight: v.optional(v.number()),
+    freeTextHeight: v.optional(v.number()),
   }),
   v.object({ type: v.literal("column"), ...geometry, title: v.string() }),
   v.object({ type: v.literal("heading"), ...geometry, text: v.string() }),
@@ -36,6 +38,7 @@ export const connectionData = v.object({
   color: v.union(v.literal("ink"), v.literal("accent"), v.literal("secondary")),
 });
 export const connectionFields = {
+  pairKey: v.string(),
   ownerId: v.string(),
   boardId: v.id("boards"),
   key: v.string(),
@@ -64,6 +67,9 @@ export const connectionDoc = v.object({
   ...connectionFields,
 });
 export const acknowledgment = v.object({
+  elements: v.optional(
+    v.array(v.object({ key: v.string(), data: elementData })),
+  ),
   revision: v.number(),
   session: v.string(),
   sequence: v.number(),
@@ -101,11 +107,19 @@ export function validateViewport(value: Infer<typeof viewport>) {
 export function validateElement(value: Infer<typeof elementData>) {
   finite(value.x, -1e6, 1e6);
   finite(value.y, -1e6, 1e6);
-  finite(value.width, value.type === "heading" ? 80 : 160, 10000);
+  finite(
+    value.width,
+    value.type === "heading" ? 80 : value.type === "column" ? 192 : 160,
+    10000,
+  );
   if (value.type === "item") {
     finite(value.imageHeight, 80, 10000);
     finite(value.textHeight, 80, 10000);
     if (value.freeWidth !== undefined) finite(value.freeWidth, 160, 10000);
+    if (value.freeImageHeight !== undefined)
+      finite(value.freeImageHeight, 80, 10000);
+    if (value.freeTextHeight !== undefined)
+      finite(value.freeTextHeight, 80, 10000);
     if (value.columnKey) key(value.columnKey);
     if (value.order !== undefined) {
       finite(value.order, 0, 1e6);

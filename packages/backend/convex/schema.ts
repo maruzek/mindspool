@@ -27,6 +27,7 @@ export default defineSchema({
     .index("by_owner_board_item", ["ownerId", "boardId", "data.itemId"])
     .index("by_owner_column", ["ownerId", "boardId", "data.columnKey"]),
   boardConnections: defineTable(connectionFields)
+    .index("by_pair", ["ownerId", "boardId", "pairKey"])
     .index("by_owner_board", ["ownerId", "boardId"])
     .index("by_owner_board_key", ["ownerId", "boardId", "key"])
     .index("by_source", ["ownerId", "boardId", "source"])

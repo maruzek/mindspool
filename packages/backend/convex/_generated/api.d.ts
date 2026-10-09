@@ -11,6 +11,8 @@
 import type * as aiBudget from "../aiBudget.js";
 import type * as aiUsage from "../aiUsage.js";
 import type * as auth from "../auth.js";
+import type * as boardColumns from "../boardColumns.js";
+import type * as boardConnections from "../boardConnections.js";
 import type * as boardOperations from "../boardOperations.js";
 import type * as boardPreviews from "../boardPreviews.js";
 import type * as boardState from "../boardState.js";
@@ -42,6 +44,8 @@ declare const fullApi: ApiFromModules<{
   aiBudget: typeof aiBudget;
   aiUsage: typeof aiUsage;
   auth: typeof auth;
+  boardColumns: typeof boardColumns;
+  boardConnections: typeof boardConnections;
   boardOperations: typeof boardOperations;
   boardPreviews: typeof boardPreviews;
   boardState: typeof boardState;

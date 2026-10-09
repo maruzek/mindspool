@@ -1,3 +1,5 @@
+import { edgeByKey, setConnection } from "./boardConnections";
+import { columnChildren, layoutColumns } from "./boardColumns";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, internalMutation } from "./_generated/server";
@@ -5,15 +7,33 @@ import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { ownedBoard } from "./boards";
 import { requireOwned } from "./auth";
-import { decideMembership } from "./libraryWriters";
+import { captureItem, decideMembership } from "./libraryWriters";
 import {
+  connectionData,
+  elementData,
+  validateElement,
   acknowledgment,
   finite,
   invalid,
   key as validateKey,
 } from "./boardValidators";
 export const operation = v.union(
+  v.object({ type: v.literal("restore"), key: v.string(), data: elementData }),
+  v.object({ type: v.literal("edge"), key: v.string(), data: connectionData }),
+  v.object({ type: v.literal("removeEdge"), key: v.string() }),
   v.object({
+    type: v.literal("note"),
+    key: v.string(),
+    originalInput: v.string(),
+    x: v.number(),
+    y: v.number(),
+    columnKey: v.optional(v.string()),
+    order: v.optional(v.number()),
+  }),
+  v.object({ type: v.literal("set"), key: v.string(), data: elementData }),
+  v.object({
+    columnKey: v.optional(v.string()),
+    order: v.optional(v.number()),
     type: v.literal("place"),
     key: v.string(),
     itemId: v.id("items"),
@@ -37,7 +57,23 @@ export async function elementByKey(
 export async function removeElement(
   ctx: MutationCtx,
   element: Doc<"boardElements">,
+  touchedConnections = new Set<string>(),
 ) {
+  if (element.data.type === "column") {
+    const board = (await ctx.db.get(element.boardId))!;
+    for (const child of await columnChildren(ctx, board, element.key)) {
+      if (child.data.type !== "item") invalid("Invalid column child");
+      const {
+        columnKey,
+        order,
+        freeWidth,
+        freeImageHeight,
+        freeTextHeight,
+        ...data
+      } = child.data;
+      await ctx.db.patch(child._id, { data });
+    }
+  }
   const edges = await ctx.db
     .query("boardConnections")
     .withIndex("by_source", (q) =>
@@ -58,6 +94,8 @@ export async function removeElement(
     .take(101);
   if (edges.length + targets.length > 100)
     invalid("Too many incident connections for one action");
+  for (const edge of [...edges, ...targets]) touchedConnections.add(edge.key);
+  if (touchedConnections.size > 100) invalid("Operation exceeds atomic bounds");
   for (const edge of [...edges, ...targets]) await ctx.db.delete(edge._id);
   await ctx.db.delete(element._id);
 }
@@ -127,10 +165,51 @@ export const apply = mutation({
         code: "CONFLICT",
         message: "Board changed. Reload latest.",
       });
+    const touchedConnections = new Set(
+      args.operations
+        .filter((op) => op.type === "edge" || op.type === "removeEdge")
+        .map((op) => op.key),
+    );
     let changed = false;
-    for (const op of args.operations) {
+    const columns = new Set<string>();
+    const touchedKeys = new Set(args.operations.map((op) => op.key));
+    for (const originalOp of args.operations) {
+      const op =
+        originalOp.type === "note"
+          ? {
+              type: "place" as const,
+              key: originalOp.key,
+              x: originalOp.x,
+              y: originalOp.y,
+              columnKey: originalOp.columnKey,
+              order: originalOp.order,
+              itemId: await captureItem(ctx, board.ownerId, {
+                inputType: "text",
+                originalInput: originalOp.originalInput,
+                captureKey: `board:${board._id}:${args.session}:${args.sequence}:${originalOp.key}`,
+                captureSource: "web",
+              }),
+            }
+          : originalOp;
       validateKey(op.key);
-      if (op.type === "place") {
+      const previous = await elementByKey(ctx, board, op.key);
+      if (previous?.data.type === "column") {
+        columns.add(previous.key);
+        for (const child of await columnChildren(ctx, board, previous.key))
+          touchedKeys.add(child.key);
+      }
+      if (previous?.data.type === "item" && previous.data.columnKey)
+        columns.add(previous.data.columnKey);
+      if (touchedKeys.size > 100) invalid("Operation exceeds atomic bounds");
+      if (op.type === "edge") {
+        if (await setConnection(ctx, board, op.key, op.data)) changed = true;
+      } else if (op.type === "removeEdge") {
+        const edge = await edgeByKey(ctx, board, op.key);
+        if (edge) {
+          await ctx.db.delete(edge._id);
+          changed = true;
+        }
+      } else if (op.type === "place") {
         finite(op.x, -1e6, 1e6);
         finite(op.y, -1e6, 1e6);
         requireOwned(await ctx.db.get(op.itemId), board.ownerId);
@@ -152,7 +231,7 @@ export const apply = mutation({
             existing.data.membership === token
           )
             continue;
-          await removeElement(ctx, existing);
+          await removeElement(ctx, existing, touchedConnections);
         }
         if (!(await membershipToken(ctx, board, op.itemId)))
           await decideMembership(
@@ -161,11 +240,30 @@ export const apply = mutation({
             { itemId: op.itemId, labelId: board.labelId },
             "include",
           );
+        if (op.columnKey) {
+          const column = await elementByKey(ctx, board, op.columnKey);
+          if (
+            column?.data.type !== "column" ||
+            !Number.isInteger(op.order) ||
+            (op.order ?? -1) < 0
+          )
+            invalid("Invalid column");
+          columns.add(op.columnKey);
+        }
         await ctx.db.insert("boardElements", {
           ownerId: board.ownerId,
           boardId: board._id,
           key: op.key,
           data: {
+            ...(op.columnKey
+              ? {
+                  columnKey: op.columnKey,
+                  order: op.order!,
+                  freeWidth: 300,
+                  freeImageHeight: 200,
+                  freeTextHeight: 120,
+                }
+              : {}),
             type: "item",
             x: op.x,
             y: op.y,
@@ -178,15 +276,73 @@ export const apply = mutation({
           },
         });
         changed = true;
+      } else if (op.type === "set" || op.type === "restore") {
+        validateElement(op.data);
+        const element = await elementByKey(ctx, board, op.key);
+        if (element && element.data.type !== op.data.type)
+          invalid("Element unavailable");
+        if (!element && op.data.type === "item" && op.type !== "restore")
+          invalid("Element unavailable");
+        if (op.data.type === "item") {
+          requireOwned(await ctx.db.get(op.data.itemId), board.ownerId);
+          if (
+            (element &&
+              (element.data.type !== "item" ||
+                element.data.itemId !== op.data.itemId)) ||
+            op.data.membership !==
+              (await membershipToken(ctx, board, op.data.itemId))
+          )
+            invalid("Membership changed");
+          const duplicate = await ctx.db
+            .query("boardElements")
+            .withIndex("by_owner_board_item", (q) =>
+              q
+                .eq("ownerId", board.ownerId)
+                .eq("boardId", board._id)
+                .eq(
+                  "data.itemId",
+                  op.data.type === "item" ? op.data.itemId : undefined,
+                ),
+            )
+            .unique();
+          if (duplicate && duplicate.key !== op.key)
+            invalid("Item already placed");
+        }
+        if (op.data.type === "item" && op.data.columnKey) {
+          const column = await elementByKey(ctx, board, op.data.columnKey);
+          if (column?.data.type !== "column" || op.data.order === undefined)
+            invalid("Invalid column");
+          columns.add(column.key);
+        }
+        if (op.data.type === "column") columns.add(op.key);
+        if (!element) {
+          await ctx.db.insert("boardElements", {
+            boardId: board._id,
+            ownerId: board.ownerId,
+            key: op.key,
+            data: op.data,
+          });
+          changed = true;
+        } else if (JSON.stringify(element.data) !== JSON.stringify(op.data)) {
+          await ctx.db.patch(element._id, { data: op.data });
+          changed = true;
+        }
       } else {
         const element = await elementByKey(ctx, board, op.key);
         if (element) {
-          await removeElement(ctx, element);
+          await removeElement(ctx, element, touchedConnections);
           changed = true;
         }
       }
     }
+    await layoutColumns(ctx, board, columns, touchedKeys);
+    const touched = await Promise.all(
+      [...touchedKeys].map((key) => elementByKey(ctx, board, key)),
+    );
     const ack = {
+      elements: touched.flatMap((e) =>
+        e ? [{ key: e.key, data: e.data }] : [],
+      ),
       revision: board.revision + Number(changed),
       session: args.session,
       sequence: args.sequence,
