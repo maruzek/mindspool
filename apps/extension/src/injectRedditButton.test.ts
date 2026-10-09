@@ -180,4 +180,64 @@ describe("Reddit Clip controls", () => {
     await flush();
     expect(button(p).textContent).toBe("Clip");
   });
+  it.each([true, false])(
+    "keeps a detail post-only request across replacement (success=%s)",
+    async (success) => {
+      history.replaceState(null, "", "/comments/abc123/");
+      const p = load("detail");
+      let finish!: (r: ClipResponse) => void;
+      const send = vi.fn(
+        () =>
+          new Promise<ClipResponse>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      stop = watchReddit(document, send);
+      button(p).click();
+      expect(send.mock.calls[0]).toBeDefined();
+      const next = p.cloneNode(true) as Element;
+      next.attachShadow({ mode: "open" }).innerHTML =
+        '<div data-testid="action-row"></div>';
+      p.replaceWith(next);
+      await flush();
+      expect(button(next).disabled).toBe(true);
+      button(next).click();
+      expect(send).toHaveBeenCalledTimes(1);
+      finish(
+        success
+          ? { ok: true, itemId: "saved" }
+          : { ok: false, reason: "network" },
+      );
+      await flush();
+      expect(button(next).disabled).toBe(false);
+      expect(button(next).textContent).toBe(
+        success ? "Clipped" : "No connection, try again",
+      );
+      history.replaceState(null, "", "/");
+    },
+  );
+  it("rejects a late detail post response after navigation away/back", async () => {
+    history.replaceState(null, "", "/comments/abc123/");
+    const p = load("detail");
+    let finish!: (r: ClipResponse) => void;
+    const watcher = watchReddit(
+      document,
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    stop = watcher;
+    button(p).click();
+    history.replaceState(null, "", "/");
+    watcher.refresh();
+    await flush();
+    history.replaceState(null, "", "/comments/abc123/");
+    watcher.refresh();
+    await flush();
+    finish({ ok: true, itemId: "old" });
+    await flush();
+    expect(button(p).textContent).toBe("Clip");
+    history.replaceState(null, "", "/");
+  });
 });

@@ -515,24 +515,24 @@ extension and the existing backend capture behavior.
 
 **Acceptance criteria:**
 
-- [ ] The obsolete `RedditSelection` module and tests are removed with no remaining
+- [x] The obsolete `RedditSelection` module and tests are removed with no remaining
       runtime imports; extension controls contain no Keep comment checkboxes,
       selected counts, or deselect-to-retry instructions.
-- [ ] Post buttons work in feed/detail views, suppress their own repeated pending
+- [x] Post buttons work in feed/detail views, suppress their own repeated pending
       clicks, and retain existing failure/replacement/navigation behavior while
       always sending zero comments.
-- [ ] Extension tests/typechecking and both browser builds pass; existing backend
+- [x] Extension tests/typechecking and both browser builds pass; existing backend
       capture tests still prove repeated IDs, atomic merges, unchanged snapshots,
       and no additional automatic labeling run.
 
 **Verification:**
 
-- [ ] `pnpm --filter @mindspool/extension test`
-- [ ] `pnpm --filter @mindspool/extension typecheck`
-- [ ] `pnpm --filter @mindspool/extension build:firefox`
-- [ ] `pnpm --filter @mindspool/extension build`
-- [ ] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
-- [ ] Search extension source for obsolete selection imports and UI wording;
+- [x] `pnpm --filter @mindspool/extension test`
+- [x] `pnpm --filter @mindspool/extension typecheck`
+- [x] `pnpm --filter @mindspool/extension build:firefox`
+- [x] `pnpm --filter @mindspool/extension build`
+- [x] `pnpm --filter @mindspool/backend exec vitest run convex/redditCapture.test.ts convex/items.test.ts`
+- [x] Search extension source for obsolete selection imports and UI wording;
       check formatter output for changed source files. Browser confirmation follows
       in Task 18.
 
@@ -548,8 +548,8 @@ extension and the existing backend capture behavior.
 
 ### Checkpoint: Individual clipping implementation
 
-- [ ] Tasks 16–17 acceptance criteria and focused/full checks pass.
-- [ ] Review exact request payloads and lifecycle coverage; no backend or schema
+- [x] Tasks 16–17 acceptance criteria and focused/full checks pass.
+- [x] Review exact request payloads and lifecycle coverage; no backend or schema
       changes are required by the implemented flow.
 
 ## Task 18: Document and verify the revised interaction

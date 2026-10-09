@@ -53,6 +53,7 @@ export function watchReddit(
   const states = new Map<Element, PostState>();
   const roots = new Map<ShadowRoot, MutationObserver>();
   const clips = new RedditCommentClips();
+  let detailState: PostState | undefined;
   let stopped = false;
   let scheduled = false;
   const removeControl = (state: PostState) => {
@@ -60,8 +61,8 @@ export function watchReddit(
     state.control?.wrapper.remove();
     state.control = undefined;
   };
-  const removeState = (post: Element, state: PostState) => {
-    clearTimeout(state.timer);
+  const removeState = (post: Element, state: PostState, retain = false) => {
+    if (!retain) clearTimeout(state.timer);
     removeControl(state);
     states.delete(post);
   };
@@ -119,7 +120,9 @@ export function watchReddit(
       async (event) => {
         event.preventDefault();
         event.stopPropagation();
+        scan();
         if (!current(post, state) || state.busy) return;
+        const requestGeneration = clips.generation;
         const parsed = parseRedditPost(post);
         if (!parsed) return flash(state, "Couldn't read this post");
         state.busy = true;
@@ -139,7 +142,12 @@ export function watchReddit(
           reply?.ok === true &&
           typeof reply.itemId === "string" &&
           Boolean(reply.itemId);
-        if (!current(post, state)) return;
+        if (stopped) return;
+        scan();
+        const active = state.detail
+          ? requestGeneration === clips.generation && detailState === state
+          : current(post, state);
+        if (!active) return;
         const feedback = success
           ? "Clipped"
           : reply?.ok === false
@@ -221,13 +229,19 @@ export function watchReddit(
         ? route.postId
         : null,
     );
-    if (clips.generation !== generation)
+    if (clips.generation !== generation) {
+      clearTimeout(detailState?.timer);
+      detailState = undefined;
       for (const [post, state] of states)
-        if (post.getAttribute("view-context") === "CommentsPage")
-          removeState(post, state);
+        if (state.detail) removeState(post, state);
+    }
     for (const [post, state] of states)
       if (!post.isConnected || identity(post) !== state.identity)
-        removeState(post, state);
+        removeState(
+          post,
+          state,
+          state === detailState && state.postId === clips.postId,
+        );
     for (const [root, observer] of roots)
       if (!root.host.isConnected) {
         observer.disconnect();
@@ -242,14 +256,18 @@ export function watchReddit(
       if (!parent || !parsed) continue;
       let state = states.get(post);
       if (!state) {
-        const busy = false;
-        state = {
+        const isDetail =
+          post.getAttribute("view-context") === "CommentsPage" &&
+          parsed.id === clips.postId;
+        state = (isDetail && detailState) || {
           identity: identity(post),
           postId: parsed.id,
           detail: post.getAttribute("view-context") === "CommentsPage",
-          busy,
-          text: busy ? "Clipping…" : "Clip",
+          busy: false,
+          text: "Clip",
         };
+        state.identity = identity(post);
+        if (isDetail) detailState = state;
         states.set(post, state);
       }
       if (
@@ -281,6 +299,8 @@ export function watchReddit(
       doc.defaultView?.removeEventListener(event, schedule),
     );
     comments.stop();
+    clearTimeout(detailState?.timer);
+    detailState = undefined;
     clips.navigate(null);
     for (const [post, state] of states) removeState(post, state);
   };
