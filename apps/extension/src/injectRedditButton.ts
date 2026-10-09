@@ -109,7 +109,7 @@ export function watchReddit(
     button.setAttribute("aria-label", "Clip post to MindSpool");
     button.setAttribute("aria-live", "polite");
     button.style.cssText =
-      "font:800 13px/1 system-ui,sans-serif;color:#fff;background:#5b2fc9;border:0;padding:7px 12px;margin-left:8px;cursor:pointer;position:relative;z-index:5;pointer-events:auto";
+      "font:800 13px/1 system-ui,sans-serif;color:#fff;background:#5b2fc9;border:0;border-radius:0!important;padding:7px 12px;margin-left:8px;cursor:pointer;position:relative;z-index:5;pointer-events:auto";
     const abort = new AbortController();
     state.control = { wrapper, button, abort };
     wrapper.append(button);
