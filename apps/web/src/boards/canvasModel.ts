@@ -1,5 +1,6 @@
 import type { Element, Layout, Operation, BoardPreview } from "./types";
 import { attachCard, detachCard, stackColumn } from "./columnLayout";
+import { effectiveCard } from "./cardContent";
 import { cardHeight } from "./cardGeometry";
 export function columnAt(
   layout: Layout,
@@ -19,7 +20,14 @@ export function columnAt(
           n +
           (e.data.type === "item"
             ? cardHeight(
-                e.data,
+                effectiveCard(
+                  e.data,
+                  previews.find(
+                    (p) =>
+                      p.itemId ===
+                      (e.data.type === "item" ? e.data.itemId : undefined),
+                  ),
+                ),
                 Boolean(
                   previews.find(
                     (p) =>
@@ -45,7 +53,14 @@ export function columnAt(
             e.data.y +
               (e.data.type === "item"
                 ? cardHeight(
-                    e.data,
+                    effectiveCard(
+                      e.data,
+                      previews.find(
+                        (p) =>
+                          p.itemId ===
+                          (e.data.type === "item" ? e.data.itemId : undefined),
+                      ),
+                    ),
                     Boolean(
                       previews.find(
                         (p) =>
@@ -104,7 +119,13 @@ export function moveCard(
     );
     for (const child of stackColumn(
       { ...column, data: column.data },
-      cards,
+      cards.map((card) => ({
+        ...card,
+        data: effectiveCard(
+          card.data,
+          previews.find((p) => p.itemId === card.data.itemId),
+        ),
+      })),
       (id) => Boolean(previews.find((p) => p.itemId === id)?.imageUrl),
     ))
       result.set(child.key, child);

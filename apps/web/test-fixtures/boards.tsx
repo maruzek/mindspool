@@ -69,7 +69,9 @@ const previews: BoardPreview[] = Array.from({ length: count + 4 }, (_, i) => ({
   itemId: `item${i}` as BoardPreview["itemId"],
   title: `${i % 2 ? "Notes on spatial organization" : "Material study"} ${i + 1}`,
   body: "Collected ideas and references. Saved text stays intact while the board provides spatial organization.",
-  source: i % 2 ? "note" : "web",
+  source: i % 2 ? "note" : "reddit",
+  originalUrl: i % 2 ? null : "https://www.reddit.com/r/design/",
+  hasText: i !== 2,
   imageUrl: i % 2 ? null : media,
   labels: [],
 }));

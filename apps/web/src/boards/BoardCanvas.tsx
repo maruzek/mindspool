@@ -27,6 +27,7 @@ import { HeadingNode } from "./HeadingNode";
 import { ConnectionEdge, edgeColors } from "./ConnectionEdge";
 import { columnAt, moveCard } from "./canvasModel";
 import { groupMove, groupRemove } from "./boardSelection";
+import { effectiveCard } from "./cardContent";
 import { cardHeight } from "./cardGeometry";
 import { BoardControls } from "./BoardControls";
 import type { Tool } from "./BoardControls";
@@ -170,7 +171,16 @@ function Canvas({
                         height +
                         (e.data.type === "item" && e.data.columnKey === key
                           ? cardHeight(
-                              e.data,
+                              effectiveCard(
+                                e.data,
+                                previews.find(
+                                  (p) =>
+                                    p.itemId ===
+                                    (e.data.type === "item"
+                                      ? e.data.itemId
+                                      : undefined),
+                                ),
+                              ),
                               Boolean(
                                 previews.find(
                                   (p) =>
@@ -187,7 +197,12 @@ function Canvas({
                 }
               : {}),
             ...(data.type === "item"
-              ? { height: cardHeight(data, Boolean(preview?.imageUrl)) }
+              ? {
+                  height: cardHeight(
+                    effectiveCard(data, preview),
+                    Boolean(preview?.imageUrl),
+                  ),
+                }
               : {}),
           },
         };

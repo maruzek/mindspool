@@ -1,8 +1,12 @@
 import { memo, useState } from "react";
 import { Handle, Position, NodeResizer, NodeToolbar } from "@xyflow/react";
 import type { Node, NodeProps } from "@xyflow/react";
+import { Ellipsis, Trash2 } from "lucide-react";
+import { CardSource, SourceLink } from "./CardSource";
+import { BoardChoice } from "./BoardChoice";
 import { Button } from "@mindspool/ui/components/button";
 import type { BoardPreview } from "./types";
+import { effectiveCard, hasCardText } from "./cardContent";
 import { cardHeight, finishResize } from "./cardGeometry";
 import type { ItemData } from "./cardGeometry";
 export type CardNode = Node<
@@ -28,12 +32,13 @@ export function ItemCardContent({
 }) {
   const [failed, setFailed] = useState(false);
   const media = Boolean(preview?.imageUrl);
-  const showImage = media && card.mode !== "text";
-  const showText = !media || card.mode !== "image";
+  const effective = effectiveCard(card, preview);
+  const showImage = media && effective.mode !== "text";
+  const showText = !media || effective.mode !== "image";
   return (
     <div
-      className="overflow-hidden bg-card shadow-sm"
-      style={{ height: cardHeight(card, media) }}
+      className="relative overflow-hidden bg-card shadow-sm"
+      style={{ height: cardHeight(effective, media) }}
     >
       {showImage && (
         <div className="bg-muted" style={{ height: card.imageHeight }}>
@@ -58,9 +63,7 @@ export function ItemCardContent({
           className="flex flex-col gap-1.5 overflow-hidden px-3.5 py-3"
           style={{ height: card.textHeight }}
         >
-          <p className="text-[11px] text-muted-foreground">
-            {preview?.source ?? "Saved item"}
-          </p>
+          <CardSource source={preview?.source ?? "web"} />
           <h3 className="line-clamp-2 text-[15px] font-medium">
             {preview?.title ?? "Loading preview…"}
           </h3>
@@ -72,13 +75,23 @@ export function ItemCardContent({
           )}
         </div>
       )}
-      <button
-        aria-label="Open details"
-        className="nodrag absolute right-1 bottom-1 bg-card/90 px-1 text-xs focus-visible:outline-2 focus-visible:outline-primary"
-        onClick={open}
-      >
-        ↗
-      </button>
+      {!showText && (
+        <div className="absolute top-2 left-2 bg-card/90 p-1.5">
+          <CardSource source={preview?.source ?? "web"} />
+        </div>
+      )}
+      <div className="nodrag nopan absolute right-1 bottom-1 flex gap-1 bg-card/90">
+        <SourceLink url={preview?.originalUrl} />
+        <Button
+          aria-label="Open details"
+          title="Open details"
+          variant="ghost"
+          size="icon-sm"
+          onClick={open}
+        >
+          <Ellipsis />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -88,6 +101,7 @@ export const ItemCardNode = memo(function ItemCardNode({
 }: NodeProps<CardNode>) {
   const { card, preview } = data;
   const media = Boolean(preview?.imageUrl);
+  const effective = effectiveCard(card, preview);
   return (
     <div className={selected ? "ring-2 ring-primary" : "border border-border"}>
       <NodeResizer
@@ -101,11 +115,11 @@ export const ItemCardNode = memo(function ItemCardNode({
         }}
         isVisible={selected && !data.disabled}
         minWidth={160}
-        minHeight={card.mode === "combined" && media ? 160 : 80}
+        minHeight={effective.mode === "combined" && media ? 160 : 80}
         maxWidth={10000}
         maxHeight={10000}
         onResizeEnd={(_, params) =>
-          data.update(finishResize(card, params, media))
+          data.update(finishResize(effective, params, media))
         }
       />
       <NodeToolbar
@@ -115,28 +129,28 @@ export const ItemCardNode = memo(function ItemCardNode({
         <Button variant="ghost" size="sm" onClick={data.open}>
           Details
         </Button>
-        <select
-          aria-label="Card display"
-          disabled={data.disabled}
-          value={card.mode}
-          className="bg-card text-xs"
-          onChange={(e) =>
-            data.update({ ...card, mode: e.target.value as ItemData["mode"] })
-          }
-        >
-          <option value="combined">Combined</option>
-          <option value="image" disabled={!media}>
-            Image only
-          </option>
-          <option value="text">Text only</option>
-        </select>
+        {media && hasCardText(preview) && (
+          <BoardChoice
+            label="Card display"
+            disabled={data.disabled}
+            value={card.mode}
+            options={[
+              { value: "combined", label: "Combined" },
+              { value: "image", label: "Image only" },
+              { value: "text", label: "Text only" },
+            ]}
+            onChange={(mode) => data.update({ ...card, mode })}
+          />
+        )}
         <Button
-          variant="ghost"
-          size="sm"
+          aria-label="Remove from board"
+          title="Remove from board"
+          variant="destructive"
+          size="icon-sm"
           disabled={data.disabled}
           onClick={data.remove}
         >
-          Remove from board
+          <Trash2 />
         </Button>
       </NodeToolbar>
       <ItemCardContent card={card} preview={preview} open={data.open} />

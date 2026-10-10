@@ -1,11 +1,25 @@
 import { useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Search,
+  LocateFixed,
+} from "lucide-react";
 import { Button } from "@mindspool/ui/components/button";
-import { Input } from "@mindspool/ui/components/input";
+import { Checkbox } from "@mindspool/ui/components/checkbox";
+import { Card, CardContent, CardFooter } from "@mindspool/ui/components/card";
+import { Badge } from "@mindspool/ui/components/reui/badge";
+import { IconInput } from "@mindspool/ui/components/mindspool/search-input";
+import { SourceIcon } from "../library/BrandIcon";
 import type { LabelSearch } from "../search/searchParams";
 import { SOURCES, SOURCE_LABELS } from "../search/searchParams";
 import type { BoardPreview } from "./types";
+import { BoardChoice } from "./BoardChoice";
+import { TrayResizeHandle } from "./TrayResizeHandle";
+import { useTraySearch } from "./useTraySearch";
+import { CardSource, SourceLink } from "./CardSource";
 export const ITEM_DRAG = "application/x-mindspool-item";
-const selectStyle = "border border-border bg-background px-2 py-1 text-sm";
 export function LibraryTray({
   items,
   status,
@@ -43,27 +57,130 @@ export function LibraryTray({
       ),
     ),
   );
+  const search = useTraySearch(filters.q, onFilters);
   const more = status === "CanLoadMore" || status === "LoadingMore";
+  const ordered = [
+    ...items.filter((item) => !placed.has(item.itemId)),
+    ...items.filter((item) => placed.has(item.itemId)),
+  ];
   return (
     <section
       aria-label="Board library tray"
-      className="relative z-10 mx-5 mb-5 border border-border bg-card p-3 shadow-md"
+      className="relative z-10 mx-5 mb-5 flex shrink-0 flex-col border border-border bg-card shadow-md"
       style={{ height: collapsed ? undefined : height, maxHeight: "45vh" }}
     >
-      <header className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-2 text-sm">Library</h2>
-        <select
-          aria-label="Tray scope"
-          className={selectStyle}
+      {!collapsed && (
+        <TrayResizeHandle
+          height={height}
+          onHeight={(value) => {
+            const next = Math.max(160, Math.min(440, value));
+            setHeight(next);
+            localStorage.setItem(`board-tray-height-${boardKey}`, String(next));
+          }}
+        />
+      )}
+      <header className="flex shrink-0 flex-wrap items-center gap-2 px-3 pb-3 pt-2">
+        <h2 className="mr-1 text-sm">Library</h2>
+        <BoardChoice
+          label="Tray scope"
           value={filters.trayScope ?? "label"}
-          onChange={(e) =>
-            onFilters({ trayScope: e.target.value as "label" | "all" })
-          }
-        >
-          <option value="label">Current label</option>
-          <option value="all">All library</option>
-        </select>
+          options={[
+            { value: "label", label: "Current label" },
+            { value: "all", label: "All library" },
+          ]}
+          onChange={(trayScope) => onFilters({ trayScope })}
+        />
+        {!collapsed && (
+          <>
+            <IconInput
+              icon={<Search />}
+              type="search"
+              aria-label="Search tray"
+              placeholder="Search saved items"
+              groupClassName="h-8 w-52"
+              value={search.draft}
+              onChange={(event) => search.change(event.target.value)}
+            />
+            {filters.trayScope === "all" && (
+              <BoardChoice
+                label="Tray label"
+                value={filters.trayLabel ?? ""}
+                options={[
+                  { value: "", label: "All labels" },
+                  ...labels.map((label) => ({
+                    value: label._id,
+                    label: label.name,
+                  })),
+                ]}
+                onChange={(trayLabel) =>
+                  onFilters({ trayLabel: trayLabel || undefined })
+                }
+              />
+            )}
+            <BoardChoice
+              label="Tray source"
+              value={filters.source ?? ""}
+              options={[
+                { value: "", label: "All sources" },
+                ...SOURCES.map((source) => ({
+                  value: source,
+                  label: SOURCE_LABELS[source],
+                  icon: <SourceIcon source={source} />,
+                })),
+              ]}
+              onChange={(source) => onFilters({ source: source || undefined })}
+            />
+            <label className="flex items-center gap-2 text-xs">
+              <Checkbox
+                aria-label="Needs review"
+                checked={Boolean(filters.review)}
+                onCheckedChange={(checked) =>
+                  onFilters({ review: checked ? 1 : undefined })
+                }
+              />
+              Needs review
+            </label>
+            <BoardChoice
+              label="Tray sort"
+              disabled={Boolean(filters.q)}
+              value={filters.q ? "match" : (filters.traySort ?? "newest")}
+              options={
+                filters.q
+                  ? [{ value: "match", label: "Best match" }]
+                  : [
+                      { value: "newest", label: "Newest" },
+                      { value: "oldest", label: "Oldest" },
+                    ]
+              }
+              onChange={(traySort) => {
+                if (traySort !== "match") onFilters({ traySort });
+              }}
+            />
+            {(search.draft ||
+              filters.q ||
+              filters.source ||
+              filters.review ||
+              filters.trayLabel) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  search.reset();
+                  onFilters({
+                    q: undefined,
+                    source: undefined,
+                    review: undefined,
+                    trayLabel: undefined,
+                  });
+                }}
+              >
+                Reset filters
+              </Button>
+            )}
+          </>
+        )}
         <Button
+          className="ml-auto"
           variant="ghost"
           size="sm"
           onClick={() => {
@@ -74,119 +191,12 @@ export function LibraryTray({
             );
           }}
         >
+          {collapsed ? <ChevronUp /> : <ChevronDown />}
           {collapsed ? "Open tray" : "Collapse tray"}
         </Button>
-        {!collapsed && (
-          <>
-            <Input
-              aria-label="Search tray"
-              placeholder="Search saved items"
-              className="w-48"
-              value={filters.q ?? ""}
-              onChange={(e) => onFilters({ q: e.target.value })}
-            />
-            {filters.trayScope === "all" && (
-              <select
-                className={selectStyle}
-                aria-label="Tray label"
-                value={filters.trayLabel ?? ""}
-                onChange={(e) =>
-                  onFilters({ trayLabel: e.target.value || undefined })
-                }
-              >
-                <option value="">All labels</option>
-                {labels.map((label) => (
-                  <option key={label._id} value={label._id}>
-                    {label.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
-              className={selectStyle}
-              aria-label="Tray source"
-              value={filters.source ?? ""}
-              onChange={(e) =>
-                onFilters({ source: e.target.value as LabelSearch["source"] })
-              }
-            >
-              <option value="">All sources</option>
-              {SOURCES.map((s) => (
-                <option key={s} value={s}>
-                  {SOURCE_LABELS[s]}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-1 text-xs">
-              <input
-                type="checkbox"
-                checked={Boolean(filters.review)}
-                onChange={(e) =>
-                  onFilters({ review: e.target.checked ? 1 : undefined })
-                }
-              />
-              Needs review
-            </label>
-            <select
-              className={selectStyle}
-              aria-label="Tray sort"
-              disabled={Boolean(filters.q)}
-              value={filters.q ? "match" : (filters.traySort ?? "newest")}
-              onChange={(e) =>
-                onFilters({ traySort: e.target.value as "newest" | "oldest" })
-              }
-            >
-              {filters.q ? (
-                <option value="match">Best match</option>
-              ) : (
-                <>
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                </>
-              )}
-            </select>
-            {(filters.q ||
-              filters.source ||
-              filters.review ||
-              filters.trayLabel) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  onFilters({
-                    q: undefined,
-                    source: undefined,
-                    review: undefined,
-                    trayLabel: undefined,
-                  })
-                }
-              >
-                Reset filters
-              </Button>
-            )}
-            <label className="ml-auto text-xs">
-              Tray height
-              <input
-                className="ml-1 w-16"
-                aria-label="Tray height"
-                type="range"
-                min={160}
-                max={440}
-                value={height}
-                onChange={(e) => {
-                  setHeight(Number(e.target.value));
-                  localStorage.setItem(
-                    `board-tray-height-${boardKey}`,
-                    e.target.value,
-                  );
-                }}
-              />
-            </label>
-          </>
-        )}
       </header>
       {!collapsed && (
-        <div className="mt-3 h-[calc(100%-3rem)] overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto px-3 pb-3">
           {status === "LoadingFirstPage" ? (
             <p role="status">Loading library…</p>
           ) : !items.length ? (
@@ -202,49 +212,59 @@ export function LibraryTray({
             </p>
           ) : (
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-              {items.map((item) => (
+              {ordered.map((item) => (
                 <li
                   key={item.itemId}
-                  className="border border-border bg-background p-3"
                   draggable={!disabled && !placed.has(item.itemId)}
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData(ITEM_DRAG, item.itemId);
-                    e.dataTransfer.effectAllowed = "copy";
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(ITEM_DRAG, item.itemId);
+                    event.dataTransfer.effectAllowed = "copy";
                   }}
                 >
-                  {item.imageUrl && (
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      className="h-16 w-full object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {item.source}
-                  </p>
-                  <h3 className="line-clamp-2 text-sm">{item.title}</h3>
-                  {placed.has(item.itemId) ? (
-                    <>
-                      <p className="text-xs">On this board</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onLocate(item.itemId)}
-                      >
-                        Locate
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={disabled}
-                      onClick={() => onAdd(item.itemId)}
-                    >
-                      Add to board
-                    </Button>
-                  )}
+                  <Card size="sm" className="h-full gap-2 border bg-background">
+                    {item.imageUrl && (
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        className="h-20 w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
+                    <CardContent className="flex flex-1 flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <CardSource source={item.source} />
+                        <SourceLink url={item.originalUrl} />
+                      </div>
+                      <h3 className="line-clamp-2 text-sm">{item.title}</h3>
+                      {placed.has(item.itemId) && (
+                        <Badge variant="secondary" size="sm">
+                          On this board
+                        </Badge>
+                      )}
+                    </CardContent>
+                    <CardFooter className="border-0 bg-transparent pt-0">
+                      {placed.has(item.itemId) ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onLocate(item.itemId)}
+                        >
+                          <LocateFixed />
+                          Locate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={disabled}
+                          onClick={() => onAdd(item.itemId)}
+                        >
+                          <Plus />
+                          Add to board
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
                 </li>
               ))}
             </ul>

@@ -3,6 +3,7 @@ import { usePaginatedQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
 import type { Id } from "@mindspool/backend/data-model";
 import type { LabelSearch } from "../search/searchParams";
+import { Button } from "@mindspool/ui/components/button";
 import { LibraryTray } from "./LibraryTray";
 import { useBoardTray } from "./useBoardTray";
 import type { BoardPreview } from "./types";
@@ -40,12 +41,14 @@ export function BoardLibrary({
         loadMore={() => feed.loadMore(20)}
       />
       {labels.status === "CanLoadMore" && filters.trayScope === "all" && (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           className="mx-5 mb-2 text-xs"
           onClick={() => labels.loadMore(20)}
         >
           Load more label filters
-        </button>
+        </Button>
       )}
     </>
   );

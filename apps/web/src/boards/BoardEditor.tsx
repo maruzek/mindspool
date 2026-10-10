@@ -58,7 +58,28 @@ export function BoardEditor({
   );
   const navigate = useNavigate();
   const filters = useSearch({ strict: false }) as LabelSearch;
-  const [trayPreviews, reportTray] = useState<BoardPreview[]>([]);
+  const [trayPreviews, setTrayPreviews] = useState<BoardPreview[]>([]);
+  const reportTray = useCallback(
+    (results: BoardPreview[]) => {
+      // Filtering the tray must not discard a placed card's preview while its
+      // save or authoritative board preview subscription is still pending.
+      const placed = new Set(
+        draft.elements.flatMap((element) =>
+          element.data.type === "item" ? [element.data.itemId] : [],
+        ),
+      );
+      setTrayPreviews((previous) => {
+        const retained = new Map(
+          previous
+            .filter((preview) => placed.has(preview.itemId))
+            .map((preview) => [preview.itemId, preview]),
+        );
+        for (const preview of results) retained.set(preview.itemId, preview);
+        return [...retained.values()];
+      });
+    },
+    [draft.elements],
+  );
   const [batches, setBatches] = useState<Record<string, BoardPreview[]>>({});
   const keys = useMemo(
     () =>

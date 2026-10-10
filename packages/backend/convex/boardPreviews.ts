@@ -11,6 +11,8 @@ export const preview = v.object({
   title: v.string(),
   body: v.string(),
   source: v.string(),
+  originalUrl: v.union(v.string(), v.null()),
+  hasText: v.boolean(),
   imageUrl: v.union(v.string(), v.null()),
   labels: v.array(
     v.object({ id: v.id("labels"), name: v.string(), unsure: v.boolean() }),
@@ -58,6 +60,17 @@ export async function previewItem(ctx: QueryCtx, item: Doc<"items">) {
       item.originalInput
     ).slice(0, 1000),
     source: sourceKindOf(item),
+    originalUrl:
+      item.originalUrl && /^https?:\/\//i.test(item.originalUrl)
+        ? item.originalUrl
+        : null,
+    hasText: Boolean(
+      (
+        item.extractedText ||
+        item.sourceMetadata?.description ||
+        (item.inputType === "text" ? item.originalInput : "")
+      ).trim() || item.sourceMetadata?.title?.trim(),
+    ),
     imageUrl,
     labels,
   };
