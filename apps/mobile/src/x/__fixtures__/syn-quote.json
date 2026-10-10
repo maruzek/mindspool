@@ -1,0 +1,151 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 1169,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-06T17:16:02.000Z",
+  "display_text_range": [0, 132],
+  "entities": {
+    "urls": [
+      {
+        "display_url": "Google.com",
+        "expanded_url": "https://Google.com",
+        "indices": [108, 131],
+        "url": "https://t.co/HOpYdEpIlw"
+      }
+    ]
+  },
+  "id_str": "2107520267417190819",
+  "text": "Happy World Space Week! \n\nIf you're searching up space facts today, you might run into our newest image! 👇\n\nhttps://t.co/HOpYdEpIlw",
+  "user": {
+    "id_str": "29472803",
+    "name": "NASA Webb Telescope",
+    "screen_name": "NASAWebb",
+    "is_blue_verified": true,
+    "profile_image_shape": "Square",
+    "verified": false,
+    "verified_type": "Government",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1767989888916299776/hFYvpxZM_normal.jpg",
+    "highlighted_label": {
+      "badge": {
+        "url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_bigger.jpg"
+      },
+      "description": "NASA",
+      "url": { "url": "https://twitter.com/NASA", "url_type": "DeepLink" },
+      "user_label_display_type": "Badge",
+      "user_label_type": "BusinessLabel"
+    }
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2107520267417190819"],
+    "editable_until_msecs": "1791310562000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "conversation_count": 9,
+  "news_action_type": "conversation",
+  "quoted_tweet": {
+    "favorite_count": 2001,
+    "lang": "en",
+    "possibly_sensitive": false,
+    "reply_count": 38,
+    "retweet_count": 414,
+    "created_at": "2026-10-06T13:04:02.000Z",
+    "display_text_range": [0, 234],
+    "entities": {
+      "media": [
+        {
+          "display_url": "pic.x.com/R28JXIhrY9",
+          "expanded_url": "https://x.com/NASAWebb/status/2107456851637887013/photo/1",
+          "indices": [234, 257],
+          "url": "https://t.co/R28JXIhrY9"
+        }
+      ],
+      "urls": [
+        {
+          "display_url": "go.nasa.gov/4y9abFE",
+          "expanded_url": "https://go.nasa.gov/4y9abFE",
+          "indices": [210, 233],
+          "url": "https://t.co/JZwya3QLUR"
+        }
+      ]
+    },
+    "id_str": "2107456851637887013",
+    "text": "Brewing up new stars 🪄\n\nWebb’s unique view of the stellar nursery known as NGC 7129 reveals numerous stars formerly hidden in this cosmic cauldron, helping astronomers study the star lifecycle in more depth. \n\nhttps://t.co/JZwya3QLUR https://t.co/R28JXIhrY9",
+    "user": {
+      "id_str": "29472803",
+      "name": "NASA Webb Telescope",
+      "screen_name": "NASAWebb",
+      "is_blue_verified": true,
+      "profile_image_shape": "Square",
+      "verified": false,
+      "verified_type": "Government",
+      "profile_image_url_https": "https://pbs.twimg.com/profile_images/1767989888916299776/hFYvpxZM_normal.jpg",
+      "highlighted_label": {
+        "badge": {
+          "url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_bigger.jpg"
+        },
+        "description": "NASA",
+        "url": { "url": "https://twitter.com/NASA", "url_type": "DeepLink" },
+        "user_label_display_type": "Badge",
+        "user_label_type": "BusinessLabel"
+      }
+    },
+    "edit_control": {
+      "edit_tweet_ids": ["2107456851637887013"],
+      "editable_until_msecs": "1791295442000",
+      "edits_remaining": "5",
+      "is_edit_eligible": true
+    },
+    "mediaDetails": [
+      {
+        "display_url": "pic.x.com/R28JXIhrY9",
+        "expanded_url": "https://x.com/NASAWebb/status/2107456851637887013/photo/1",
+        "ext_alt_text": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas that extends from the star to the left border of the image. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust. \n\nImage credit: NASA, ESA, CSA, STScI, Processing: Alyssa Pagan.",
+        "ext_media_availability": { "status": "Available" },
+        "indices": [234, 257],
+        "media_url_https": "https://pbs.twimg.com/media/HT8w02sWcAEA3c3.jpg",
+        "original_info": {
+          "focus_rects": [
+            { "h": 4588, "w": 8192, "x": 0, "y": 2000 },
+            { "h": 7643, "w": 7643, "x": 549, "y": 0 },
+            { "h": 7643, "w": 6704, "x": 1488, "y": 0 },
+            { "h": 7643, "w": 3822, "x": 4370, "y": 0 },
+            { "h": 7643, "w": 8192, "x": 0, "y": 0 }
+          ],
+          "height": 7643,
+          "width": 8192
+        },
+        "sizes": {
+          "large": { "h": 1911, "resize": "fit", "w": 2048 },
+          "medium": { "h": 1120, "resize": "fit", "w": 1200 },
+          "small": { "h": 634, "resize": "fit", "w": 680 },
+          "thumb": { "h": 150, "resize": "crop", "w": 150 }
+        },
+        "type": "photo",
+        "url": "https://t.co/R28JXIhrY9"
+      }
+    ],
+    "photos": [
+      {
+        "accessibilityLabel": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas that extends from the star to the left border of the image. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust. \n\nImage credit: NASA, ESA, CSA, STScI, Processing: Alyssa Pagan.",
+        "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+        "cropCandidates": [
+          { "h": 4588, "w": 8192, "x": 0, "y": 2000 },
+          { "h": 7643, "w": 7643, "x": 549, "y": 0 },
+          { "h": 7643, "w": 6704, "x": 1488, "y": 0 },
+          { "h": 7643, "w": 3822, "x": 4370, "y": 0 },
+          { "h": 7643, "w": 8192, "x": 0, "y": 0 }
+        ],
+        "expandedUrl": "https://x.com/NASAWebb/status/2107456851637887013/photo/1",
+        "url": "https://pbs.twimg.com/media/HT8w02sWcAEA3c3.jpg",
+        "width": 8192,
+        "height": 7643
+      }
+    ],
+    "isEdited": false,
+    "isStaleEdit": false
+  },
+  "isEdited": false,
+  "isStaleEdit": false
+}

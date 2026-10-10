@@ -1,0 +1,306 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 7,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-10T17:59:11.000Z",
+  "display_text_range": [0, 186],
+  "entities": {
+    "urls": [
+      {
+        "display_url": "nyti.ms/3TAzDWp",
+        "expanded_url": "https://nyti.ms/3TAzDWp",
+        "indices": [163, 186],
+        "url": "https://t.co/pFgQhR9mBO"
+      }
+    ]
+  },
+  "id_str": "2108980679396515996",
+  "text": "Breaking News: One Philadelphia police officer was killed and another was badly wounded after being shot 12 times in what police officials described as an ambush. https://t.co/pFgQhR9mBO",
+  "user": {
+    "id_str": "807095",
+    "name": "The New York Times",
+    "screen_name": "nytimes",
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified": false,
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1098244578472280064/gjkVMelR_normal.png"
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2108980679396515996"],
+    "editable_until_msecs": "1791658751000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "conversation_count": 5,
+  "news_action_type": "conversation",
+  "card": {
+    "card_platform": {
+      "platform": {
+        "audience": { "name": "production" },
+        "device": { "name": "iPhone", "version": "13" }
+      }
+    },
+    "name": "summary_large_image",
+    "url": "https://t.co/pFgQhR9mBO",
+    "binding_values": {
+      "photo_image_full_size_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 419,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=800x419",
+          "width": 800
+        },
+        "type": "IMAGE"
+      },
+      "thumbnail_image": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 150,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=280x150",
+          "width": 267
+        },
+        "type": "IMAGE"
+      },
+      "description": {
+        "string_value": "Two officers responding to a call were shot multiple times as they reached the scene. Officials said they took “significant fire.”",
+        "type": "STRING"
+      },
+      "domain": { "string_value": "www.nytimes.com", "type": "STRING" },
+      "app_is_free": { "string_value": "true", "type": "STRING" },
+      "thumbnail_image_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 320,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=800x320_1",
+          "width": 570
+        },
+        "type": "IMAGE"
+      },
+      "summary_photo_image_small": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 202,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=386x202",
+          "width": 386
+        },
+        "type": "IMAGE"
+      },
+      "thumbnail_image_original": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=orig",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      },
+      "site": {
+        "scribe_key": "publisher_id",
+        "type": "USER",
+        "user_value": { "id_str": "807095", "path": [] }
+      },
+      "photo_image_full_size_small": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 202,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=386x202",
+          "width": 386
+        },
+        "type": "IMAGE"
+      },
+      "summary_photo_image_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 419,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=800x419",
+          "width": 800
+        },
+        "type": "IMAGE"
+      },
+      "thumbnail_image_small": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 81,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=144x144",
+          "width": 144
+        },
+        "type": "IMAGE"
+      },
+      "app_price_amount": { "string_value": "0.0", "type": "STRING" },
+      "thumbnail_image_x_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=png&name=2048x2048_2_exp",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      },
+      "photo_image_full_size_original": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=orig",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      },
+      "photo_image_full_size_alt_text": {
+        "string_value": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+        "type": "STRING"
+      },
+      "vanity_url": {
+        "scribe_key": "vanity_url",
+        "string_value": "nytimes.com",
+        "type": "STRING"
+      },
+      "photo_image_full_size": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 314,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=600x314",
+          "width": 600
+        },
+        "type": "IMAGE"
+      },
+      "app_name": {
+        "string_value": "NYTimes: US and Global News",
+        "type": "STRING"
+      },
+      "summary_photo_image_alt_text": {
+        "string_value": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+        "type": "STRING"
+      },
+      "thumbnail_image_color": {
+        "image_color_value": {
+          "palette": [
+            {
+              "percentage": 44.6,
+              "rgb": { "blue": 46, "green": 47, "red": 54 }
+            },
+            {
+              "percentage": 29.04,
+              "rgb": { "blue": 111, "green": 122, "red": 127 }
+            },
+            {
+              "percentage": 8.66,
+              "rgb": { "blue": 38, "green": 38, "red": 110 }
+            },
+            {
+              "percentage": 5.74,
+              "rgb": { "blue": 61, "green": 81, "red": 109 }
+            },
+            {
+              "percentage": 3.49,
+              "rgb": { "blue": 33, "green": 16, "red": 152 }
+            }
+          ]
+        },
+        "type": "IMAGE_COLOR"
+      },
+      "title": {
+        "string_value": "One Philadelphia Police Officer Killed, Another Shot 12 Times in Ambush Attack",
+        "type": "STRING"
+      },
+      "app_price_currency": { "string_value": "USD", "type": "STRING" },
+      "summary_photo_image_color": {
+        "image_color_value": {
+          "palette": [
+            {
+              "percentage": 44.6,
+              "rgb": { "blue": 46, "green": 47, "red": 54 }
+            },
+            {
+              "percentage": 29.04,
+              "rgb": { "blue": 111, "green": 122, "red": 127 }
+            },
+            {
+              "percentage": 8.66,
+              "rgb": { "blue": 38, "green": 38, "red": 110 }
+            },
+            {
+              "percentage": 5.74,
+              "rgb": { "blue": 61, "green": 81, "red": 109 }
+            },
+            {
+              "percentage": 3.49,
+              "rgb": { "blue": 33, "green": 16, "red": 152 }
+            }
+          ]
+        },
+        "type": "IMAGE_COLOR"
+      },
+      "summary_photo_image_x_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=png&name=2048x2048_2_exp",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      },
+      "summary_photo_image": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 314,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=600x314",
+          "width": 600
+        },
+        "type": "IMAGE"
+      },
+      "photo_image_full_size_color": {
+        "image_color_value": {
+          "palette": [
+            {
+              "percentage": 44.6,
+              "rgb": { "blue": 46, "green": 47, "red": 54 }
+            },
+            {
+              "percentage": 29.04,
+              "rgb": { "blue": 111, "green": 122, "red": 127 }
+            },
+            {
+              "percentage": 8.66,
+              "rgb": { "blue": 38, "green": 38, "red": 110 }
+            },
+            {
+              "percentage": 5.74,
+              "rgb": { "blue": 61, "green": 81, "red": 109 }
+            },
+            {
+              "percentage": 3.49,
+              "rgb": { "blue": 33, "green": 16, "red": 152 }
+            }
+          ]
+        },
+        "type": "IMAGE_COLOR"
+      },
+      "photo_image_full_size_x_large": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=png&name=2048x2048_2_exp",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      },
+      "card_url": {
+        "scribe_key": "card_url",
+        "string_value": "https://t.co/pFgQhR9mBO",
+        "type": "STRING"
+      },
+      "summary_photo_image_original": {
+        "image_value": {
+          "alt": "As the two officers were taken to the hospital, police and members of the SWAT team were sent to the scene.",
+          "height": 899,
+          "url": "https://pbs.twimg.com/card_img/2108977253778440192/-cBIu22M?format=jpg&name=orig",
+          "width": 1600
+        },
+        "type": "IMAGE"
+      }
+    }
+  },
+  "isEdited": false,
+  "isStaleEdit": false
+}

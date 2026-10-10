@@ -1,0 +1,106 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/NASASpaceOps/status/2108634020414095601",
+    "id": "2108634020414095601",
+    "text": ".@NASA is advancing American leadership in space by taking the next step toward a future where commercial space stations lead the way in low Earth orbit. On Friday, the agency released its final Request for Proposals inviting industry to submit plans for the next generation of commercial space stations.\n\nLearn more: http://www.nasa.gov/news-release/nasa-seeks-us-industry-plans-for-commercial-space-stations/",
+    "raw_text": {
+      "text": ".@NASA is advancing American leadership in space by taking the next step toward a future where commercial space stations lead the way in low Earth orbit. On Friday, the agency released its final Request for Proposals inviting industry to submit plans for the next generation of commercial space stations.\n\nLearn more: https://t.co/wunW060B06",
+      "display_text_range": [0, 341],
+      "facets": [
+        {
+          "type": "mention",
+          "indices": [1, 6],
+          "original": "NASA",
+          "id": "11348282"
+        },
+        {
+          "type": "media",
+          "indices": [278, 301],
+          "id": "2108633872468459521",
+          "display": "pic.x.com/e6hzwAuI78",
+          "original": "https://t.co/e6hzwAuI78",
+          "replacement": "https://x.com/NASASpaceOps/status/2108634020414095601/photo/1"
+        },
+        {
+          "type": "url",
+          "indices": [318, 341],
+          "original": "https://t.co/wunW060B06",
+          "replacement": "http://www.nasa.gov/news-release/nasa-seeks-us-industry-plans-for-commercial-space-stations/",
+          "display": "nasa.gov/news-release/n…"
+        }
+      ]
+    },
+    "author": {
+      "screen_name": "NASASpaceOps",
+      "url": "https://x.com/NASASpaceOps",
+      "id": "1646546144263127045",
+      "followers": 26620,
+      "following": 92,
+      "likes": 2962,
+      "media_count": 809,
+      "name": "NASA Space Operations",
+      "description": "The Human Spaceflight Mission Directorate leads NASA’s human spaceflight and space-enabling activities across low Earth orbit, the Moon, and beyond.",
+      "raw_description": {
+        "text": "The Human Spaceflight Mission Directorate leads NASA’s human spaceflight and space-enabling activities across low Earth orbit, the Moon, and beyond.",
+        "facets": []
+      },
+      "location": "NASA Headquarters ",
+      "banner_url": "https://pbs.twimg.com/profile_banners/1646546144263127045/1681405556",
+      "avatar_url": "https://pbs.twimg.com/profile_images/1646561290402267162/jXotuG3A_200x200.jpg",
+      "joined": "Thu Apr 13 16:11:52 +0000 2023",
+      "protected": false,
+      "website": {
+        "url": "https://www.nasa.gov/human-spaceflight-mission-directorate/",
+        "display_url": "nasa.gov/human-spacefli…"
+      },
+      "verification": {
+        "verified": true,
+        "verified_at": null,
+        "type": "government"
+      },
+      "avatar_color": null
+    },
+    "replies": 20,
+    "retweets": 73,
+    "likes": 495,
+    "bookmarks": 29,
+    "quotes": 10,
+    "created_at": "Fri Oct 09 19:01:41 +0000 2026",
+    "created_timestamp": 1791572501,
+    "possibly_sensitive": false,
+    "views": 144090,
+    "is_note_tweet": true,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "replying_to_status": null,
+    "media": {
+      "all": [
+        {
+          "type": "photo",
+          "id": "2108633872468459521",
+          "url": "https://pbs.twimg.com/media/HUNfVcHWwAE6liy.jpg?name=orig",
+          "width": 1920,
+          "height": 1080,
+          "altText": "Credit: NASA"
+        }
+      ],
+      "photos": [
+        {
+          "type": "photo",
+          "id": "2108633872468459521",
+          "url": "https://pbs.twimg.com/media/HUNfVcHWwAE6liy.jpg?name=orig",
+          "width": 1920,
+          "height": 1080,
+          "altText": "Credit: NASA"
+        }
+      ]
+    },
+    "twitter_card": "summary_large_image",
+    "color": null,
+    "provider": "twitter",
+    "reposted_by": null
+  }
+}

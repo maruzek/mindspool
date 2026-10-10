@@ -1,0 +1,214 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 317,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-07T15:23:22.000Z",
+  "display_text_range": [0, 260],
+  "entities": {
+    "hashtags": [{ "indices": [20, 28], "text": "IAC2026" }],
+    "media": [
+      {
+        "display_url": "pic.x.com/XbWqIwVmfV",
+        "expanded_url": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+        "indices": [261, 284],
+        "url": "https://t.co/XbWqIwVmfV"
+      }
+    ]
+  },
+  "id_str": "2107854303809667285",
+  "text": "Another full day at #IAC2026 with our international and industry partners.\n\nI’m encouraged by their commitment to help us reach the Moon and go beyond, and their willingness to put in the work.\n\nNow it’s on all of us to turn those plans into missions that fly. https://t.co/XbWqIwVmfV",
+  "user": {
+    "id_str": "2054998853900775424",
+    "name": "Deputy Administrator Matt Anderson",
+    "screen_name": "NASADepAdmin",
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified": false,
+    "verified_type": "Government",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/2057553771987709952/K86JzAU2_normal.jpg",
+    "highlighted_label": {
+      "badge": {
+        "url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_bigger.jpg"
+      },
+      "description": "NASA",
+      "url": { "url": "https://twitter.com/NASA", "url_type": "DeepLink" },
+      "user_label_display_type": "Badge",
+      "user_label_type": "BusinessLabel"
+    }
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2107854303809667285"],
+    "editable_until_msecs": "1791390202000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "mediaDetails": [
+    {
+      "display_url": "pic.x.com/XbWqIwVmfV",
+      "expanded_url": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [261, 284],
+      "media_url_https": "https://pbs.twimg.com/media/HUCaTwMaMAAwDCq.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+          { "h": 1366, "w": 1366, "x": 494, "y": 0 },
+          { "h": 1366, "w": 1198, "x": 578, "y": 0 },
+          { "h": 1366, "w": 683, "x": 836, "y": 0 },
+          { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+        ],
+        "height": 1366,
+        "width": 2048
+      },
+      "sizes": {
+        "large": { "h": 1366, "resize": "fit", "w": 2048 },
+        "medium": { "h": 800, "resize": "fit", "w": 1200 },
+        "small": { "h": 454, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/XbWqIwVmfV"
+    },
+    {
+      "display_url": "pic.x.com/XbWqIwVmfV",
+      "expanded_url": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [261, 284],
+      "media_url_https": "https://pbs.twimg.com/media/HUCaTwIaMAALGER.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+          { "h": 1366, "w": 1366, "x": 0, "y": 0 },
+          { "h": 1366, "w": 1198, "x": 0, "y": 0 },
+          { "h": 1366, "w": 683, "x": 119, "y": 0 },
+          { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+        ],
+        "height": 1366,
+        "width": 2048
+      },
+      "sizes": {
+        "large": { "h": 1366, "resize": "fit", "w": 2048 },
+        "medium": { "h": 800, "resize": "fit", "w": 1200 },
+        "small": { "h": 454, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/XbWqIwVmfV"
+    },
+    {
+      "display_url": "pic.x.com/XbWqIwVmfV",
+      "expanded_url": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [261, 284],
+      "media_url_https": "https://pbs.twimg.com/media/HUCaTwIbUAE6Dbu.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+          { "h": 1366, "w": 1366, "x": 289, "y": 0 },
+          { "h": 1366, "w": 1198, "x": 373, "y": 0 },
+          { "h": 1366, "w": 683, "x": 631, "y": 0 },
+          { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+        ],
+        "height": 1366,
+        "width": 2048
+      },
+      "sizes": {
+        "large": { "h": 1366, "resize": "fit", "w": 2048 },
+        "medium": { "h": 800, "resize": "fit", "w": 1200 },
+        "small": { "h": 454, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/XbWqIwVmfV"
+    },
+    {
+      "display_url": "pic.x.com/XbWqIwVmfV",
+      "expanded_url": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [261, 284],
+      "media_url_https": "https://pbs.twimg.com/media/HUCaTwJa0AAOOCd.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+          { "h": 1366, "w": 1366, "x": 289, "y": 0 },
+          { "h": 1366, "w": 1198, "x": 373, "y": 0 },
+          { "h": 1366, "w": 683, "x": 631, "y": 0 },
+          { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+        ],
+        "height": 1366,
+        "width": 2048
+      },
+      "sizes": {
+        "large": { "h": 1366, "resize": "fit", "w": 2048 },
+        "medium": { "h": 800, "resize": "fit", "w": 1200 },
+        "small": { "h": 454, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/XbWqIwVmfV"
+    }
+  ],
+  "photos": [
+    {
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+        { "h": 1366, "w": 1366, "x": 494, "y": 0 },
+        { "h": 1366, "w": 1198, "x": 578, "y": 0 },
+        { "h": 1366, "w": 683, "x": 836, "y": 0 },
+        { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "url": "https://pbs.twimg.com/media/HUCaTwMaMAAwDCq.jpg",
+      "width": 2048,
+      "height": 1366
+    },
+    {
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+        { "h": 1366, "w": 1366, "x": 0, "y": 0 },
+        { "h": 1366, "w": 1198, "x": 0, "y": 0 },
+        { "h": 1366, "w": 683, "x": 119, "y": 0 },
+        { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "url": "https://pbs.twimg.com/media/HUCaTwIaMAALGER.jpg",
+      "width": 2048,
+      "height": 1366
+    },
+    {
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+        { "h": 1366, "w": 1366, "x": 289, "y": 0 },
+        { "h": 1366, "w": 1198, "x": 373, "y": 0 },
+        { "h": 1366, "w": 683, "x": 631, "y": 0 },
+        { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "url": "https://pbs.twimg.com/media/HUCaTwIbUAE6Dbu.jpg",
+      "width": 2048,
+      "height": 1366
+    },
+    {
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1147, "w": 2048, "x": 0, "y": 0 },
+        { "h": 1366, "w": 1366, "x": 289, "y": 0 },
+        { "h": 1366, "w": 1198, "x": 373, "y": 0 },
+        { "h": 1366, "w": 683, "x": 631, "y": 0 },
+        { "h": 1366, "w": 2048, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1",
+      "url": "https://pbs.twimg.com/media/HUCaTwJa0AAOOCd.jpg",
+      "width": 2048,
+      "height": 1366
+    }
+  ],
+  "conversation_count": 11,
+  "news_action_type": "conversation",
+  "isEdited": false,
+  "isStaleEdit": false
+}

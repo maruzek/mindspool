@@ -14,3 +14,4 @@ skills-lock.json
 packages/backend/convex/_generated/
 apps/web/src/routeTree.gen.ts
 apps/extension/src/__fixtures__/
+apps/mobile/src/x/__fixtures__/

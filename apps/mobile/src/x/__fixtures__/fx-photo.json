@@ -1,0 +1,96 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/NASA/status/2108662426606395572",
+    "id": "2108662426606395572",
+    "text": "Brewing up baby stars ⭐\n\n@NASAWebb used infrared light to peer through the dust in this nebula, revealing many stars of different ages. This helps us study how stars change over time.",
+    "raw_text": {
+      "text": "Brewing up baby stars ⭐\n\n@NASAWebb used infrared light to peer through the dust in this nebula, revealing many stars of different ages. This helps us study how stars change over time. https://t.co/G16OCOgT6s",
+      "display_text_range": [0, 183],
+      "facets": [
+        {
+          "type": "mention",
+          "indices": [25, 34],
+          "original": "NASAWebb",
+          "id": "29472803"
+        },
+        {
+          "type": "media",
+          "indices": [184, 207],
+          "id": "2108662422462480384",
+          "display": "pic.x.com/G16OCOgT6s",
+          "original": "https://t.co/G16OCOgT6s",
+          "replacement": "https://x.com/NASA/status/2108662426606395572/photo/1"
+        }
+      ]
+    },
+    "author": {
+      "screen_name": "NASA",
+      "url": "https://x.com/NASA",
+      "id": "11348282",
+      "followers": 92327893,
+      "following": 115,
+      "likes": 17028,
+      "media_count": 28192,
+      "name": "NASA",
+      "description": "Making the seemingly impossible, possible. ✨",
+      "raw_description": {
+        "text": "Making the seemingly impossible, possible. ✨",
+        "facets": []
+      },
+      "location": "Pale Blue Dot",
+      "banner_url": "https://pbs.twimg.com/profile_banners/11348282/1788992290",
+      "avatar_url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_200x200.jpg",
+      "joined": "Wed Dec 19 20:20:32 +0000 2007",
+      "protected": false,
+      "website": { "url": "http://www.nasa.gov/", "display_url": "nasa.gov" },
+      "verification": {
+        "verified": true,
+        "verified_at": null,
+        "type": "government"
+      },
+      "avatar_color": null
+    },
+    "replies": 259,
+    "retweets": 1233,
+    "likes": 7460,
+    "bookmarks": 442,
+    "quotes": 94,
+    "created_at": "Fri Oct 09 20:54:34 +0000 2026",
+    "created_timestamp": 1791579274,
+    "possibly_sensitive": false,
+    "views": 1010676,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "replying_to_status": null,
+    "media": {
+      "all": [
+        {
+          "type": "photo",
+          "id": "2108662422462480384",
+          "url": "https://pbs.twimg.com/media/HUN5TRIXQAAuu31.jpg?name=orig",
+          "width": 2048,
+          "height": 1911,
+          "altText": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust."
+        }
+      ],
+      "photos": [
+        {
+          "type": "photo",
+          "id": "2108662422462480384",
+          "url": "https://pbs.twimg.com/media/HUN5TRIXQAAuu31.jpg?name=orig",
+          "width": 2048,
+          "height": 1911,
+          "altText": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust."
+        }
+      ]
+    },
+    "twitter_card": "summary_large_image",
+    "color": null,
+    "provider": "twitter",
+    "reposted_by": null
+  }
+}

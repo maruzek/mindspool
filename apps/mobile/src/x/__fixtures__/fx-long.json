@@ -1,0 +1,86 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/TheAthletic/status/2108914690843718125",
+    "id": "2108914690843718125",
+    "text": "There’s no better reminder of the NFL’s week-to-week nature than the 2026 Atlanta Falcons.\n\nAlong with Atlanta’s resurgence, @jjones9 has more on:\n◽️ Why it’s finally clicking for Bryce Young\n◽️ Philly’s cap gymnastics in light of Lane Johnson's retirement\n◽️ How a contentious negotiation with the refs’ union might have played into two suspensions\n\nFree to read:\nhttps://nyti.ms/4zjyOQO",
+    "raw_text": {
+      "text": "There’s no better reminder of the NFL’s week-to-week nature than the 2026 Atlanta Falcons.\n\nAlong with Atlanta’s resurgence, @jjones9 has more on:\n◽️ Why it’s finally clicking for Bryce Young\n◽️ Philly’s cap gymnastics in light of Lane Johnson's retirement\n◽️ How a contentious negotiation with the refs’ union might have played into two suspensions\n\nFree to read:\nhttps://t.co/nM7s6j0BRX",
+      "display_text_range": [0, 388],
+      "facets": [
+        {
+          "type": "mention",
+          "indices": [125, 133],
+          "original": "jjones9",
+          "id": "45975888"
+        },
+        {
+          "type": "url",
+          "indices": [365, 388],
+          "original": "https://t.co/nM7s6j0BRX",
+          "replacement": "https://nyti.ms/4zjyOQO",
+          "display": "nyti.ms/4zjyOQO"
+        }
+      ]
+    },
+    "author": {
+      "screen_name": "TheAthletic",
+      "url": "https://x.com/TheAthletic",
+      "id": "809532994444591104",
+      "followers": 1669872,
+      "following": 861,
+      "likes": 17120,
+      "media_count": 48297,
+      "name": "The Athletic",
+      "description": "Get every sports story that matters.",
+      "raw_description": {
+        "text": "Get every sports story that matters.",
+        "facets": []
+      },
+      "location": "",
+      "banner_url": "https://pbs.twimg.com/profile_banners/809532994444591104/1696624392",
+      "avatar_url": "https://pbs.twimg.com/profile_images/1710392781502599168/30B7uQGJ_200x200.jpg",
+      "joined": "Thu Dec 15 22:58:01 +0000 2016",
+      "protected": false,
+      "website": {
+        "url": "https://www.nytimes.com/athletic/",
+        "display_url": "nytimes.com/athletic/"
+      },
+      "verification": {
+        "verified": true,
+        "verified_at": null,
+        "type": "organization"
+      },
+      "avatar_color": null
+    },
+    "replies": 3,
+    "retweets": 3,
+    "likes": 6,
+    "bookmarks": 2,
+    "quotes": 0,
+    "created_at": "Sat Oct 10 13:36:58 +0000 2026",
+    "created_timestamp": 1791639418,
+    "views": 38950,
+    "is_note_tweet": true,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "replying_to_status": null,
+    "card": {
+      "url": "https://nyti.ms/4zjyOQO",
+      "title": "What I’m hearing about Bryce Young’s breakout, Ravens’ trade process post Maxx Crosby, penalty-flag...",
+      "description": "Plus, whether a change of play callers was warranted in Denver, a possible Khalil Mack homecoming, Bryce Young's breakout and more.",
+      "domain": "www.nytimes.com",
+      "image": {
+        "width": 800,
+        "height": 419,
+        "url": "https://pbs.twimg.com/card_img/2108878108778545152/VogheeZf?format=jpg&name=800x419"
+      }
+    },
+    "twitter_card": "tweet",
+    "color": null,
+    "provider": "twitter",
+    "reposted_by": null
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/NASAWebb/status/2107520267417190819",
+    "id": "2107520267417190819",
+    "text": "Happy World Space Week! \n\nIf you're searching up space facts today, you might run into our newest image! 👇\n\nhttps://Google.com",
+    "raw_text": {
+      "text": "Happy World Space Week! \n\nIf you're searching up space facts today, you might run into our newest image! 👇\n\nhttps://t.co/HOpYdEpIlw",
+      "display_text_range": [0, 131],
+      "facets": [
+        {
+          "type": "url",
+          "indices": [108, 131],
+          "original": "https://t.co/HOpYdEpIlw",
+          "replacement": "https://Google.com",
+          "display": "Google.com"
+        }
+      ]
+    },
+    "author": {
+      "screen_name": "NASAWebb",
+      "url": "https://x.com/NASAWebb",
+      "id": "29472803",
+      "followers": 3515551,
+      "following": 63,
+      "likes": 4463,
+      "media_count": 3180,
+      "name": "NASA Webb Telescope",
+      "description": "The Official *NASA* Webb X account. \n\nThe world's most powerful space telescope. Launched: Dec. 25, 2021. First images revealed: July 12, 2022.",
+      "raw_description": {
+        "text": "The Official *NASA* Webb X account. \n\nThe world's most powerful space telescope. Launched: Dec. 25, 2021. First images revealed: July 12, 2022.",
+        "facets": []
+      },
+      "location": "Lagrange Point 2",
+      "banner_url": "https://pbs.twimg.com/profile_banners/29472803/1657642323",
+      "avatar_url": "https://pbs.twimg.com/profile_images/1767989888916299776/hFYvpxZM_200x200.jpg",
+      "joined": "Tue Apr 07 15:40:56 +0000 2009",
+      "protected": false,
+      "website": {
+        "url": "https://nasa.gov/webb",
+        "display_url": "nasa.gov/webb"
+      },
+      "verification": {
+        "verified": true,
+        "verified_at": null,
+        "type": "government"
+      },
+      "avatar_color": null
+    },
+    "replies": 9,
+    "retweets": 170,
+    "likes": 1169,
+    "bookmarks": 63,
+    "quotes": 3,
+    "created_at": "Tue Oct 06 17:16:02 +0000 2026",
+    "created_timestamp": 1791306962,
+    "possibly_sensitive": false,
+    "views": 78935,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "replying_to_status": null,
+    "quote": {
+      "url": "https://x.com/NASAWebb/status/2107456851637887013",
+      "id": "2107456851637887013",
+      "text": "Brewing up new stars 🪄\n\nWebb’s unique view of the stellar nursery known as NGC 7129 reveals numerous stars formerly hidden in this cosmic cauldron, helping astronomers study the star lifecycle in more depth. \n\nhttps://go.nasa.gov/4y9abFE",
+      "raw_text": {
+        "text": "Brewing up new stars 🪄\n\nWebb’s unique view of the stellar nursery known as NGC 7129 reveals numerous stars formerly hidden in this cosmic cauldron, helping astronomers study the star lifecycle in more depth. \n\nhttps://t.co/JZwya3QLUR https://t.co/R28JXIhrY9",
+        "display_text_range": [0, 233],
+        "facets": [
+          {
+            "type": "url",
+            "indices": [210, 233],
+            "original": "https://t.co/JZwya3QLUR",
+            "replacement": "https://go.nasa.gov/4y9abFE",
+            "display": "go.nasa.gov/4y9abFE"
+          },
+          {
+            "type": "media",
+            "indices": [234, 257],
+            "id": "2107456835225546753",
+            "display": "pic.x.com/R28JXIhrY9",
+            "original": "https://t.co/R28JXIhrY9",
+            "replacement": "https://x.com/NASAWebb/status/2107456851637887013/photo/1"
+          }
+        ]
+      },
+      "author": {
+        "screen_name": "NASAWebb",
+        "url": "https://x.com/NASAWebb",
+        "id": "29472803",
+        "followers": 3515551,
+        "following": 63,
+        "likes": 4463,
+        "media_count": 3180,
+        "name": "NASA Webb Telescope",
+        "description": "The Official *NASA* Webb X account. \n\nThe world's most powerful space telescope. Launched: Dec. 25, 2021. First images revealed: July 12, 2022.",
+        "raw_description": {
+          "text": "The Official *NASA* Webb X account. \n\nThe world's most powerful space telescope. Launched: Dec. 25, 2021. First images revealed: July 12, 2022.",
+          "facets": []
+        },
+        "location": "Lagrange Point 2",
+        "banner_url": "https://pbs.twimg.com/profile_banners/29472803/1657642323",
+        "avatar_url": "https://pbs.twimg.com/profile_images/1767989888916299776/hFYvpxZM_200x200.jpg",
+        "joined": "Tue Apr 07 15:40:56 +0000 2009",
+        "protected": false,
+        "website": {
+          "url": "https://nasa.gov/webb",
+          "display_url": "nasa.gov/webb"
+        },
+        "verification": {
+          "verified": true,
+          "verified_at": null,
+          "type": "government"
+        },
+        "avatar_color": null
+      },
+      "replies": 38,
+      "retweets": 414,
+      "likes": 2001,
+      "bookmarks": 137,
+      "quotes": 31,
+      "created_at": "Tue Oct 06 13:04:02 +0000 2026",
+      "created_timestamp": 1791291842,
+      "possibly_sensitive": false,
+      "views": 137216,
+      "is_note_tweet": false,
+      "community_note": null,
+      "lang": "en",
+      "replying_to": null,
+      "replying_to_status": null,
+      "media": {
+        "all": [
+          {
+            "type": "photo",
+            "id": "2107456835225546753",
+            "url": "https://pbs.twimg.com/media/HT8w02sWcAEA3c3.jpg?name=orig",
+            "width": 8192,
+            "height": 7643,
+            "altText": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas that extends from the star to the left border of the image. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust. \n\nImage credit: NASA, ESA, CSA, STScI, Processing: Alyssa Pagan."
+          }
+        ],
+        "photos": [
+          {
+            "type": "photo",
+            "id": "2107456835225546753",
+            "url": "https://pbs.twimg.com/media/HT8w02sWcAEA3c3.jpg?name=orig",
+            "width": 8192,
+            "height": 7643,
+            "altText": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas that extends from the star to the left border of the image. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust. \n\nImage credit: NASA, ESA, CSA, STScI, Processing: Alyssa Pagan."
+          }
+        ]
+      },
+      "twitter_card": "summary_large_image",
+      "color": null,
+      "provider": "twitter",
+      "reposted_by": null
+    },
+    "color": null,
+    "provider": "twitter",
+    "reposted_by": null
+  }
+}

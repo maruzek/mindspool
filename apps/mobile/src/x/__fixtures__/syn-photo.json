@@ -1,0 +1,94 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 7460,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-09T20:54:34.000Z",
+  "display_text_range": [0, 183],
+  "entities": {
+    "media": [
+      {
+        "display_url": "pic.x.com/G16OCOgT6s",
+        "expanded_url": "https://x.com/NASA/status/2108662426606395572/photo/1",
+        "indices": [184, 207],
+        "url": "https://t.co/G16OCOgT6s"
+      }
+    ],
+    "user_mentions": [
+      {
+        "id_str": "29472803",
+        "indices": [25, 34],
+        "name": "NASA Webb Telescope",
+        "screen_name": "NASAWebb"
+      }
+    ]
+  },
+  "id_str": "2108662426606395572",
+  "text": "Brewing up baby stars ⭐\n\n@NASAWebb used infrared light to peer through the dust in this nebula, revealing many stars of different ages. This helps us study how stars change over time. https://t.co/G16OCOgT6s",
+  "user": {
+    "id_str": "11348282",
+    "name": "NASA",
+    "screen_name": "NASA",
+    "is_blue_verified": true,
+    "profile_image_shape": "Square",
+    "verified": false,
+    "verified_type": "Government",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_normal.jpg"
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2108662426606395572"],
+    "editable_until_msecs": "1791582874000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "mediaDetails": [
+    {
+      "display_url": "pic.x.com/G16OCOgT6s",
+      "expanded_url": "https://x.com/NASA/status/2108662426606395572/photo/1",
+      "ext_alt_text": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust.",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [184, 207],
+      "media_url_https": "https://pbs.twimg.com/media/HUN5TRIXQAAuu31.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1147, "w": 2048, "x": 0, "y": 500 },
+          { "h": 1911, "w": 1911, "x": 137, "y": 0 },
+          { "h": 1911, "w": 1676, "x": 372, "y": 0 },
+          { "h": 1911, "w": 956, "x": 1092, "y": 0 },
+          { "h": 1911, "w": 2048, "x": 0, "y": 0 }
+        ],
+        "height": 1911,
+        "width": 2048
+      },
+      "sizes": {
+        "large": { "h": 1911, "resize": "fit", "w": 2048 },
+        "medium": { "h": 1120, "resize": "fit", "w": 1200 },
+        "small": { "h": 635, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/G16OCOgT6s"
+    }
+  ],
+  "photos": [
+    {
+      "accessibilityLabel": "A young star cluster filled with many stars that display Webb’s unique eight-pronged diffraction pattern. At its center is a yellow star which sports the largest diffraction pattern. To the left of the star, there is a region filled with yellow dust and gas. This yellow region extends from the bottom, covering about two-thirds of the image. The yellow region has several blue stars of different sizes embedded within. The top third, which lies outside of the yellow region, holds a few bright protostars, within dense gray gas. Those stars illuminate the gas, making it appear blue. A few red outflows from other protostars are visible above this grayish-blue region. To the right of the central star, there is a clumpy, flame-like plume of red dust and gas with protostars that emit a soft white light within. The plume is surrounded by more dense gray gas and dust.",
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1147, "w": 2048, "x": 0, "y": 500 },
+        { "h": 1911, "w": 1911, "x": 137, "y": 0 },
+        { "h": 1911, "w": 1676, "x": 372, "y": 0 },
+        { "h": 1911, "w": 956, "x": 1092, "y": 0 },
+        { "h": 1911, "w": 2048, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASA/status/2108662426606395572/photo/1",
+      "url": "https://pbs.twimg.com/media/HUN5TRIXQAAuu31.jpg",
+      "width": 2048,
+      "height": 1911
+    }
+  ],
+  "conversation_count": 259,
+  "news_action_type": "conversation",
+  "isEdited": false,
+  "isStaleEdit": false
+}

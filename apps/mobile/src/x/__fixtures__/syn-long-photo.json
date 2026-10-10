@@ -1,0 +1,104 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 495,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-09T19:01:41.000Z",
+  "display_text_range": [0, 277],
+  "entities": {
+    "media": [
+      {
+        "display_url": "pic.x.com/e6hzwAuI78",
+        "expanded_url": "https://x.com/NASASpaceOps/status/2108634020414095601/photo/1",
+        "indices": [278, 301],
+        "url": "https://t.co/e6hzwAuI78"
+      }
+    ],
+    "user_mentions": [
+      {
+        "id_str": "11348282",
+        "indices": [1, 6],
+        "name": "NASA",
+        "screen_name": "NASA"
+      }
+    ]
+  },
+  "id_str": "2108634020414095601",
+  "text": ".@NASA is advancing American leadership in space by taking the next step toward a future where commercial space stations lead the way in low Earth orbit. On Friday, the agency released its final Request for Proposals inviting industry to submit plans for the next generation of https://t.co/e6hzwAuI78",
+  "user": {
+    "id_str": "1646546144263127045",
+    "name": "NASA Space Operations",
+    "screen_name": "NASASpaceOps",
+    "is_blue_verified": true,
+    "profile_image_shape": "Square",
+    "verified": false,
+    "verified_type": "Government",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/1646561290402267162/jXotuG3A_normal.jpg",
+    "highlighted_label": {
+      "badge": {
+        "url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_bigger.jpg"
+      },
+      "description": "NASA",
+      "url": { "url": "https://twitter.com/NASA", "url_type": "DeepLink" },
+      "user_label_display_type": "Badge",
+      "user_label_type": "BusinessLabel"
+    }
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2108634020414095601"],
+    "editable_until_msecs": "1791576101000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "mediaDetails": [
+    {
+      "display_url": "pic.x.com/e6hzwAuI78",
+      "expanded_url": "https://x.com/NASASpaceOps/status/2108634020414095601/photo/1",
+      "ext_alt_text": "Credit: NASA",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [278, 301],
+      "media_url_https": "https://pbs.twimg.com/media/HUNfVcHWwAE6liy.jpg",
+      "original_info": {
+        "focus_rects": [
+          { "h": 1075, "w": 1920, "x": 0, "y": 0 },
+          { "h": 1080, "w": 1080, "x": 420, "y": 0 },
+          { "h": 1080, "w": 947, "x": 487, "y": 0 },
+          { "h": 1080, "w": 540, "x": 690, "y": 0 },
+          { "h": 1080, "w": 1920, "x": 0, "y": 0 }
+        ],
+        "height": 1080,
+        "width": 1920
+      },
+      "sizes": {
+        "large": { "h": 1080, "resize": "fit", "w": 1920 },
+        "medium": { "h": 675, "resize": "fit", "w": 1200 },
+        "small": { "h": 383, "resize": "fit", "w": 680 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "photo",
+      "url": "https://t.co/e6hzwAuI78"
+    }
+  ],
+  "photos": [
+    {
+      "accessibilityLabel": "Credit: NASA",
+      "backgroundColor": { "red": 204, "green": 214, "blue": 221 },
+      "cropCandidates": [
+        { "h": 1075, "w": 1920, "x": 0, "y": 0 },
+        { "h": 1080, "w": 1080, "x": 420, "y": 0 },
+        { "h": 1080, "w": 947, "x": 487, "y": 0 },
+        { "h": 1080, "w": 540, "x": 690, "y": 0 },
+        { "h": 1080, "w": 1920, "x": 0, "y": 0 }
+      ],
+      "expandedUrl": "https://x.com/NASASpaceOps/status/2108634020414095601/photo/1",
+      "url": "https://pbs.twimg.com/media/HUNfVcHWwAE6liy.jpg",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "conversation_count": 20,
+  "news_action_type": "conversation",
+  "isEdited": false,
+  "isStaleEdit": false,
+  "note_tweet": { "id": "Tm90ZVR3ZWV0UmVzdWx0czoyMTA4NjM0MDIwMjg4Mzc2ODMy" }
+}

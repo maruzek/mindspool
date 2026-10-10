@@ -1,0 +1,162 @@
+{
+  "code": 200,
+  "message": "OK",
+  "tweet": {
+    "url": "https://x.com/NASADepAdmin/status/2107854303809667285",
+    "id": "2107854303809667285",
+    "text": "Another full day at #IAC2026 with our international and industry partners.\n\nI’m encouraged by their commitment to help us reach the Moon and go beyond, and their willingness to put in the work.\n\nNow it’s on all of us to turn those plans into missions that fly.",
+    "raw_text": {
+      "text": "Another full day at #IAC2026 with our international and industry partners.\n\nI’m encouraged by their commitment to help us reach the Moon and go beyond, and their willingness to put in the work.\n\nNow it’s on all of us to turn those plans into missions that fly. https://t.co/XbWqIwVmfV",
+      "display_text_range": [0, 260],
+      "facets": [
+        { "type": "hashtag", "indices": [20, 28], "original": "IAC2026" },
+        {
+          "type": "media",
+          "indices": [261, 284],
+          "id": "2107854289754533888",
+          "display": "pic.x.com/XbWqIwVmfV",
+          "original": "https://t.co/XbWqIwVmfV",
+          "replacement": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1"
+        },
+        {
+          "type": "media",
+          "indices": [261, 284],
+          "id": "2107854289737756672",
+          "display": "pic.x.com/XbWqIwVmfV",
+          "original": "https://t.co/XbWqIwVmfV",
+          "replacement": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1"
+        },
+        {
+          "type": "media",
+          "indices": [261, 284],
+          "id": "2107854289737830401",
+          "display": "pic.x.com/XbWqIwVmfV",
+          "original": "https://t.co/XbWqIwVmfV",
+          "replacement": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1"
+        },
+        {
+          "type": "media",
+          "indices": [261, 284],
+          "id": "2107854289741991936",
+          "display": "pic.x.com/XbWqIwVmfV",
+          "original": "https://t.co/XbWqIwVmfV",
+          "replacement": "https://x.com/NASADepAdmin/status/2107854303809667285/photo/1"
+        }
+      ]
+    },
+    "author": {
+      "screen_name": "NASADepAdmin",
+      "url": "https://x.com/NASADepAdmin",
+      "id": "2054998853900775424",
+      "followers": 5523,
+      "following": 6,
+      "likes": 6,
+      "media_count": 24,
+      "name": "Deputy Administrator Matt Anderson",
+      "description": "Serving President Donald J. Trump as the 16th @NASA Deputy Administrator | Working alongside @NASAAdmin to lead the next Golden Age of space discovery 🚀",
+      "raw_description": {
+        "text": "Serving President Donald J. Trump as the 16th @NASA Deputy Administrator | Working alongside @NASAAdmin to lead the next Golden Age of space discovery 🚀",
+        "facets": []
+      },
+      "location": "",
+      "banner_url": "https://pbs.twimg.com/profile_banners/2054998853900775424/1779366352",
+      "avatar_url": "https://pbs.twimg.com/profile_images/2057553771987709952/K86JzAU2_200x200.jpg",
+      "joined": "Thu May 14 18:55:50 +0000 2026",
+      "protected": false,
+      "website": null,
+      "verification": {
+        "verified": true,
+        "verified_at": null,
+        "type": "government"
+      },
+      "avatar_color": null
+    },
+    "replies": 11,
+    "retweets": 27,
+    "likes": 317,
+    "bookmarks": 12,
+    "quotes": 1,
+    "created_at": "Wed Oct 07 15:23:22 +0000 2026",
+    "created_timestamp": 1791386602,
+    "possibly_sensitive": false,
+    "views": 136535,
+    "is_note_tweet": false,
+    "community_note": null,
+    "lang": "en",
+    "replying_to": null,
+    "replying_to_status": null,
+    "media": {
+      "all": [
+        {
+          "type": "photo",
+          "id": "2107854289754533888",
+          "url": "https://pbs.twimg.com/media/HUCaTwMaMAAwDCq.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289737756672",
+          "url": "https://pbs.twimg.com/media/HUCaTwIaMAALGER.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289737830401",
+          "url": "https://pbs.twimg.com/media/HUCaTwIbUAE6Dbu.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289741991936",
+          "url": "https://pbs.twimg.com/media/HUCaTwJa0AAOOCd.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        }
+      ],
+      "photos": [
+        {
+          "type": "photo",
+          "id": "2107854289754533888",
+          "url": "https://pbs.twimg.com/media/HUCaTwMaMAAwDCq.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289737756672",
+          "url": "https://pbs.twimg.com/media/HUCaTwIaMAALGER.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289737830401",
+          "url": "https://pbs.twimg.com/media/HUCaTwIbUAE6Dbu.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        },
+        {
+          "type": "photo",
+          "id": "2107854289741991936",
+          "url": "https://pbs.twimg.com/media/HUCaTwJa0AAOOCd.jpg?name=orig",
+          "width": 2048,
+          "height": 1366
+        }
+      ],
+      "mosaic": {
+        "type": "mosaic_photo",
+        "formats": {
+          "jpeg": "https://mosaic.fxtwitter.com/jpeg/2107854303809667285/HUCaTwMaMAAwDCq/HUCaTwIaMAALGER/HUCaTwIbUAE6Dbu/HUCaTwJa0AAOOCd",
+          "webp": "https://mosaic.fxtwitter.com/webp/2107854303809667285/HUCaTwMaMAAwDCq/HUCaTwIaMAALGER/HUCaTwIbUAE6Dbu/HUCaTwJa0AAOOCd"
+        }
+      }
+    },
+    "twitter_card": "summary_large_image",
+    "color": null,
+    "provider": "twitter",
+    "reposted_by": null
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "__typename": "Tweet",
+  "favorite_count": 241,
+  "lang": "en",
+  "possibly_sensitive": false,
+  "created_at": "2026-10-10T16:00:18.000Z",
+  "display_text_range": [0, 236],
+  "entities": {
+    "media": [
+      {
+        "display_url": "pic.x.com/2RzkW9OwCS",
+        "expanded_url": "https://x.com/NASASpox/status/2108950762994741523/video/1",
+        "indices": [232, 255],
+        "url": "https://t.co/2RzkW9OwCS"
+      }
+    ]
+  },
+  "id_str": "2108950762994741523",
+  "text": "NASA’s mission reached across the planet and beyond this week 🚀\n\n❄️ Inspiration Tour heads to Alaska\n🌎 NASA leads at IAC in Antalya\n🧑‍🚀 Crew-12 returns home\n🌕 Artemis II science data released\n\nHere’s what's new in your NASA Minute! https://t.co/2RzkW9OwCS",
+  "user": {
+    "id_str": "1907894348319973378",
+    "name": "NASA Spox",
+    "screen_name": "NASASpox",
+    "is_blue_verified": true,
+    "profile_image_shape": "Circle",
+    "verified": false,
+    "verified_type": "Government",
+    "profile_image_url_https": "https://pbs.twimg.com/profile_images/2094450130237755392/4TkxuQxN_normal.jpg",
+    "highlighted_label": {
+      "badge": {
+        "url": "https://pbs.twimg.com/profile_images/1321163587679784960/0ZxKlEKB_bigger.jpg"
+      },
+      "description": "NASA",
+      "url": { "url": "https://twitter.com/NASA", "url_type": "DeepLink" },
+      "user_label_display_type": "Badge",
+      "user_label_type": "BusinessLabel"
+    }
+  },
+  "edit_control": {
+    "edit_tweet_ids": ["2108950762994741523"],
+    "editable_until_msecs": "1791651618000",
+    "edits_remaining": "5",
+    "is_edit_eligible": true
+  },
+  "mediaDetails": [
+    {
+      "additional_media_info": {
+        "description": "This week, NASA’s mission stretched from the edge of the Arctic to the shores of the Mediterranean, and from low Earth orbit to the far side of the Moon. Here’s what’s new, in your NASA Minute!",
+        "embeddable": true,
+        "title": "NASA Minute: October 10, 2026"
+      },
+      "display_url": "pic.x.com/2RzkW9OwCS",
+      "expanded_url": "https://x.com/NASASpox/status/2108950762994741523/video/1",
+      "ext_media_availability": { "status": "Available" },
+      "indices": [232, 255],
+      "media_url_https": "https://pbs.twimg.com/media/HUR_QhjWMAA-7Mn.jpg",
+      "original_info": { "focus_rects": [], "height": 1920, "width": 1080 },
+      "sizes": {
+        "large": { "h": 1920, "resize": "fit", "w": 1080 },
+        "medium": { "h": 1200, "resize": "fit", "w": 675 },
+        "small": { "h": 680, "resize": "fit", "w": 383 },
+        "thumb": { "h": 150, "resize": "crop", "w": 150 }
+      },
+      "type": "video",
+      "url": "https://t.co/2RzkW9OwCS",
+      "video_info": {
+        "aspect_ratio": [9, 16],
+        "duration_millis": 122432,
+        "variants": [
+          {
+            "content_type": "application/x-mpegURL",
+            "url": "https://video.twimg.com/amplify_video/2108950248613662721/pl/dWAH6zvNSWnTqnHC.m3u8?v=ed1"
+          },
+          {
+            "bitrate": 632000,
+            "content_type": "video/mp4",
+            "url": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/320x568/dMcI2GayP90uoInk.mp4"
+          },
+          {
+            "bitrate": 950000,
+            "content_type": "video/mp4",
+            "url": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/480x852/hy4FZAzRMqnduGjw.mp4"
+          },
+          {
+            "bitrate": 2176000,
+            "content_type": "video/mp4",
+            "url": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/720x1280/UcrddRF40aQyEdVT.mp4"
+          },
+          {
+            "bitrate": 10368000,
+            "content_type": "video/mp4",
+            "url": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/1080x1920/QNJQ_QG2dUS190P1.mp4"
+          }
+        ]
+      }
+    }
+  ],
+  "photos": [],
+  "video": {
+    "aspectRatio": [9, 16],
+    "contentType": "media_entity",
+    "durationMs": 122432,
+    "mediaAvailability": { "status": "available" },
+    "poster": "https://pbs.twimg.com/media/HUR_QhjWMAA-7Mn.jpg",
+    "variants": [
+      {
+        "type": "application/x-mpegURL",
+        "src": "https://video.twimg.com/amplify_video/2108950248613662721/pl/dWAH6zvNSWnTqnHC.m3u8?v=ed1"
+      },
+      {
+        "type": "video/mp4",
+        "src": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/320x568/dMcI2GayP90uoInk.mp4"
+      },
+      {
+        "type": "video/mp4",
+        "src": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/480x852/hy4FZAzRMqnduGjw.mp4"
+      },
+      {
+        "type": "video/mp4",
+        "src": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/720x1280/UcrddRF40aQyEdVT.mp4"
+      },
+      {
+        "type": "video/mp4",
+        "src": "https://video.twimg.com/amplify_video/2108950248613662721/vid/avc1/1080x1920/QNJQ_QG2dUS190P1.mp4"
+      }
+    ],
+    "videoId": { "type": "tweet", "id": "2108950762994741523" },
+    "viewCount": 0
+  },
+  "conversation_count": 10,
+  "news_action_type": "conversation",
+  "isEdited": false,
+  "isStaleEdit": false
+}
