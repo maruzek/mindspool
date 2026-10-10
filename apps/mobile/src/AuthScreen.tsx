@@ -1,35 +1,46 @@
-import { useAuth } from "@clerk/expo";
-import { AuthView, UserButton } from "@clerk/expo/native";
+import { AuthView } from "@clerk/expo/native";
 import { useState } from "react";
-import { ActivityIndicator, Button, Modal, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
+import { BrandMark } from "./library/BrandMark";
+import { colors, fonts, rule, text } from "./theme";
 
+/** Signed-out screen. Shares need a signed-in session; the share target tells the user to sign in here first. */
 export function AuthScreen() {
-  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
   const [authOpen, setAuthOpen] = useState(false);
-  if (!isLoaded)
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator />
-      </View>
-    );
   return (
     <View
       style={{
         flex: 1,
+        backgroundColor: colors.bg,
         justifyContent: "center",
         alignItems: "center",
         gap: 20,
+        padding: 24,
       }}
     >
-      <Text style={{ fontSize: 32, fontWeight: "600" }}>MindSpool</Text>
-      {isSignedIn ? (
-        <UserButton />
-      ) : (
-        <Button
-          title="Sign in or create account"
-          onPress={() => setAuthOpen(true)}
-        />
-      )}
+      <BrandMark size={40} />
+      <Text style={[text.heading, { fontSize: 32 }]}>MindSpool</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setAuthOpen(true)}
+        style={{
+          paddingVertical: 12,
+          paddingHorizontal: 24,
+          backgroundColor: colors.accent,
+          borderWidth: rule,
+          borderColor: colors.accent,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: fonts.bold,
+            fontSize: 15,
+            color: colors.onAccent,
+          }}
+        >
+          Sign in or create account
+        </Text>
+      </Pressable>
       <Modal
         visible={authOpen}
         animationType="slide"

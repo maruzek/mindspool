@@ -5,13 +5,24 @@
     "version": "0.0.1",
     "scheme": "mindspool",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "android": {
       "package": "com.mindspool.app"
     },
     "ios": {
       "bundleIdentifier": "com.mindspool.app"
     },
-    "plugins": ["expo-secure-store", "@clerk/expo"]
+    "plugins": [
+      "expo-secure-store",
+      "@clerk/expo",
+      "expo-font",
+      "./plugins/withBackgroundShare"
+    ],
+    "owner": "maruzek",
+    "extra": {
+      "eas": {
+        "projectId": "0aad285b-7e7f-4b07-9683-30798dbdc454"
+      }
+    }
   }
 }

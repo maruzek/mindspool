@@ -8,23 +8,32 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "build": "expo export --platform android --output-dir dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@clerk/expo": "4.8.0",
+    "@expo-google-fonts/archivo": "0.4.2",
+    "@mindspool/backend": "workspace:*",
     "@mindspool/schema": "workspace:*",
+    "convex": "1.46.0",
     "expo": "~57.0.26",
     "expo-auth-session": "~57.0.13",
     "expo-constants": "~57.0.20",
     "expo-crypto": "~57.0.3",
     "expo-dev-client": "~57.0.19",
+    "expo-font": "~57.0.4",
     "expo-secure-store": "~57.0.4",
     "expo-web-browser": "~57.0.3",
+    "lucide-react-native": "1.54.0",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
+    "@types/node": "26.6.4",
     "@types/react": "19.2.4",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
   }
 }
