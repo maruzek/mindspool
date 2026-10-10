@@ -1,57 +1,47 @@
-# Plan: Android clipper (X share target + small Library list)
+# Implementation Plan: Production deploy (single-user)
 
-Source: [SPEC-android-clipper.md](../SPEC-android-clipper.md) (approved with changes, 2026-10-10). Tasks: [todo.md](todo.md). Previous boards plan and tasks are in [archive/](archive/).
+Source: [SPEC-deploy.md](../SPEC-deploy.md). Tasks: [todo.md](todo.md). The Android clipper plan was archived to `tasks/archive/android-clipper-*.md` with its device checks open; they are covered by Task 10 here.
 
-## Rules for every implementer
+## Overview
 
-- **Reuse first.** Before writing anything, search the repo. Pure logic is shared through `packages/schema` (move `apps/web/src/library/itemDisplay.ts` there, do not copy it). The backend `items.list` / `items.create` are used unchanged. `packages/ui` is DOM-only, so its `ItemRow`, `LabelTag`, `ItemThumb`, `ProcessingStatus` and the `--ms-*` tokens in `packages/ui/src/styles/globals.css` are **ported** to React Native with the same structure, spacing, zero radius, and Archivo font, not redesigned.
-- **Use the skills.** Load and follow as many relevant skills as apply, before relying on memory: Expo (`expo-overview`, `expo-dev-client`, `expo-native-ui`, `expo-design-system`, `expo-data-fetching`, `expo-project-structure`, `eas-simulator`, `clerk-expo`) and Convex (`convex`, `convex-expert`, `convex-docs`, `convex-test`, `convex-verify`, `convex-reviewer`). Also `test-driven-development`, `source-driven-development` for `expo-share-intent` and FxTwitter, and `verification-before-completion`.
-- Ask first: new dependencies beyond the approved set, any backend or schema change, `image/*` intent filters, EAS or signing config. No commits or merges unless asked.
+Ship MindSpool to production for the owner and a few approved accounts: Convex prod, Clerk production on `mindspool.martinruzek.eu`, web on Cloudflare Workers, Chrome extension loaded unpacked, Android APK built on EAS and sideloaded. Code changes (access guard, Wrangler config, EAS profile, build checks) come first and touch no production system. The Chrome extension, which has never run in Chrome, is exercised against the existing dev stack early so surprises surface before anything is deployed. Production tasks follow, each needing an explicit go-ahead.
 
-## Architecture
+## Architecture Decisions
+
+- **One choke point for access.** Every library function already calls `requireOwner` in `packages/backend/convex/auth.ts`. The guard goes there, reading `MINDSPOOL_ALLOWED_SUBJECTS` (comma-separated Clerk ids; unset = no restriction). Direct `ctx.auth.getUserIdentity()` uses (e.g. `processingRuns.ts`) are audited in Task 1.
+- **Clerk Waitlist mode** closes sign-up; the Convex guard is the real boundary. Approving someone means two steps: approve in Clerk, add their id to the Convex env var.
+- **Workers static assets, no Worker code.** `wrangler.jsonc` with `assets.directory ./dist`, `not_found_handling: "single-page-application"`, custom domain via `routes` with `custom_domain: true`. Wrangler is a new dev dependency (approved with this plan).
+- **Build-time public values.** Vite, WXT and Expo bake `*_PUBLIC_*` values into bundles, so prod builds read gitignored `.env.production` files. A script fails the build if a bundle contains `pk_test_`, `localhost`, or the dev Convex URL.
+- **Extension key.** Generated once; private key stored outside git (password manager), public DER key base64 in `CLERK_EXTENSION_PUBLIC_KEY`; extension ID derived from it and added to Clerk allowed origins.
+- **Android via EAS cloud**, `production-apk` profile (APK, not AAB), prod env, sideloaded. No store, no EAS Update.
+- **Deploy by hand**, no CD. CI stays check-only.
+
+## Dependency graph
 
 ```
-X app ─share text/plain─▶ Android intent ─▶ expo-share-intent ─▶ parseShare
-   parseShare ─▶ resolvePost (FxTwitter → syndication → null) ─▶ buildClip ─▶ api.items.create
-                                                                    │ (Clerk JWT via ConvexProviderWithClerk)
-Library list ◀── usePaginatedQuery(api.items.list) ◀── Convex (labels arrive live after Clef)
+Task 1 guard ─────────────┐
+Task 2 web Workers config ┤
+Task 3 extension Chrome (dev stack) ┤→ Checkpoint A → Task 6 Clerk prod → Task 7 Convex prod → Task 8 web deploy → Task 9 extension prod
+Task 4 EAS profile ───────┤                                                              └→ Task 10 Android prod
+Task 5 runbook draft ─────┘                                                                   → Task 11 close-out
 ```
 
-Components and dependencies:
+Tasks 1 to 5 are independent and could be done in any order; Task 3 goes first for fail-fast.
 
-| Piece                                    | Depends on                     | Notes                                                                              |
-| ---------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
-| Dev build + Clerk + Convex provider      | —                              | Riskiest unknown (Clerk native on device is unverified). Everything else needs it. |
-| FxTwitter/syndication fixtures           | — (parallel with the above)    | Record real JSON; field names are not guessed.                                     |
-| `parseShare`, `resolvePost`, `buildClip` | fixtures                       | Pure, injected `fetch`, Vitest. `buildClip` must equal the extension's payload.    |
-| Shared `itemDisplay` in schema           | —                              | Move + re-point web imports; web tests stay green.                                 |
-| Share intake + save flow + Saved UI      | provider, pure logic           | State switch, no router. `CONFLICT` → "Already saved".                             |
-| Library list                             | provider, shared `itemDisplay` | RN ports of web row/tag/thumb; labels always visible (web hides them under 768px). |
-| On-device verification                   | all                            | Manual matrix; evidence in `docs/verification/android-clipper.md`.                 |
+## Risks and Mitigations
 
-Parallelizable: fixtures/pure logic, the `itemDisplay` move, and the dev-build spike touch disjoint files. Sequential: save flow and list wait for the provider; verification is last.
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Extension fails in Chrome (never tested): service worker, Clerk `syncHost`, cookies | High | Task 3 runs it against dev before any prod work |
+| Clerk production needs DNS records on the domain; verification can lag | Med | Task 6 starts early; DNS is on Cloudflare so records are added there |
+| Extension ID changes, breaking Clerk origin | Med | Generate key in Task 3, reuse for prod; record ID in runbook |
+| Guard breaks a function that bypasses `requireOwner` | High | Audit in Task 1; test every public function name against the guard (loop over `api`) |
+| Dev values leak into prod bundles | Med | Bundle check script in Task 2 (and reused for extension/mobile) |
+| EAS free plan quota or queue time | Low | One build needed; fall back to local build only if blocked |
+| Waitlist-approved user signs in but sees `FORBIDDEN` | Low | Runbook step, plus a clear error in clients |
+| Prod `MINDSPOOL_ENABLE_DEV_SEED` set by accident | Med | Task 7 verifies it is unset via `convex env list --prod` |
 
-## Phases and checkpoints
+## Open Questions
 
-1. **Foundation** (Tasks 1–3): dev build runs on a device, signed-in user, Convex reachable; shared display logic moved; fixtures recorded. _Checkpoint A:_ `pnpm typecheck`, web tests pass, app signs in on a phone and survives restart.
-2. **Clip pipeline** (Tasks 4–6): pure logic tested, then wired to the share intent with the Saved screen. _Checkpoint B:_ `adb` simulated share saves a real tweet into the dev deployment; web Library shows it identical to an extension clip.
-3. **Library list** (Tasks 7–8): theme tokens and ported components, then the live paginated list. _Checkpoint C:_ labels visible and updating live on the phone.
-4. **Verification** (Task 9): X-app share matrix, record the report, `pnpm check`.
-
-## Risks and mitigations
-
-| Risk                                                                                        | Mitigation                                                                                                               |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Clerk native sign-in/session persistence untested on a device                               | Task 1 is a gate; stop and report before building more.                                                                  |
-| FxTwitter media fields differ from assumptions; service changes or is down                  | Fixtures from live responses; syndication fallback; link-only last resort; resolver behind one function.                 |
-| Syndication token formula changes                                                           | Treated as best-effort fallback only; covered by fixture tests, failure falls through to link-only.                      |
-| `expo-share-intent` v8 quirks (cold start, re-delivery of the same intent)                  | Read its docs via `source-driven-development`; reset the intent after handling; manual cold/warm tests.                  |
-| X app share text includes extra words around the link                                       | `parseShare` extracts the status URL from free text; tested with variants.                                               |
-| Handle casing or `twitter.com` vs `x.com` makes `originalInput` differ from the extension's | One normalizer, tested against the extension's `parseTweet` output format; cross-client re-share is a verification case. |
-| Native build environment (Android SDK, device) unavailable to agents                        | Tasks needing a device are marked **manual**; pure logic and typecheck are verifiable without it.                        |
-| Moving `itemDisplay` breaks web                                                             | Move in its own task with web tests and typecheck as acceptance.                                                         |
-| Search/pagination cost in list                                                              | Reuse `items.list` (page size ≤ 10, bounded reads); no new queries.                                                      |
-
-## Out of scope (do not build)
-
-Labels/Inbox tabs, search, item detail, label editing, notes, post-save label chips, non-X sources, shared images, iOS, backend resolver, Play Store publishing.
+1. EAS free plan quota (check Expo billing page at Task 10).
+2. Clerk plan limits on production instances (checked at Task 6).

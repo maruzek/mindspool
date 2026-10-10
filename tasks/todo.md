@@ -1,75 +1,67 @@
-# Tasks: Android clipper
+# Tasks: Production deploy
 
-Source: [SPEC-android-clipper.md](../SPEC-android-clipper.md). Plan and rules (reuse components, use Expo and Convex skills): [plan.md](plan.md). Commands run from the repository root. Tasks marked **manual** need a physical Android device; do not claim them done without evidence.
+Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands run from the repository root. Tasks marked **prod** touch production systems and need your explicit go-ahead before each command; tasks marked **manual** need you (browser, phone, dashboards). Do not mark them done without evidence in `docs/verification/deploy.md`.
 
-## Phase 1: Foundation
+## Phase 1: Code and early testing (no production touched)
 
-- [ ] **Task 1: Dev build, Clerk, Convex provider (gate)** — manual
-  - Status: code done (provider, sign-in screen, `.env.example`, typecheck, bundle); **gate not passed**: needs a device to confirm Clerk native sign-in and session persistence.
-  - Acceptance: `apps/mobile` builds as a development client and runs on a device; the user signs in with Clerk's native UI and stays signed in after the app is killed and reopened; `ConvexProviderWithClerk` is mounted and a trivial authenticated query (`api.items.stats`) returns data; `.env.example` documents `EXPO_PUBLIC_CONVEX_URL`.
-  - Verify: `pnpm --filter @mindspool/mobile typecheck`; on device: sign in, restart, see stats value. Report any Clerk native problem and stop.
-  - Files: `apps/mobile/package.json` (add `convex`), `apps/mobile/App.tsx`, `apps/mobile/src/AuthScreen.tsx`, `apps/mobile/.env.example`, `apps/mobile/app.json`.
+- [ ] **Task 1: Access guard in `requireOwner`**
+  - Acceptance: `MINDSPOOL_ALLOWED_SUBJECTS` (comma-separated, trimmed) is enforced in `requireOwner`; allowed id passes; other id throws `FORBIDDEN`; unset or empty passes; unauthenticated still `UNAUTHENTICATED`. Every other place reading the identity directly is routed through the guard or documented as internal-only.
+  - Verify: `pnpm --filter @mindspool/backend test` (new cases in `auth.test.ts`, plus a test that exercises public queries/mutations as a refused user); `pnpm --filter @mindspool/backend typecheck`.
+  - Files: `packages/backend/convex/auth.ts`, `auth.test.ts`, `processingRuns.ts` (if audit requires), maybe `identity.ts`.
 
-- [x] **Task 2: Share `itemDisplay` through `packages/schema`**
-  - Status: done. `itemDisplay` + tests in `packages/schema` (schema now has Vitest); web tests (290), typecheck pass.
-  - Acceptance: `itemDisplay.ts` and its tests live in `packages/schema/src` and are exported; `apps/web` imports from `@mindspool/schema`; no copy remains in web; behavior unchanged.
-  - Verify: `pnpm --filter @mindspool/web test`; `pnpm typecheck`; `pnpm --filter @mindspool/web build`.
-  - Files: `packages/schema/src/itemDisplay.ts(+test)`, `packages/schema/src/index.ts`, `apps/web/src/library/*` imports (may exceed five; split imports edits by directory if so).
+- [ ] **Task 2: Web on Workers, build guard** — M
+  - Acceptance: `wrangler` added to `apps/web`; `wrangler.jsonc` with assets `./dist`, SPA fallback, route `mindspool.martinruzek.eu` as custom domain; `deploy` script (build then `wrangler deploy`); `scripts/check-bundle.mjs` (repo root) fails on `pk_test_`, `localhost`, `127.0.0.1` and any forbidden string passed by argument in a built directory; `.env.production.example` documented.
+  - Verify: `pnpm --filter @mindspool/web build`; `pnpm --filter @mindspool/web exec wrangler dev` serves the SPA and a deep link (e.g. `/library`) falls back to `index.html`; the check script passes on a prod-style build and fails on a dev build (test both).
+  - Files: `apps/web/wrangler.jsonc`, `apps/web/package.json`, `apps/web/.env.production.example`, `scripts/check-bundle.mjs`, `.gitignore` (verify `.env.*` already covers it).
 
-- [x] **Task 3: Record X API fixtures (spike)**
-  - Status: done, field notes in `docs/verification/android-clipper.md`; protected/429/malformed/tombstone fixtures are hand-made. Awaiting user review of the notes.
-  - Acceptance: real, anonymized-free (public posts) JSON captured from FxTwitter and syndication for: text-only, one photo, multi-photo (≥3), video, quote post, long post, deleted, protected, plus 404/429/malformed samples (hand-made). A short note in `docs/verification/android-clipper.md` lists the confirmed media/quote/long-text field names and any surprise (e.g. 4-image cap).
-  - Verify: fixtures load in a Vitest test that only asserts they parse as JSON; field notes reviewed by the user.
-  - Files: `apps/mobile/src/x/__fixtures__/*`, `docs/verification/android-clipper.md`.
+- [ ] **Task 3: Chrome extension against the dev stack (fail fast)** — manual
+  - Acceptance: a script or documented command generates the extension key pair (private key kept outside git), prints `CLERK_EXTENSION_PUBLIC_KEY` and the derived extension ID; `build` (Chrome MV3) succeeds and loads unpacked with that stable ID; the 7-step walkthrough from the spec passes against the **dev** Clerk and Convex (add the ID to the dev Clerk allowed origins); every defect found is fixed with a test where practical.
+  - Verify: `pnpm --filter @mindspool/extension test`; `pnpm --filter @mindspool/extension build`; walkthrough results in `docs/verification/deploy.md` (Chrome section) with the console clean.
+  - Files: `apps/extension/scripts/generate-key.mjs`, `apps/extension/package.json`, `apps/extension/wxt.config.ts`, `apps/extension/.env.example`, fixes as found.
+  - Note: may exceed five files if fixes are needed; split fixes into follow-up tasks (3a, 3b).
 
-**Checkpoint A:** typecheck, web tests, device sign-in persists. Review with the user.
+- [ ] **Task 4: EAS production-apk profile**
+  - Acceptance: `eas.json` has `production-apk` (APK, `environment: production`, internal distribution, no store submit profile); `apps/mobile/.env.example` notes that prod values come from EAS environment variables, not committed files; no `submit` section.
+  - Verify: `pnpm --filter @mindspool/mobile typecheck`; `pnpm --filter @mindspool/mobile test`; `pnpm --filter @mindspool/mobile exec expo config --type public` still resolves.
+  - Files: `apps/mobile/eas.json`, `apps/mobile/.env.example`.
 
-## Phase 2: Clip pipeline
+- [ ] **Task 5: Runbook and verification doc skeleton**
+  - Acceptance: `docs/deploy.md` has the ordered steps, env-var table per system (names only, where each value lives), the two-step approve-a-user procedure, rollback, and the "never" list; `docs/verification/deploy.md` has empty result tables for each success criterion.
+  - Verify: `pnpm format:check`; every env var in the code (`grep process.env`, `import.meta.env`) appears in the table.
+  - Files: `docs/deploy.md`, `docs/verification/deploy.md`.
 
-- [x] **Task 4: Test runner and `parseShare`**
-  - Status: done. 35 tests.
-  - Acceptance: Vitest set up in `apps/mobile` (`pnpm --filter @mindspool/mobile test`); `parseShare(text)` returns `{ id, handle }` for x.com, twitter.com, mobile., fxtwitter.com, vxtwitter.com status links, with `?s=20`, extra words before/after the link; returns `unsupported` for anything else.
-  - Verify: `pnpm --filter @mindspool/mobile test`.
-  - Files: `apps/mobile/package.json`, `apps/mobile/vitest.config.ts`, `apps/mobile/src/share/parseShare.ts(+test)`.
+**Checkpoint A:** `pnpm check` green; Chrome walkthrough passes on dev; `wrangler dev` serves the SPA. Review with the user before touching production.
 
-- [x] **Task 5: `resolvePost` and `buildClip`**
-  - Status: done. Syndication cannot return full long-post text (documented, tested).
-  - Acceptance: `resolvePost` tries FxTwitter, then syndication, then returns null; every fixture from Task 3 maps to the expected `ResolvedPost` (outer post only, https photos, deduped, max ten, video poster when exposed); `buildClip` output equals the extension's `buildClip` for the same tweet (`originalInput` `https://x.com/<handle>/status/<id>`, `x:<id>`, `Name (@handle)`, `?name=large` images); link-only fallback payload when null.
-  - Verify: `pnpm --filter @mindspool/mobile test`; `pnpm --filter @mindspool/mobile typecheck`.
-  - Files: `apps/mobile/src/x/resolvePost.ts`, `apps/mobile/src/x/buildClip.ts`, matching tests.
+## Phase 2: Production (each step needs your go-ahead)
 
-- [ ] **Task 6: Share intake, save flow, Saved screen**
-  - Status: code done (plugin, queue, `saveClip` + 12 tests, `SavedScreen`); **manual `adb` share still to run** on a device.
-  - Acceptance: `expo-share-intent` plugin and `text/plain` intent filter configured; a share (cold and warm) triggers one `items.create` with `captureSource: "mobile"`; states Saving, Saved, Saved as link, Already saved (`CONFLICT`), retryable error, unsupported-X message; signed-out share is kept and saved after sign-in; the intent is reset after handling; **Done** returns to the previous app or the list. Save logic is a plain function with injected dependencies and unit tests for error mapping.
-  - Verify: `pnpm --filter @mindspool/mobile test`; typecheck; **manual:** `adb shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "https://x.com/jack/status/20?s=20" com.mindspool.app` saves one item visible in the web Library.
-  - Files: `apps/mobile/app.json`, `apps/mobile/package.json`, `apps/mobile/App.tsx`, `apps/mobile/src/clip/saveClip.ts(+test)`, `apps/mobile/src/SavedScreen.tsx`.
+- [ ] **Task 6: Clerk production instance and DNS** — manual
+  - Acceptance: production instance for `mindspool.martinruzek.eu` with DNS records added in Cloudflare and verified; Access mode **Waitlist**; JWT template `convex` (audience `convex`); allowed origins include `https://mindspool.martinruzek.eu` and the extension origin; your own account created in production; publishable key and issuer domain recorded in your password manager.
+  - Verify: Clerk dashboard shows the instance verified; the production sign-in page loads on the domain once Task 8 is done; clerk CLI `clerk doctor`/deploy verify if available.
+  - Files: none in git (runbook notes only).
 
-**Checkpoint B:** simulated share produces an item identical to the extension's; re-share shows "Already saved". Review with the user.
+- [ ] **Task 7: Convex production deployment** — prod
+  - Acceptance: prod deployment created; env set: `CLERK_JWT_ISSUER_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AUTH_TOKEN` (scoped Workers AI token), `AI_DAILY_NEURON_LIMIT` (dev value), `MINDSPOOL_ALLOWED_SUBJECTS` (your prod Clerk id), `MINDSPOOL_ENVIRONMENT=production`; `MINDSPOOL_ENABLE_DEV_SEED` unset; functions deployed from a clean checkout of `main`.
+  - Verify: `convex env list --prod` (names reviewed, secrets not printed into the doc); `convex deploy` output; deployment announced and confirmed before the command runs (deploy guard).
+  - Files: none (runbook updated if steps changed).
 
-## Phase 3: Library list
+- [ ] **Task 8: Web deploy on `mindspool.martinruzek.eu`** — prod
+  - Acceptance: build with prod `VITE_*`; `check-bundle` passes; `wrangler deploy` succeeds; the domain loads over HTTPS; you can sign in and see an empty Library; a second Clerk account on the waitlist cannot sign up; if created manually and not in the allowed list, the app shows an access error and Convex returns `FORBIDDEN`.
+  - Verify: results in `docs/verification/deploy.md`; manual sign-in; second-account test.
+  - Files: `docs/verification/deploy.md`.
 
-- [ ] **Task 7: Theme tokens and ported components**
-  - Status: code done (`theme`, ported components, `tags` + tests); **visual check on device pending**.
-  - Acceptance: `theme.ts` mirrors the `--ms-*` palette, font, zero radius, 2px rules from `globals.css`; RN `ItemRow`, `LabelTag` (confirmed, suggested/unsure, `+N`, `Labeling…`), `ItemThumb`, `ProcessingStatus`, brand icon mirror the web components' structure and use shared `itemDisplay`; labels render on all widths.
-  - Verify: typecheck; unit tests for pure helpers (label overflow, unsure state); visual check on device (**manual**) against the design's phone list.
-  - Files: `apps/mobile/src/theme.ts`, `apps/mobile/src/library/{ItemRow,LabelTag,ItemThumb,ProcessingStatus,BrandIcon}.tsx`.
+- [ ] **Task 9: Chrome extension on production** — manual
+  - Acceptance: build with prod `WXT_PUBLIC_*` and the stable key; `check-bundle` passes (no dev values); the Chrome ID is in the prod Clerk allowed origins; the 7-step walkthrough passes against production; clipped items appear on the live site.
+  - Verify: walkthrough table filled with evidence.
+  - Files: `docs/verification/deploy.md`.
 
-- [ ] **Task 8: Live Library list screen**
-  - Status: code done (`LibraryScreen`, `useLibraryItems`); **live-label check on device pending**.
-  - Acceptance: after sign-in the home screen lists items newest first via `usePaginatedQuery(api.items.list, {}, { initialNumItems: 10 })`, loads more on scroll, shows loading, empty, and error states; rows show labels and update live when Clef finishes; tapping a row opens `originalUrl`; the just-shared item is at the top after **Done**.
-  - Verify: typecheck; `pnpm --filter @mindspool/mobile build`; **manual:** share a tweet, watch `Labeling…` turn into labels without refresh.
-  - Files: `apps/mobile/src/library/LibraryScreen.tsx`, `apps/mobile/App.tsx`, `apps/mobile/src/library/useLibraryItems.ts`.
+- [ ] **Task 10: Android APK on production** — manual, prod
+  - Acceptance: EAS environment variables set for `production` (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`); `eas build -p android --profile production-apk` succeeds within the free plan; APK installed on your phone by file; sign-in persists after killing the app; sharing an X link saves one item visible on the web within seconds, re-share shows "Already saved", Library list shows live labels. This also closes the open device checks from the archived Android plan.
+  - Verify: results in `docs/verification/deploy.md`; EAS build page shows the plan usage.
+  - Files: `docs/verification/deploy.md`.
 
-**Checkpoint C:** list matches web labels for the same items. Review with the user.
+- [ ] **Task 11: Clef in prod and close-out**
+  - Acceptance: a saved item in prod receives Clef labels; the daily limit is respected (verify with a low temporary limit only if you agree); `README.md` and `CAPABILITIES.md` describe the deployed setup; `docs/deploy.md` matches what was actually done; `pnpm check` green; spec's Success Criteria all ticked or noted.
+  - Verify: `pnpm check`; labels visible on the live site.
+  - Files: `README.md`, `CAPABILITIES.md`, `docs/deploy.md`, `docs/verification/deploy.md`.
 
-## Phase 4: Verification
-
-- [ ] **Task 9: On-device matrix and report** — manual
-  - Status: not started: needs a device. Report skeleton with every case marked unverified is in place.
-  - Acceptance: spec success criteria 1–12 checked with evidence in `docs/verification/android-clipper.md` (device, Android version, X app version): text, multi-photo, long, quote, video, deleted posts; cold/warm start; signed-out then sign-in; airplane mode; re-share of a Firefox-clipped tweet; non-X link. Unverified cases are listed as such. README mobile section and `SPEC-android-clipper.md` status updated.
-  - Verify: `pnpm check`; `pnpm exec prettier --check SPEC-android-clipper.md tasks/plan.md tasks/todo.md docs/verification/android-clipper.md`.
-  - Files: `docs/verification/android-clipper.md`, `README.md`, `SPEC-android-clipper.md`.
-
-## Change 2026-10-10: background share
-
-Task 6 was reworked after the first device run: the share no longer opens the app. `ShareActivity` (config plugin) + `ShareApp` + toasts replace the Saved screen, queue and `expo-share-intent`. Unverified on a device; needs an EAS `preview` build for cold shares.
+**Checkpoint B (complete):** every Success Criterion in `SPEC-deploy.md` has evidence. Review with the user.
