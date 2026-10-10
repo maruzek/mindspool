@@ -1,6 +1,6 @@
 import { Globe, StickyNote } from "lucide-react";
-import { brandOf } from "./itemDisplay";
-import type { BrandKey, ItemKind } from "./itemDisplay";
+import { brandOf } from "@mindspool/schema";
+import type { BrandKey, ItemKind } from "@mindspool/schema";
 import type { Source } from "../search/searchParams";
 import instagram from "../assets/brands/instagram.svg?raw";
 import reddit from "../assets/brands/reddit.svg?raw";

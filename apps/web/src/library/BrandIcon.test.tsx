@@ -1,7 +1,7 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { BrandIcon } from "./BrandIcon";
-import { brandOf, hostOf } from "./itemDisplay";
+import { brandOf, hostOf } from "@mindspool/schema";
 
 // Keep in sync with SOURCE_FIXTURES in packages/backend/convex/itemState.test.ts:
 // the backend `sourceKindOf` and this host map must classify every URL the same way.

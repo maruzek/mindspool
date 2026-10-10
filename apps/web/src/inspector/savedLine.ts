@@ -1,4 +1,4 @@
-import { relativeDate } from "../library/itemDisplay";
+import { relativeDate } from "@mindspool/schema";
 import { SOURCES } from "../library/ItemList";
 import type { PreviewItem } from "../library/types";
 

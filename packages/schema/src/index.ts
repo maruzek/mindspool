@@ -16,3 +16,4 @@ export const UNSURE_THRESHOLD = 0.65;
 export const MAX_LABEL_QUESTIONS = 64;
 
 export * from "./reddit";
+export * from "./itemDisplay";

@@ -2,8 +2,8 @@ import { XIcon } from "lucide-react";
 import { Button, buttonVariants } from "@mindspool/ui/components/button";
 import { SidebarHeader } from "@mindspool/ui/components/sidebar";
 import { BrandIcon } from "../library/BrandIcon";
-import { hostOfItem, kindOf } from "../library/itemDisplay";
-import type { DisplayableItem } from "../library/itemDisplay";
+import { hostOfItem, kindOf } from "@mindspool/schema";
+import type { DisplayableItem } from "@mindspool/schema";
 
 function webUrl(item: DisplayableItem): string | null {
   if (item.inputType !== "url") return null;

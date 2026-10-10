@@ -5,7 +5,12 @@ import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
 import { LabelTag } from "@mindspool/ui/components/mindspool/label-tag";
 import { ProcessingStatus } from "@mindspool/ui/components/mindspool/processing-status";
 import { BrandIcon } from "./BrandIcon";
-import { displayTitle, hostOfItem, kindOf, relativeDate } from "./itemDisplay";
+import {
+  displayTitle,
+  hostOfItem,
+  kindOf,
+  relativeDate,
+} from "@mindspool/schema";
 import type { PreviewItem } from "./types";
 
 export const SOURCES: Record<PreviewItem["captureSource"], string> = {

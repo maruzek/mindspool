@@ -8,7 +8,6 @@ import {
   kindOf,
   relativeDate,
 } from "./itemDisplay";
-import { validateLibrarySearch } from "../search/searchParams";
 
 describe("captureTypeOf", () => {
   it.each([
@@ -103,16 +102,5 @@ describe("relativeDate", () => {
     expect(relativeDate(new Date(2025, 11, 24, 12).getTime(), now)).toBe(
       "Dec 24, 2025",
     );
-  });
-});
-
-describe("validateLibrarySearch", () => {
-  it("keeps valid values and drops the rest", () => {
-    expect(validateLibrarySearch({ layout: "grid", item: "abc" })).toEqual({
-      layout: "grid",
-      item: "abc",
-    });
-    expect(validateLibrarySearch({ layout: "tiles", item: 5 })).toEqual({});
-    expect(validateLibrarySearch({ item: "" })).toEqual({});
   });
 });

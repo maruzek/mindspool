@@ -6,7 +6,7 @@ import { Button } from "@mindspool/ui/components/button";
 import { Textarea } from "@mindspool/ui/components/textarea";
 import { useCaptureDraftContext } from "../capture/CaptureDraftProvider";
 import { errorMessage } from "../errors";
-import { CAPTURE_LIMITS, captureTypeOf } from "./itemDisplay";
+import { CAPTURE_LIMITS, captureTypeOf } from "@mindspool/schema";
 
 /**
  * One input for links and notes. The original text is stored verbatim; the

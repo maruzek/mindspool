@@ -3,7 +3,7 @@ import { ItemCard } from "@mindspool/ui/components/mindspool/item-card";
 import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
 import { ProcessingStatus } from "@mindspool/ui/components/mindspool/processing-status";
 import { ItemLink, SourceLine, Tags } from "./ItemList";
-import { displayTitle, kindOf } from "./itemDisplay";
+import { displayTitle, kindOf } from "@mindspool/schema";
 import type { PreviewItem } from "./types";
 
 /** Three columns from 1280px, two from 768px, one below. */

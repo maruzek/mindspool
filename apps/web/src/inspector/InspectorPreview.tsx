@@ -1,5 +1,5 @@
 import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
-import { displayTitle, kindOf } from "../library/itemDisplay";
+import { displayTitle, kindOf } from "@mindspool/schema";
 import type { ItemDetail } from "./types";
 import { savedLine } from "./savedLine";
 import { RedditCapturePreview } from "./RedditCapturePreview";
