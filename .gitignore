@@ -18,3 +18,4 @@ deisgn.html
 *.log
 .wrangler/
 *.pem
+.cloudflare/
