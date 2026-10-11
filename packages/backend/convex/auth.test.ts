@@ -1,5 +1,6 @@
 import { convexTest } from "convex-test";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { api } from "./_generated/api";
 import { requireOwner, requireOwned } from "./auth";
 import schema from "./schema";
 import { modules } from "./test.setup";
@@ -48,5 +49,51 @@ describe("verified ownership", () => {
       "Not found",
     );
     expect(() => requireOwned(null, "owner_1")).toThrow("Not found");
+  });
+});
+
+describe("allowed subjects guard", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const as = (subject: string) =>
+    convexTest(schema, modules).withIdentity({ subject });
+
+  it("allows a listed subject and trims the list", async () => {
+    vi.stubEnv("MINDSPOOL_ALLOWED_SUBJECTS", "user_a , user_b");
+    expect(await as("user_b").query(requireOwner)).toContain("user_b");
+  });
+
+  it("refuses an unlisted subject with FORBIDDEN", async () => {
+    vi.stubEnv("MINDSPOOL_ALLOWED_SUBJECTS", "user_a");
+    await expect(as("user_x").query(requireOwner)).rejects.toThrow("FORBIDDEN");
+  });
+
+  it("does not restrict when unset or empty", async () => {
+    vi.stubEnv("MINDSPOOL_ALLOWED_SUBJECTS", "");
+    expect(await as("anyone").query(requireOwner)).toContain("anyone");
+  });
+
+  it("still reports unauthenticated before the allow list", async () => {
+    vi.stubEnv("MINDSPOOL_ALLOWED_SUBJECTS", "user_a");
+    await expect(
+      convexTest(schema, modules).query(requireOwner),
+    ).rejects.toThrow("Authentication required");
+  });
+
+  it("refuses a user on public library functions", async () => {
+    vi.stubEnv("MINDSPOOL_ALLOWED_SUBJECTS", "user_a");
+    const refused = as("user_x");
+    await expect(
+      refused.query(api.items.list, {
+        paginationOpts: { numItems: 5, cursor: null },
+      }),
+    ).rejects.toThrow("FORBIDDEN");
+    await expect(
+      refused.mutation(api.items.create, {
+        inputType: "text",
+        originalInput: "hi",
+        captureSource: "web",
+        captureKey: "k1",
+      }),
+    ).rejects.toThrow("FORBIDDEN");
   });
 });

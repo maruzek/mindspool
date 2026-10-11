@@ -10,6 +10,18 @@ export async function requireOwner(ctx: { auth: Auth }): Promise<string> {
       message: "Authentication required",
     });
   }
+  // Single-user deploy: when set, only these Clerk user ids (subjects) may use
+  // the backend. Unset or empty means no restriction.
+  const allowed = (process.env.MINDSPOOL_ALLOWED_SUBJECTS ?? "")
+    .split(",")
+    .map((subject: string) => subject.trim())
+    .filter(Boolean);
+  if (allowed.length > 0 && !allowed.includes(identity.subject)) {
+    throw new ConvexError({
+      code: "FORBIDDEN",
+      message: "This account is not approved to use MindSpool",
+    });
+  }
   return identity.tokenIdentifier;
 }
 
