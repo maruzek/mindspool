@@ -55,6 +55,8 @@ export function createClipHandler(deps: {
       return itemId ? { ok: true, itemId } : { ok: false, reason: "unknown" };
     } catch (error) {
       const reason = failureOf(error);
+      // Replies stay generic; the cause goes to the service worker console only.
+      console.error("[mindspool] clip failed:", reason, error);
       if (
         request.type === "clip-reddit" &&
         reason === "invalid" &&

@@ -15,6 +15,9 @@ const originPermission = (name: string) => {
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  // Vite's modulepreload links trigger "cross-world extension resource
+  // mismatch" warnings in extension pages and gain nothing from local files.
+  vite: () => ({ build: { modulePreload: false } }),
   manifest: () => ({
     name: "MindSpool",
     description: "Keep your links, images, and ideas together.",
@@ -29,6 +32,7 @@ export default defineConfig({
       "*://www.reddit.com/*",
       ...originPermission("WXT_PUBLIC_CLERK_FRONTEND_API"),
       ...originPermission("WXT_PUBLIC_CONVEX_URL"),
+      ...originPermission("WXT_PUBLIC_CLERK_SYNC_HOST"),
     ],
     ...(process.env.CLERK_EXTENSION_PUBLIC_KEY
       ? { key: process.env.CLERK_EXTENSION_PUBLIC_KEY }

@@ -12,6 +12,7 @@ export default defineBackground({
   type: "module",
   main() {
     const publishableKey = import.meta.env.WXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const syncHost = import.meta.env.WXT_PUBLIC_CLERK_SYNC_HOST;
     const convexUrl = import.meta.env.WXT_PUBLIC_CONVEX_URL;
     const convex = convexUrl ? new ConvexHttpClient(convexUrl) : undefined;
 
@@ -19,7 +20,7 @@ export default defineBackground({
     // `/client` with `{ background: true }`.
     const getToken = createTokenProvider(() => {
       if (!publishableKey) throw new Error("Clerk is not configured");
-      return createClerkClient({ publishableKey, background: true });
+      return createClerkClient({ publishableKey, syncHost, background: true });
     });
 
     const handleClip = createClipHandler({

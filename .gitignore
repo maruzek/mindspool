@@ -17,3 +17,4 @@ ios/
 deisgn.html
 *.log
 .wrangler/
+*.pem
