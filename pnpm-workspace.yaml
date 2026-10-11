@@ -6,6 +6,8 @@ allowBuilds:
   esbuild: true
   browser-tabs-lock: false
   core-js: false
+  workerd: true
+  sharp: false
 
 overrides:
   # GHSA-w5hq-g745-h8pq: xcode (via Expo config plugins) pins uuid 7.

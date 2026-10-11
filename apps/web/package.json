@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "vite build --mode production && node ../../scripts/check-bundle.mjs dist && wrangler deploy"
   },
   "dependencies": {
     "@clerk/react": "6.17.5",
@@ -35,6 +36,7 @@
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.3.2",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
   }
 }

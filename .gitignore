@@ -16,3 +16,4 @@ ios/
 .DS_Store
 deisgn.html
 *.log
+.wrangler/
