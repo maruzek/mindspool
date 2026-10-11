@@ -153,6 +153,14 @@ describe("clicking Clip", () => {
     await click(button);
     expect(button.textContent).toBe("Something went wrong");
   });
+  it("asks for a page reload when the extension was reloaded under the tab", async () => {
+    addClipButtons(document.body, async () => {
+      throw new Error("Extension context invalidated.");
+    });
+    const button = buttons()[0]!;
+    await click(button);
+    expect(button.textContent).toBe("Reload this page");
+  });
   it("says it could not read an unreadable tweet and sends nothing", async () => {
     document.body.innerHTML = fixture("empty");
     const send = vi.fn<Send>(sendOk);

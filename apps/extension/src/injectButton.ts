@@ -65,8 +65,16 @@ function makeButton(article: Element, send: Send): HTMLButtonElement {
     let reply: ClipResponse;
     try {
       reply = await send({ type: "clip", args: buildClip(tweet) });
-    } catch {
-      reply = { ok: false, reason: "unknown" };
+    } catch (error) {
+      // After the extension reloads, tabs opened earlier keep a dead script.
+      console.error("[mindspool] could not reach the extension:", error);
+      busy = false;
+      button.disabled = false;
+      return flash(
+        String(error).includes("context invalidated")
+          ? "Reload this page"
+          : FAILURE_TEXT.unknown,
+      );
     }
     busy = false;
     button.disabled = false;
