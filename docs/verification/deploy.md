@@ -1,6 +1,6 @@
 # Production deploy verification
 
-Status: **not started**. Fill each table with evidence (command output, dates, screenshots) as the tasks in `tasks/todo.md` complete.
+Status: **in progress** (Chrome walkthrough on dev done 2026-10-11, signed in with Google via `syncHost`; step 5 not tested). Fill each table with evidence (command output, dates, screenshots) as the tasks in `tasks/todo.md` complete.
 
 ## Automated
 
@@ -15,15 +15,15 @@ Status: **not started**. Fill each table with evidence (command output, dates, s
 
 ## Chrome walkthrough (dev, then production)
 
-| Step                                      | Dev | Prod |
-| ----------------------------------------- | --- | ---- |
-| 1 Sign-in survives browser restart        |     |      |
-| 2 Clip X post (text, images, quote)       |     |      |
-| 3 Clip Reddit post and comment            |     |      |
-| 4 Re-clip shows "already saved"           |     |      |
-| 5 Signed-out clip prompts sign-in         |     |      |
-| 6 Popup link opens the web URL            |     |      |
-| 7 No console errors (worker/popup/script) |     |      |
+| Step                                      | Dev        | Prod |
+| ----------------------------------------- | ---------- | ---- |
+| 1 Sign-in survives browser restart        | pass       |      |
+| 2 Clip X post (text, images, quote)       | pass       |      |
+| 3 Clip Reddit post and comment            | pass       |      |
+| 4 Re-clip shows "already saved"           | pass       |      |
+| 5 Signed-out clip prompts sign-in         | not tested |      |
+| 6 Popup link opens the web URL            | pass       |      |
+| 7 No console errors (worker/popup/script) | pass       |      |
 
 ## Production
 
