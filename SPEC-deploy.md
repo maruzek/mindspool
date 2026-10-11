@@ -26,7 +26,7 @@ Cloudflare Workers + static assets (Wrangler), Convex 1.46 (prod deployment), Cl
 ```
 Check all:        pnpm check
 Web build:        pnpm --filter @mindspool/web build
-Web deploy:       pnpm --filter @mindspool/web deploy          (new: build + wrangler deploy)
+Web deploy:       pnpm --filter @mindspool/web run deploy          (new: build + wrangler deploy)
 Web local test:   pnpm --filter @mindspool/web exec wrangler dev
 Convex deploy:    pnpm --filter @mindspool/backend exec convex deploy
 Convex env:       pnpm --filter @mindspool/backend exec convex env set --prod NAME value
