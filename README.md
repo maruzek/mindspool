@@ -196,3 +196,7 @@ on the current development deployment. Remove either flag to disable the loader.
 
 Search, deletion/export, enrichment jobs, AI adapters, native/extension capture,
 and spatial views remain future roadmap work.
+
+## Production deployment
+
+MindSpool runs for its owner and a few approved accounts at `https://mindspool.martinruzek.eu`: Convex production, Clerk production on the same domain, the web app on Cloudflare Workers (static assets, deployed with `pnpm --filter @mindspool/web run deploy`), the Chrome and Firefox extensions loaded unpacked, and an Android APK built on EAS and sideloaded. Access is limited twice: Clerk's waitlist closes sign-up, and `MINDSPOOL_ALLOWED_SUBJECTS` in Convex lists the Clerk user ids allowed to call the backend (`requireOwner` returns `FORBIDDEN` for anyone else). The Chrome extension reads the web app's Clerk session (`syncHost`) because Google sign-in cannot run in a Chrome popup. Everything is deployed by hand. See [the deploy runbook](docs/deploy.md) for the order, environment variables, approving a user, and rollback, and [the verification report](docs/verification/deploy.md) for what was checked.

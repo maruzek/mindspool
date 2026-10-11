@@ -14,7 +14,7 @@ Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands 
   - Verify: `pnpm --filter @mindspool/web build`; `pnpm --filter @mindspool/web exec wrangler dev` serves the SPA and a deep link (e.g. `/library`) falls back to `index.html`; the check script passes on a prod-style build and fails on a dev build (test both).
   - Files: `apps/web/wrangler.jsonc`, `apps/web/package.json`, `apps/web/.env.production.example`, `scripts/check-bundle.mjs`, `.gitignore` (verify `.env.*` already covers it).
 
-- [ ] **Task 3: Chrome extension against the dev stack (fail fast)** — manual
+- [x] **Task 3: Chrome extension against the dev stack (fail fast)** — manual
   - Acceptance: a script or documented command generates the extension key pair (private key kept outside git), prints `CLERK_EXTENSION_PUBLIC_KEY` and the derived extension ID; `build` (Chrome MV3) succeeds and loads unpacked with that stable ID; the 7-step walkthrough from the spec passes against the **dev** Clerk and Convex (add the ID to the dev Clerk allowed origins); every defect found is fixed with a test where practical.
   - Verify: `pnpm --filter @mindspool/extension test`; `pnpm --filter @mindspool/extension build`; walkthrough results in `docs/verification/deploy.md` (Chrome section) with the console clean.
   - Files: `apps/extension/scripts/generate-key.mjs`, `apps/extension/package.json`, `apps/extension/wxt.config.ts`, `apps/extension/.env.example`, fixes as found.
@@ -44,22 +44,22 @@ Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands 
   - Verify: `convex env list --prod` (names reviewed, secrets not printed into the doc); `convex deploy` output; deployment announced and confirmed before the command runs (deploy guard).
   - Files: none (runbook updated if steps changed).
 
-- [ ] **Task 8: Web deploy on `mindspool.martinruzek.eu`** — prod
+- [x] **Task 8: Web deploy on `mindspool.martinruzek.eu`** — prod
   - Acceptance: build with prod `VITE_*`; `check-bundle` passes; `wrangler deploy` succeeds; the domain loads over HTTPS; you can sign in and see an empty Library; a second Clerk account on the waitlist cannot sign up; if created manually and not in the allowed list, the app shows an access error and Convex returns `FORBIDDEN`.
   - Verify: results in `docs/verification/deploy.md`; manual sign-in; second-account test.
   - Files: `docs/verification/deploy.md`.
 
-- [ ] **Task 9: Chrome extension on production** — manual
+- [x] **Task 9: Chrome extension on production** — manual
   - Acceptance: build with prod `WXT_PUBLIC_*` and the stable key; `check-bundle` passes (no dev values); the Chrome ID is in the prod Clerk allowed origins; the 7-step walkthrough passes against production; clipped items appear on the live site.
   - Verify: walkthrough table filled with evidence.
   - Files: `docs/verification/deploy.md`.
 
-- [ ] **Task 10: Android APK on production** — manual, prod
+- [x] **Task 10: Android APK on production** — manual, prod
   - Acceptance: EAS environment variables set for `production` (`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CONVEX_URL`); `eas build -p android --profile production-apk` succeeds within the free plan; APK installed on your phone by file; sign-in persists after killing the app; sharing an X link saves one item visible on the web within seconds, re-share shows "Already saved", Library list shows live labels. This also closes the open device checks from the archived Android plan.
   - Verify: results in `docs/verification/deploy.md`; EAS build page shows the plan usage.
   - Files: `docs/verification/deploy.md`.
 
-- [ ] **Task 11: Clef in prod and close-out**
+- [x] **Task 11: Clef in prod and close-out**
   - Acceptance: a saved item in prod receives Clef labels; the daily limit is respected (verify with a low temporary limit only if you agree); `README.md` and `CAPABILITIES.md` describe the deployed setup; `docs/deploy.md` matches what was actually done; `pnpm check` green; spec's Success Criteria all ticked or noted.
   - Verify: `pnpm check`; labels visible on the live site.
   - Files: `README.md`, `CAPABILITIES.md`, `docs/deploy.md`, `docs/verification/deploy.md`.

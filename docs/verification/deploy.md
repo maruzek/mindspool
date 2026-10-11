@@ -46,4 +46,5 @@ Status: **in progress** (Chrome walkthrough on dev done 2026-10-11, signed in wi
 - Firefox (prod build, temporary add-on): clipping X posts works after adding the add-on's `moz-extension://<uuid>` origin to the production Clerk allowed origins. Without it Clerk returned HTTP 400 ("only one of Origin and Authorization"). The UUID is per profile.
 - Web: favicon deployed with `pnpm --filter @mindspool/web run deploy` (plain `cf deploy` does not rebuild).
 - The `cdn.protect.clerk.com` CSP errors in extension pages are Clerk bot protection and are ignored.
-- Open: web capture bar (adding a note or link) failed for the owner on production; cause not yet found.
+- Web capture bar works on production (owner confirmed).
+- Android production APK (EAS `production-apk`): owner confirmed it works on the phone; Clef labels appear in production.

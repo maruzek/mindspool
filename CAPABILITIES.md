@@ -46,6 +46,10 @@ plus a read-only `labels.get`, `items.detail`/`remove`, and the search and count
 - Sample content is explicitly requested per signed-in user, repeatable, and
   never inserted automatically into production.
 
+## Deployment
+
+Production runs on Convex, Clerk and Cloudflare Workers for the owner and approved accounts only. `requireOwner` enforces `MINDSPOOL_ALLOWED_SUBJECTS` (unset means no restriction, so development and tests are unchanged). Setup and rollback are in [the deploy runbook](docs/deploy.md); evidence is in [the deploy verification](docs/verification/deploy.md).
+
 ## Later Roadmap Work
 
 Deletion/export, asynchronous extraction and image storage, provider
