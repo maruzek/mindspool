@@ -24,7 +24,16 @@ export default defineConfig({
     permissions: ["storage", "cookies"],
     // Firefox needs a fixed id for MV3 and for the Clerk origin allow-list.
     // Source: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings#id
-    browser_specific_settings: { gecko: { id: "clipper@mindspool.local" } },
+    browser_specific_settings: {
+      gecko: {
+        id: "clipper@mindspool.local",
+        // Clips (page text and images) go to the owner's Convex backend, with the Clerk session token.
+        // Source: https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/
+        data_collection_permissions: {
+          required: ["websiteContent", "authenticationInfo"],
+        },
+      },
+    },
     host_permissions: [
       "*://x.com/*",
       "*://twitter.com/*",
