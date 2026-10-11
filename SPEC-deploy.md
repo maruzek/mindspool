@@ -55,9 +55,16 @@ docs/verification/deploy.md   evidence: manual walkthroughs and results
 Match the repo: TypeScript strict, small pure functions, Vitest next to the code. The access guard is one function used by the existing identity helper, with the allowed owner read from a Convex env var:
 
 ```ts
-export function assertAllowed(identity: UserIdentity, allowedSubjects: string | undefined) {
+export function assertAllowed(
+  identity: UserIdentity,
+  allowedSubjects: string | undefined,
+) {
   // Unset in dev so local work is unaffected; set in prod.
-  const allowed = allowedSubjects?.split(",").map((id) => id.trim()).filter(Boolean) ?? [];
+  const allowed =
+    allowedSubjects
+      ?.split(",")
+      .map((id) => id.trim())
+      .filter(Boolean) ?? [];
   if (allowed.length > 0 && !allowed.includes(identity.subject)) {
     throw new ConvexError({ code: "FORBIDDEN" });
   }
@@ -79,6 +86,7 @@ Order: Clerk prod and domain, then Convex prod (with owner guard), then web, the
 ## Chrome extension walkthrough (acceptance)
 
 Against production, in Chrome with the unpacked build:
+
 1. Popup shows sign-in, signing in works and survives a browser restart.
 2. Clip an X post (text, one with images, a quote post): item appears in the web Library with the same fields as the Firefox output.
 3. Clip a Reddit post from feed and detail view; clip a single comment.

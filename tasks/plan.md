@@ -30,16 +30,16 @@ Tasks 1 to 5 are independent and could be done in any order; Task 3 goes first f
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Extension fails in Chrome (never tested): service worker, Clerk `syncHost`, cookies | High | Task 3 runs it against dev before any prod work |
-| Clerk production needs DNS records on the domain; verification can lag | Med | Task 6 starts early; DNS is on Cloudflare so records are added there |
-| Extension ID changes, breaking Clerk origin | Med | Generate key in Task 3, reuse for prod; record ID in runbook |
-| Guard breaks a function that bypasses `requireOwner` | High | Audit in Task 1; test every public function name against the guard (loop over `api`) |
-| Dev values leak into prod bundles | Med | Bundle check script in Task 2 (and reused for extension/mobile) |
-| EAS free plan quota or queue time | Low | One build needed; fall back to local build only if blocked |
-| Waitlist-approved user signs in but sees `FORBIDDEN` | Low | Runbook step, plus a clear error in clients |
-| Prod `MINDSPOOL_ENABLE_DEV_SEED` set by accident | Med | Task 7 verifies it is unset via `convex env list --prod` |
+| Risk                                                                                | Impact | Mitigation                                                                           |
+| ----------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------ |
+| Extension fails in Chrome (never tested): service worker, Clerk `syncHost`, cookies | High   | Task 3 runs it against dev before any prod work                                      |
+| Clerk production needs DNS records on the domain; verification can lag              | Med    | Task 6 starts early; DNS is on Cloudflare so records are added there                 |
+| Extension ID changes, breaking Clerk origin                                         | Med    | Generate key in Task 3, reuse for prod; record ID in runbook                         |
+| Guard breaks a function that bypasses `requireOwner`                                | High   | Audit in Task 1; test every public function name against the guard (loop over `api`) |
+| Dev values leak into prod bundles                                                   | Med    | Bundle check script in Task 2 (and reused for extension/mobile)                      |
+| EAS free plan quota or queue time                                                   | Low    | One build needed; fall back to local build only if blocked                           |
+| Waitlist-approved user signs in but sees `FORBIDDEN`                                | Low    | Runbook step, plus a clear error in clients                                          |
+| Prod `MINDSPOOL_ENABLE_DEV_SEED` set by accident                                    | Med    | Task 7 verifies it is unset via `convex env list --prod`                             |
 
 ## Open Questions
 

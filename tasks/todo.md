@@ -4,12 +4,12 @@ Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands 
 
 ## Phase 1: Code and early testing (no production touched)
 
-- [ ] **Task 1: Access guard in `requireOwner`**
+- [x] **Task 1: Access guard in `requireOwner`**
   - Acceptance: `MINDSPOOL_ALLOWED_SUBJECTS` (comma-separated, trimmed) is enforced in `requireOwner`; allowed id passes; other id throws `FORBIDDEN`; unset or empty passes; unauthenticated still `UNAUTHENTICATED`. Every other place reading the identity directly is routed through the guard or documented as internal-only.
   - Verify: `pnpm --filter @mindspool/backend test` (new cases in `auth.test.ts`, plus a test that exercises public queries/mutations as a refused user); `pnpm --filter @mindspool/backend typecheck`.
   - Files: `packages/backend/convex/auth.ts`, `auth.test.ts`, `processingRuns.ts` (if audit requires), maybe `identity.ts`.
 
-- [ ] **Task 2: Web on Workers, build guard** — M
+- [x] **Task 2: Web on Workers, build guard** — M
   - Acceptance: `wrangler` added to `apps/web`; `wrangler.jsonc` with assets `./dist`, SPA fallback, route `mindspool.martinruzek.eu` as custom domain; `deploy` script (build then `wrangler deploy`); `scripts/check-bundle.mjs` (repo root) fails on `pk_test_`, `localhost`, `127.0.0.1` and any forbidden string passed by argument in a built directory; `.env.production.example` documented.
   - Verify: `pnpm --filter @mindspool/web build`; `pnpm --filter @mindspool/web exec wrangler dev` serves the SPA and a deep link (e.g. `/library`) falls back to `index.html`; the check script passes on a prod-style build and fails on a dev build (test both).
   - Files: `apps/web/wrangler.jsonc`, `apps/web/package.json`, `apps/web/.env.production.example`, `scripts/check-bundle.mjs`, `.gitignore` (verify `.env.*` already covers it).
@@ -20,12 +20,12 @@ Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands 
   - Files: `apps/extension/scripts/generate-key.mjs`, `apps/extension/package.json`, `apps/extension/wxt.config.ts`, `apps/extension/.env.example`, fixes as found.
   - Note: may exceed five files if fixes are needed; split fixes into follow-up tasks (3a, 3b).
 
-- [ ] **Task 4: EAS production-apk profile**
+- [x] **Task 4: EAS production-apk profile**
   - Acceptance: `eas.json` has `production-apk` (APK, `environment: production`, internal distribution, no store submit profile); `apps/mobile/.env.example` notes that prod values come from EAS environment variables, not committed files; no `submit` section.
   - Verify: `pnpm --filter @mindspool/mobile typecheck`; `pnpm --filter @mindspool/mobile test`; `pnpm --filter @mindspool/mobile exec expo config --type public` still resolves.
   - Files: `apps/mobile/eas.json`, `apps/mobile/.env.example`.
 
-- [ ] **Task 5: Runbook and verification doc skeleton**
+- [x] **Task 5: Runbook and verification doc skeleton**
   - Acceptance: `docs/deploy.md` has the ordered steps, env-var table per system (names only, where each value lives), the two-step approve-a-user procedure, rollback, and the "never" list; `docs/verification/deploy.md` has empty result tables for each success criterion.
   - Verify: `pnpm format:check`; every env var in the code (`grep process.env`, `import.meta.env`) appears in the table.
   - Files: `docs/deploy.md`, `docs/verification/deploy.md`.
