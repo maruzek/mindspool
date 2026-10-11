@@ -7,7 +7,11 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
-      "package": "com.mindspool.app"
+      "package": "com.mindspool.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ece7f4"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.mindspool.app"
@@ -23,6 +27,7 @@
       "eas": {
         "projectId": "0aad285b-7e7f-4b07-9683-30798dbdc454"
       }
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }
