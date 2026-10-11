@@ -34,12 +34,12 @@ Source: [SPEC-deploy.md](../SPEC-deploy.md). Plan: [plan.md](plan.md). Commands 
 
 ## Phase 2: Production (each step needs your go-ahead)
 
-- [ ] **Task 6: Clerk production instance and DNS** — manual
+- [x] **Task 6: Clerk production instance and DNS** — manual
   - Acceptance: production instance for `mindspool.martinruzek.eu` with DNS records added in Cloudflare and verified; Access mode **Waitlist**; JWT template `convex` (audience `convex`); allowed origins include `https://mindspool.martinruzek.eu` and the extension origin; your own account created in production; publishable key and issuer domain recorded in your password manager.
   - Verify: Clerk dashboard shows the instance verified; the production sign-in page loads on the domain once Task 8 is done; clerk CLI `clerk doctor`/deploy verify if available.
   - Files: none in git (runbook notes only).
 
-- [ ] **Task 7: Convex production deployment** — prod
+- [x] **Task 7: Convex production deployment** — prod
   - Acceptance: prod deployment created; env set: `CLERK_JWT_ISSUER_DOMAIN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AUTH_TOKEN` (scoped Workers AI token), `AI_DAILY_NEURON_LIMIT` (dev value), `MINDSPOOL_ALLOWED_SUBJECTS` (your prod Clerk id), `MINDSPOOL_ENVIRONMENT=production`; `MINDSPOOL_ENABLE_DEV_SEED` unset; functions deployed from a clean checkout of `main`.
   - Verify: `convex env list --prod` (names reviewed, secrets not printed into the doc); `convex deploy` output; deployment announced and confirmed before the command runs (deploy guard).
   - Files: none (runbook updated if steps changed).
