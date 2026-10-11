@@ -42,7 +42,7 @@ Status: **in progress** (Chrome walkthrough on dev done 2026-10-11, signed in wi
 
 ## Production notes (2026-10-11)
 
-- Chrome (prod build): clipping X posts works from the feed and a single tweet, after reloading stale X tabs. Steps 1 to 7 were not individually re-run on production.
+- Chrome (prod build): clipping X and Reddit posts works from the feed and a single tweet, after reloading stale X tabs. Steps 1 to 7 were not individually re-run on production.
 - Firefox (prod build, temporary add-on): clipping X posts works after adding the add-on's `moz-extension://<uuid>` origin to the production Clerk allowed origins. Without it Clerk returned HTTP 400 ("only one of Origin and Authorization"). The UUID is per profile.
 - Web: favicon deployed with `pnpm --filter @mindspool/web run deploy` (plain `cf deploy` does not rebuild).
 - The `cdn.protect.clerk.com` CSP errors in extension pages are Clerk bot protection and are ignored.
