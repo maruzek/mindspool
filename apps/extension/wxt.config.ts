@@ -18,7 +18,7 @@ export default defineConfig({
   // Vite's modulepreload links trigger "cross-world extension resource
   // mismatch" warnings in extension pages and gain nothing from local files.
   vite: () => ({ build: { modulePreload: false } }),
-  manifest: () => ({
+  manifest: ({ browser }) => ({
     name: "MindSpool",
     description: "Keep your links, images, and ideas together.",
     permissions: ["storage", "cookies"],
@@ -34,7 +34,8 @@ export default defineConfig({
       ...originPermission("WXT_PUBLIC_CONVEX_URL"),
       ...originPermission("WXT_PUBLIC_CLERK_SYNC_HOST"),
     ],
-    ...(process.env.CLERK_EXTENSION_PUBLIC_KEY
+    // `key` pins the Chrome extension ID; Firefox rejects the property.
+    ...(browser !== "firefox" && process.env.CLERK_EXTENSION_PUBLIC_KEY
       ? { key: process.env.CLERK_EXTENSION_PUBLIC_KEY }
       : {}),
   }),
