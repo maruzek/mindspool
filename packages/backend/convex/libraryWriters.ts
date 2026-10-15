@@ -11,6 +11,7 @@ import {
   linkSearchFields,
 } from "./itemState";
 import { startDecisionOrFail } from "./decisions";
+import { startEnrichment } from "./enrichment";
 type Capture = Pick<
   Doc<"items">,
   "originalInput" | "inputType" | "captureSource" | "captureKey"
@@ -80,14 +81,19 @@ export async function insertCapture(
     }),
   });
   await adjustStats(ctx, ownerId, { total: 1 });
-  // Best effort: a labeling problem must never fail the save.
+  // Best effort: an enrichment or labeling problem must never fail the save.
   try {
-    const hasLabel = await ctx.db
-      .query("labels")
-      .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
-      .first();
     const item = await ctx.db.get(itemId);
-    if (hasLabel && item) await startDecisionOrFail(ctx, item, "clef-flash");
+    if (item && input.inputType === "url") {
+      // Labeling waits for the page's title and description (enrichment.complete).
+      await startEnrichment(ctx, item, true);
+    } else if (item) {
+      const hasLabel = await ctx.db
+        .query("labels")
+        .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+        .first();
+      if (hasLabel) await startDecisionOrFail(ctx, item, "clef-flash");
+    }
   } catch {
     // Swallowed on purpose.
   }

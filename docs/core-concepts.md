@@ -136,7 +136,7 @@ Image assets distinguish external URL references from future owned storage
 references. This phase accepts safe external references through internal workers.
 New storage references require an ownership-checked upload flow and are rejected
 until that flow exists. Development examples use illustrative `example.org`
-references; no image binary is fetched or uploaded.
+references; image binaries are never fetched or uploaded: images are hotlinked by the browser.
 
 ## Bounded browsing and examples
 

@@ -5,6 +5,7 @@ import type { Doc } from "./_generated/dataModel";
 import { ownedBoard } from "./boards";
 import { validElement } from "./boardState";
 import { invalid } from "./boardValidators";
+import { imageUrls } from "./itemImages";
 import { sourceKindOf } from "./itemState";
 export const preview = v.object({
   itemId: v.id("items"),
@@ -19,13 +20,7 @@ export const preview = v.object({
   ),
 });
 export async function previewItem(ctx: QueryCtx, item: Doc<"items">) {
-  const asset = item.imageAssets[0];
-  const url = asset
-    ? asset.kind === "stored"
-      ? await ctx.storage.getUrl(asset.storageId)
-      : asset.url
-    : null;
-  const imageUrl = url && /^https?:\/\//i.test(url) ? url : null;
+  const imageUrl = (await imageUrls(ctx, item, 1))[0] ?? null;
   const links = await ctx.db
     .query("itemLabels")
     .withIndex("by_owner_item_decision", (q) =>

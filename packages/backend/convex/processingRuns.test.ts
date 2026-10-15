@@ -1,7 +1,10 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api, internal } from "./_generated/api";
+import type { Infer } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
+import type { enrichment as enrichmentValidator } from "./validators";
 import { modules } from "./test.setup";
 
 async function fixture() {
@@ -281,5 +284,112 @@ describe("processing history and manual decisions", () => {
         },
       }),
     ).rejects.toThrow("Invalid result");
+  });
+});
+
+describe("enrichment merge", () => {
+  const start = (
+    t: Awaited<ReturnType<typeof fixture>>["t"],
+    itemId: Id<"items">,
+  ) =>
+    t.mutation(internal.processingRuns.start, {
+      itemId,
+      kind: "enrichment",
+      modality: "text",
+      questionVersion: "og-v1",
+    });
+  const enrich = async (
+    t: Awaited<ReturnType<typeof fixture>>["t"],
+    itemId: Id<"items">,
+    enrichment: Infer<typeof enrichmentValidator>,
+  ) => {
+    const runId = await start(t, itemId);
+    await t.mutation(internal.processingRuns.finish, {
+      runId,
+      itemId,
+      result: {
+        status: "succeeded",
+        suggestions: [],
+        enrichment,
+      },
+    });
+  };
+  const thumb = (url: string) => ({
+    kind: "external" as const,
+    url,
+    purpose: "thumbnail" as const,
+  });
+
+  it("keeps a clip's own data and adds at most one thumbnail", async () => {
+    const { t, alice } = await fixture();
+    const itemId = await alice.mutation(api.items.create, {
+      originalInput: "https://x.com/a/status/1",
+      inputType: "url",
+      captureSource: "extension",
+      captureKey: "tweet",
+      sourceMetadata: { title: "Tweet", author: "@a" },
+      imageAssets: [
+        {
+          kind: "external",
+          url: "https://pbs.twimg.com/1.jpg",
+          purpose: "image",
+        },
+        {
+          kind: "external",
+          url: "https://pbs.twimg.com/2.jpg",
+          purpose: "image",
+        },
+      ],
+    });
+    await enrich(t, itemId, {
+      canonicalUrl: "https://x.com/a/status/1",
+      sourceMetadata: { title: "Page title", author: "Other", siteName: "X" },
+      imageAssets: [thumb("https://x.com/og.png")],
+    });
+    const item = await alice.query(api.items.get, { id: itemId });
+    expect(item).toMatchObject({
+      enrichmentStatus: "succeeded",
+      canonicalUrl: "https://x.com/a/status/1",
+      sourceMetadata: { title: "Tweet", author: "@a", siteName: "X" },
+    });
+    expect(item?.imageAssets.map((a) => a.purpose)).toEqual([
+      "image",
+      "image",
+      "thumbnail",
+    ]);
+  });
+
+  it("fills a bare link and leaves one thumbnail after enriching twice", async () => {
+    const { t, alice } = await fixture();
+    const itemId = await alice.mutation(api.items.create, {
+      originalInput: "https://example.com/soup",
+      inputType: "url",
+      captureSource: "web",
+      captureKey: "bare",
+    });
+    await enrich(t, itemId, {
+      sourceMetadata: {
+        title: "Soup",
+        description: "Hot",
+        siteName: "Kitchen",
+      },
+      imageAssets: [thumb("https://example.com/a.png")],
+    });
+    await enrich(t, itemId, {
+      sourceMetadata: { title: "Soup 2" },
+      imageAssets: [thumb("https://example.com/b.png")],
+    });
+    const item = await alice.query(api.items.get, { id: itemId });
+    expect(item?.sourceMetadata).toEqual({
+      title: "Soup",
+      description: "Hot",
+      siteName: "Kitchen",
+    });
+    expect(item?.imageAssets).toEqual([thumb("https://example.com/b.png")]);
+    const found = await alice.query(api.items.search, {
+      query: "Soup",
+      paginationOpts,
+    });
+    expect(found.page.map((i) => i._id)).toContain(itemId);
   });
 });

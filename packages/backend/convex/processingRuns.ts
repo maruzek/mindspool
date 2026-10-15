@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { utcDay } from "./aiBudget";
 import { release } from "./aiUsage";
 import { requireOwned, requireOwner } from "./auth";
@@ -107,6 +107,44 @@ export const finish = internalMutation({
   },
 });
 
+/**
+ * Enrichment only adds what the item lacks: clip data (title, author, images,
+ * text) always wins, and older thumbnails are replaced rather than piled up.
+ */
+function mergeEnrichment(
+  item: Doc<"items">,
+  content: Infer<typeof enrichment>,
+): Partial<Doc<"items">> {
+  const patch: Partial<Doc<"items">> = {};
+  if (content.canonicalUrl && !item.canonicalUrl)
+    patch.canonicalUrl = content.canonicalUrl;
+  if (content.extractedText && !item.extractedText)
+    patch.extractedText = content.extractedText;
+  if (content.sourceMetadata) {
+    const merged = { ...item.sourceMetadata };
+    let changed = false;
+    for (const [key, value] of Object.entries(content.sourceMetadata)) {
+      const field = key as keyof typeof merged;
+      if (value !== undefined && !merged[field]?.trim()) {
+        merged[field] = value;
+        changed = true;
+      }
+    }
+    if (changed) patch.sourceMetadata = merged;
+  }
+  if (content.imageAssets) {
+    const kept = item.imageAssets.filter((a) => a.purpose !== "thumbnail");
+    const urls = new Set(
+      kept.flatMap((a) => (a.kind === "external" ? [a.url] : [])),
+    );
+    const added = content.imageAssets.filter(
+      (a) => a.kind === "external" && !urls.has(a.url),
+    );
+    patch.imageAssets = [...kept, ...added];
+  }
+  return patch;
+}
+
 /** Shared by `finish` and `decisions.complete`, so both validate identically. */
 export async function finishRun(
   ctx: MutationCtx,
@@ -179,7 +217,7 @@ export async function finishRun(
     }
     await ctx.db.patch(runId, { ...record, finishedAt: Date.now() });
     if (content && item.pendingEnrichmentRunId === runId)
-      await ctx.db.patch(itemId, content);
+      await ctx.db.patch(itemId, mergeEnrichment(item, content));
   }
   if (run.kind === "enrichment" && item.pendingEnrichmentRunId === runId) {
     await ctx.db.patch(itemId, {

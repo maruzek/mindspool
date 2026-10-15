@@ -127,6 +127,10 @@ export const itemPreview = v.object({
     }),
   ),
   labelCount: v.number(),
+  /** First image to show for the item (clip image, else the page's og:image). */
+  thumbnailUrl: v.optional(v.string()),
+  /** Images in the item's gallery; set with `thumbnailUrl`. */
+  imageCount: v.optional(v.number()),
   /** Unsure labels among the (at most four) links read for this preview. */
   unsureCount: v.optional(v.number()),
   /** A decision run is pending. */
@@ -146,6 +150,8 @@ export const itemDetail = v.object({
   redditCapture: itemFields.redditCapture,
   /** Omitted when empty. */
   imageAssets: v.optional(v.array(asset)),
+  /** Safe image URLs in display order (at most 10); omitted when empty. */
+  images: v.optional(v.array(v.string())),
 });
 export const itemPage = paginationResultValidator(itemPreview);
 export const LABEL_DESCRIPTION_MAX = 500;

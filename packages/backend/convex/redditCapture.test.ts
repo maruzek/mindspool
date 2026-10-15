@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
 import { redditCommentUrl, redditPostUrl } from "../../schema/src/reddit";
@@ -453,7 +453,7 @@ describe("Reddit first capture", () => {
         });
         const item = await alice.query(api.items.get, { id: result.itemId });
         expect(item.extractedText).toContain(comment.text);
-        const runs = await t.run((ctx) =>
+        const all = await t.run((ctx) =>
           ctx.db
             .query("processingRuns")
             .withIndex("by_owner_item", (q) =>
@@ -461,6 +461,24 @@ describe("Reddit first capture", () => {
             )
             .take(10),
         );
+        // Labeling starts once the link's page fetch settles.
+        expect(all.map((r) => r.kind)).toEqual(["enrichment"]);
+        await t.mutation(internal.enrichment.complete, {
+          runId: all[0]!._id,
+          itemId: result.itemId,
+          thenLabel: true,
+          result: { status: "failed", error: "offline" },
+        });
+        const runs = (
+          await t.run((ctx) =>
+            ctx.db
+              .query("processingRuns")
+              .withIndex("by_owner_item", (q) =>
+                q.eq("ownerId", "alice").eq("itemId", result.itemId),
+              )
+              .take(10),
+          )
+        ).filter((r) => r.kind === "decision");
         expect(runs).toHaveLength(1);
         expect(runs[0]!.status).toBe(limited ? "failed" : "pending");
         if (limited) expect(runs[0]!.error).toBe("Daily AI limit reached");

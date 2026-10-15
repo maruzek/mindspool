@@ -14,6 +14,7 @@ import {
   validateRedditItemSize,
 } from "./redditCaptureModel";
 import { startDecisionOrFail } from "./decisions";
+import { imageUrls } from "./itemImages";
 import {
   adjustStats,
   isUnsureLink,
@@ -145,6 +146,7 @@ export const detail = query({
     const itemId = ctx.db.normalizeId("items", id);
     const item = itemId ? await ctx.db.get(itemId) : null;
     if (!item || item.ownerId !== ownerId) return null;
+    const images = await imageUrls(ctx, item, DETAIL_IMAGES);
     return {
       _id: item._id,
       _creationTime: item._creationTime,
@@ -158,6 +160,7 @@ export const detail = query({
       ...(item.extractedText ? { extractedText: item.extractedText } : {}),
       ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
       ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
+      ...(images.length ? { images } : {}),
     };
   },
 });
@@ -341,6 +344,8 @@ export const stats = query({
 });
 
 export const PREVIEW_PAGE_SIZE = 10;
+/** Most images a detail or preview reads. */
+const DETAIL_IMAGES = 10;
 const PREVIEW_LABELS = 3;
 const PREVIEW_RUNS = 3;
 
@@ -399,6 +404,7 @@ export async function previewItems(
           : [],
       );
       const unsureCount = links.filter(isUnsureLink).length;
+      const images = await imageUrls(ctx, item, DETAIL_IMAGES);
       // A few recent runs are enough to tell whether labeling is in flight.
       const runs = await ctx.db
         .query("processingRuns")
@@ -414,6 +420,10 @@ export async function previewItems(
         ...previewItem(item),
         labels,
         labelCount: links.length,
+        ...(images[0] && {
+          thumbnailUrl: images[0],
+          imageCount: images.length,
+        }),
         ...(unsureCount > 0 && { unsureCount }),
         ...(labeling && { labeling }),
       };

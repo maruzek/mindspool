@@ -31,8 +31,10 @@ preservation, and capture-key reuse tests that were dropped with the old save fo
    The capability map is amended accordingly.
 6. Image drop and file upload are out of scope: the backend has no ownership-checked upload flow. The placeholder reads
    "Paste a link or write a note…".
-7. Thumbnails use the design's hatched tonal tile with a kind icon (link, note). External image references are not rendered
-   because no image binaries are fetched yet.
+7. Thumbnails show the item's first image (`thumbnailUrl`: the clip's first image, else the page's `og:image`), with a "+N"
+   badge when there are more. Images are hotlinked (`loading="lazy"`, `referrerPolicy="no-referrer"`) and never downloaded
+   or proxied. Items without an image, or whose image fails to load, show the hatched tile with the source's brand mark
+   (globe for web, note glyph for notes). Replaces the earlier "no image is rendered" rule; see `tasks/plan.md`.
 8. Brand icons: the user supplied monochrome SVGs (X, Instagram, TikTok, YouTube, Reddit; Simple Icons style, one path,
    `viewBox="0 0 24 24"`), copied to `apps/web/src/assets/brands/`. They are wrapped as a `BrandIcon` component that
    renders `currentColor`, so no dependency is added. Hosts map as `x.com`/`twitter.com` → X, `instagram.com`,

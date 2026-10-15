@@ -1,10 +1,10 @@
 import { LoaderCircleIcon } from "lucide-react";
 import { useLinkProps, useSearch } from "@tanstack/react-router";
 import { ItemRow } from "@mindspool/ui/components/mindspool/item-row";
-import { ItemThumb } from "@mindspool/ui/components/mindspool/item-thumb";
 import { LabelTag } from "@mindspool/ui/components/mindspool/label-tag";
 import { ProcessingStatus } from "@mindspool/ui/components/mindspool/processing-status";
 import { BrandIcon } from "./BrandIcon";
+import { MediaThumb } from "./MediaThumb";
 import {
   displayTitle,
   hostOfItem,
@@ -92,7 +92,7 @@ export function ItemList({
       {items.map((item) => (
         <li key={item._id}>
           <ItemRow
-            thumb={<ItemThumb kind={kindOf(item)} />}
+            thumb={<MediaThumb item={item} />}
             title={displayTitle(item)}
             source={<SourceLine item={item} />}
             status={<ProcessingStatus status={item.enrichmentStatus} />}

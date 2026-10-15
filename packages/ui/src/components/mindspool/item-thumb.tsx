@@ -6,8 +6,8 @@ type ItemThumbProps = React.ComponentProps<"span"> & {
 };
 
 /**
- * Media placeholder: a hatched tonal tile with the kind glyph. No image is
- * fetched; pass `children` to replace the glyph (for example a brand mark).
+ * Media tile: hatched and tonal with the kind glyph. Pass `children` to
+ * replace the glyph (a brand mark, or an image).
  */
 function ItemThumb({ kind, className, children, ...props }: ItemThumbProps) {
   return (

@@ -91,7 +91,7 @@ describe("owned Item capture", () => {
       originalUrl: capture.originalInput,
       captureSource: "web",
       captureStatus: "captured",
-      enrichmentStatus: "not_started",
+      enrichmentStatus: "pending",
       imageAssets: [],
     });
   });
@@ -339,7 +339,8 @@ describe("items.remove", () => {
     expect(left.item).toBeNull();
     expect(left.other).not.toBeNull();
     expect(left.links.map((l) => l.itemId)).toEqual([otherId]);
-    expect(left.runs.map((r) => r.itemId)).toEqual([otherId]);
+    expect(left.runs.every((r) => r.itemId === otherId)).toBe(true);
+    expect(left.runs.length).toBeGreaterThan(1);
     expect(left.blob).toBeNull();
     expect(left.labels).toHaveLength(1);
   });
@@ -403,7 +404,9 @@ describe("items.remove", () => {
       [],
     );
     expect(
-      await t.run((ctx) => ctx.db.query("processingRuns").collect()),
+      (await t.run((ctx) => ctx.db.query("processingRuns").collect())).filter(
+        (r) => r.itemId === id,
+      ),
     ).toEqual([]);
     vi.useRealTimers();
   });

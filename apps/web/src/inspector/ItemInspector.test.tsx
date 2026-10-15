@@ -431,3 +431,29 @@ describe("item inspector frame", () => {
     });
   });
 });
+
+describe("inspector image viewer", () => {
+  const images = [1, 2, 3, 4].map((n) => `https://cdn.test/${n}.jpg`);
+  it("opens at the clicked image and Escape closes only the viewer", async () => {
+    backend.detail = (args) => ({
+      ...detail((args as { id: string }).id),
+      images,
+    });
+    await renderAt("/library?item=a");
+    const third = await screen.findByRole("button", {
+      name: "Open image 3 of 4",
+    });
+    third.focus();
+    fireEvent.click(third);
+    expect(await screen.findByText("3 / 4")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "ArrowRight" });
+    expect(screen.getByText("4 / 4")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // The inspector is still open and the clicked thumbnail has focus again.
+    expect(screen.getByRole("heading", { name: "Soup recipe" })).toBeTruthy();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Open image 3 of 4" }),
+    );
+  });
+});
