@@ -21,7 +21,11 @@ export default defineConfig({
   manifest: ({ browser }) => ({
     name: "MindSpool",
     description: "Keep your links, images, and ideas together.",
-    permissions: ["storage", "cookies"],
+    permissions: [
+      "storage",
+      "cookies",
+      ...(browser === "firefox" ? ["webRequest", "webRequestBlocking"] : []),
+    ],
     // Firefox needs a fixed id for MV3 and for the Clerk origin allow-list.
     // Source: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings#id
     browser_specific_settings: {

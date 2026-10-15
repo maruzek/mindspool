@@ -5,6 +5,7 @@ import { browser } from "wxt/browser";
 import { createClipHandler } from "../src/clipHandler";
 import { isClipRequest } from "../src/messages";
 import { createTokenProvider } from "../src/tokenProvider";
+import { clerkRequestHeaders } from "../src/clerkRequestHeaders";
 
 // ESM output: Clerk's client uses dynamic imports, which WXT's default IIFE background cannot bundle.
 // All runtime setup lives in `main`: WXT imports this file in Node at build time.
@@ -13,8 +14,21 @@ export default defineBackground({
   main() {
     const publishableKey = import.meta.env.WXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     const syncHost = import.meta.env.WXT_PUBLIC_CLERK_SYNC_HOST;
+    const frontendApi = import.meta.env.WXT_PUBLIC_CLERK_FRONTEND_API;
     const convexUrl = import.meta.env.WXT_PUBLIC_CONVEX_URL;
     const convex = convexUrl ? new ConvexHttpClient(convexUrl) : undefined;
+
+    // Register synchronously so this also covers requests that wake the event page.
+    // Firefox MV3 supports blocking webRequest; Chrome MV3 does not.
+    // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest/onBeforeSendHeaders
+    if (import.meta.env.BROWSER === "firefox" && frontendApi) {
+      const extensionUrl = browser.runtime.getURL("/");
+      browser.webRequest.onBeforeSendHeaders.addListener(
+        (details) => clerkRequestHeaders(details, extensionUrl, frontendApi),
+        { urls: [`${new URL(frontendApi).origin}/*`] },
+        ["blocking", "requestHeaders"],
+      );
+    }
 
     // Source: node_modules/@clerk/chrome-extension (3.1.90) marks `/background` deprecated in favour of
     // `/client` with `{ background: true }`.
