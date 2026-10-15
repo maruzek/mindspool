@@ -43,7 +43,7 @@ function setup() {
       captureKey,
     });
   const extract = (itemId: Id<"items">) =>
-    t.mutation(internal.tweetLinks.extract, { itemId });
+    t.mutation(internal.tweetLinks.apply, { itemId });
   const items = () => t.run((ctx) => ctx.db.query("items").collect());
   const links = async () =>
     (await items())
@@ -100,7 +100,7 @@ describe("tweet link extraction", () => {
     const scheduled = await t.run((ctx) =>
       ctx.db.system.query("_scheduled_functions").collect(),
     );
-    expect(scheduled.map((s) => s.name)).toContain("tweetLinks:extract");
+    expect(scheduled.map((s) => s.name)).toContain("tweetLinks:run");
   });
 
   it("saves one link Item per resource, each being enriched", async () => {
@@ -239,8 +239,7 @@ describe("backfill", () => {
       for (const job of await ctx.db.system
         .query("_scheduled_functions")
         .collect())
-        if (job.name === "tweetLinks:extract")
-          await ctx.scheduler.cancel(job._id);
+        if (job.name === "tweetLinks:run") await ctx.scheduler.cancel(job._id);
     });
     await t.mutation(internal.tweetLinks.backfill, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -253,5 +252,92 @@ describe("backfill", () => {
     await t.mutation(internal.tweetLinks.backfill, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await links()).toHaveLength(7);
+  });
+});
+
+const cut = `10 resources every AI designer should know👇
+
+1. https://modulify.ai/templates — daily free builds
+2. https://iconly.design — find brand references
+3. https://fontinlogo.com — find the hottest typefaces
+4. https://logotouse.com — find free logos
+5. https://landdding.com — find`;
+const full = `10 resources every AI designer should know👇
+
+1. http://modulify.ai/templates — daily free builds
+2. http://iconly.design — find brand references
+3. http://fontinlogo.com — find the hottest typefaces
+4. http://logotouse.com — find free logos
+5. http://landdding.com — find landing page visuals
+6. http://motionin.design — find motion sections
+7. http://wonderlist.design — find premium Figma designs
+8. http://wedoflow.com — discover website design inspiration
+9. http://ikonik.modulify.ai — find icons for your next build
+10. http://paperanimation.ai — create interactive animations`;
+
+const fxTwitter = (id: string, text: string) =>
+  vi.fn((url: string) =>
+    Promise.resolve(
+      url === `https://api.fxtwitter.com/someone/status/${id}`
+        ? Response.json({ code: 200, tweet: { id, text } })
+        : new Response("", { status: 404 }),
+    ),
+  );
+
+describe('full text of a clip cut short by "Show more"', () => {
+  it("fetches the post's full text and saves every link", async () => {
+    const { t, clip, items, links } = setup();
+    const fetch = fxTwitter("9", full);
+    vi.stubGlobal("fetch", fetch);
+    const tweet = await clip("9", cut);
+    expect(await t.action(internal.tweetLinks.run, { itemId: tweet })).toEqual({
+      created: 10,
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.fxtwitter.com/someone/status/9",
+      expect.anything(),
+    );
+    expect(await links()).toHaveLength(10);
+    const saved = (await items()).find((i) => i._id === tweet)!;
+    expect(saved.extractedText).toBe(full);
+    expect(saved.searchText).toContain("paperanimation");
+  });
+
+  it("keeps the clip's text when the post cannot be fetched", async () => {
+    const { t, clip, items, links } = setup();
+    const tweet = await clip("9", cut);
+    expect(await t.action(internal.tweetLinks.run, { itemId: tweet })).toEqual({
+      created: 5,
+    });
+    expect(await links()).toHaveLength(5);
+    expect((await items()).find((i) => i._id === tweet)!.extractedText).toBe(
+      cut,
+    );
+  });
+
+  it("keeps the clip's text when it is not shorter", async () => {
+    const { t, clip, items } = setup();
+    vi.stubGlobal("fetch", fxTwitter("9", "short"));
+    const tweet = await clip("9", noah);
+    await t.action(internal.tweetLinks.run, { itemId: tweet });
+    expect((await items()).find((i) => i._id === tweet)!.extractedText).toBe(
+      noah,
+    );
+  });
+
+  it("re-running after the text grew adds only the new links", async () => {
+    const { t, alice, clip, extract, items, links } = setup();
+    const tweet = await clip("9", cut);
+    await extract(tweet);
+    const iconly = (await items()).find(
+      (i) => i.originalInput === "https://iconly.design",
+    )!;
+    await alice.mutation(api.items.remove, { id: iconly._id });
+    vi.stubGlobal("fetch", fxTwitter("9", full));
+    expect(await t.action(internal.tweetLinks.run, { itemId: tweet })).toEqual({
+      created: 5,
+    });
+    expect(await links()).toHaveLength(9);
+    expect(await links()).not.toContain("http://iconly.design");
   });
 });

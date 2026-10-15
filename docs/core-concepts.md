@@ -48,6 +48,8 @@ Reddit posts) keep their capture-key identity.
 - This runs once per tweet (`linksExtracted`), so a deleted resource is not
   re-created.
 - The extension writes each tweet link as its full URL.
+- A timeline clip is cut at "Show more", so `tweetLinks.run` first fetches the
+  full text from FxTwitter. It keeps the clip's text when that fetch fails.
 - `npx convex run tweetLinks:backfill` keys older links and then expands older
   tweets.
 

@@ -128,7 +128,7 @@ export async function insertCapture(
     }
     // A tweet listing resources becomes one Item per resource (tweetLinks.ts).
     if (item?.sourceKind === "x" && item.extractedText)
-      await ctx.scheduler.runAfter(0, internal.tweetLinks.extract, { itemId });
+      await ctx.scheduler.runAfter(0, internal.tweetLinks.run, { itemId });
   } catch {
     // Swallowed on purpose.
   }

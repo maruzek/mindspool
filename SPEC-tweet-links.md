@@ -89,6 +89,22 @@ User stories:
 
    Running it again is safe: extraction never creates a duplicate.
 
+## Truncated clips (added 2026-10-15)
+
+A clip taken from the X timeline holds only the text shown before "Show more",
+so links after the cut were missed. Every new tweet clip now runs the
+`tweetLinks.run` action first:
+
+- It fetches the post from `api.fxtwitter.com`, the same source the mobile
+  clipper uses, with an 8-second timeout.
+- If that text is longer, it replaces `extractedText`, and search state is
+  refreshed.
+- If the fetch fails, the clip's own text is used.
+
+When a tweet's text grows after extraction, only the links new to the text are
+saved. A resource you deleted is therefore not re-created. To re-run one tweet:
+`npx convex run tweetLinks:run '{"itemId": "…"}'`.
+
 ## Tech Stack
 
 The stack is unchanged: Convex 1.46 (mutations, scheduler, `convex-test`),
@@ -155,7 +171,7 @@ export function urlKey(raw: string): string | null { … }
 - **Ask first:** UI changes (for example, showing "links from this post" in the
   inspector), changing the 2-link threshold, and merging clip content into an
   existing plain link.
-- **Never:** fetch `t.co` or X pages from the server, fail a tweet save because
+- **Never:** fetch `t.co` or X pages from the server (FxTwitter, as on mobile, is the only post source), fail a tweet save because
   extraction failed, or delete existing duplicates automatically.
 
 ## Success Criteria
