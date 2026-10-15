@@ -35,6 +35,7 @@ import type * as processingRuns from "../processingRuns.js";
 import type * as redditCaptureModel from "../redditCaptureModel.js";
 import type * as sampleContent from "../sampleContent.js";
 import type * as seed from "../seed.js";
+import type * as tweetLinks from "../tweetLinks.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   redditCaptureModel: typeof redditCaptureModel;
   sampleContent: typeof sampleContent;
   seed: typeof seed;
+  tweetLinks: typeof tweetLinks;
   validators: typeof validators;
 }>;
 

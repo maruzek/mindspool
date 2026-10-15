@@ -97,6 +97,10 @@ export const itemFields = {
   imageAssets: v.array(asset),
   updatedAt: v.number(),
   pendingEnrichmentRunId: v.optional(v.id("processingRuns")),
+  /** Dedupe identity of a link (`urlKey` in schema/links.ts); absent on notes and on links saved before it existed. */
+  urlKey: v.optional(v.string()),
+  /** Set on a tweet once its links were turned into Items, so they are never made again. */
+  linksExtracted: v.optional(v.boolean()),
   // Denormalized for search and filters; written only by itemState.ts.
   // Absent on items saved before these existed (flags absent = false).
   searchText: v.optional(v.string()),

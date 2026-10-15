@@ -55,6 +55,7 @@ describe("owned Item capture", () => {
       ids.push(
         await alice.mutation(api.items.create, {
           ...capture,
+          originalInput: `https://example.com/page-${i}`,
           captureKey: `page-${i}`,
         }),
       );
@@ -153,9 +154,17 @@ describe("owned Item capture", () => {
     expect(
       await asUser.mutation(api.items.create, {
         ...capture,
+        originalInput: "https://example.com/other",
         captureKey: "capture-2",
       }),
     ).not.toBe(id);
+    // The same link under a new key is the same Item: a link is saved once.
+    expect(
+      await asUser.mutation(api.items.create, {
+        ...capture,
+        captureKey: "capture-3",
+      }),
+    ).toBe(id);
   });
 
   it("scopes capture keys to the owner", async () => {
@@ -297,6 +306,7 @@ describe("items.remove", () => {
     const id = await alice.mutation(api.items.create, capture);
     const otherId = await alice.mutation(api.items.create, {
       ...capture,
+      originalInput: "https://example.com/other",
       captureKey: "capture-2",
     });
     const labelId = await alice.mutation(api.labels.create, { name: "L" });
@@ -507,7 +517,11 @@ describe("denormalized search state", () => {
   it("restores the counts when the item is deleted", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });
-    await alice.mutation(api.items.create, { ...capture, captureKey: "keep" });
+    await alice.mutation(api.items.create, {
+      ...capture,
+      originalInput: "https://example.com/keep",
+      captureKey: "keep",
+    });
     const id = await alice.mutation(api.items.create, capture);
     expect(await stats(t, "alice")).toMatchObject({ total: 2, inbox: 2 });
     await alice.mutation(api.items.remove, { id });

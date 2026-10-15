@@ -24,9 +24,32 @@ deletes the Item or Label. Repeated attach/remove calls are idempotent. Every
 relationship operation checks ownership of both endpoints.
 
 A capture key identifies one submission attempt. Retrying that key with the same
-payload returns the saved Item; different input with that key fails. Independent
-saves use new keys and remain distinct. This does not deduplicate equal URLs
-saved intentionally on separate occasions.
+payload returns the saved Item; different input with that key fails.
+
+A link is saved once. Every link Item stores a `urlKey`:
+
+- The host is lowercased and loses `www.`; the scheme and fragment are ignored.
+- Tracking parameters (`utm_*`, `fbclid`, …) are dropped and the rest are sorted.
+- A trailing `/` is removed from the path.
+
+A bare link save (no clip content) whose key matches an existing Item returns
+that Item instead of inserting a duplicate. Clips that carry content (tweets,
+Reddit posts) keep their capture-key identity.
+
+**Tweet links** ([spec](../SPEC-tweet-links.md)):
+
+- A new tweet clip schedules `tweetLinks.extract`, which reads the http(s) links
+  in the tweet's text. X, Twitter and t.co links are skipped, and at most 20
+  links are read.
+- When there are at least two links, each one not already in the library is
+  saved as its own link Item, with the tweet's capture source. It is then
+  enriched (title, description, `og:image` thumbnail) and labeled like a pasted
+  link.
+- This runs once per tweet (`linksExtracted`), so a deleted resource is not
+  re-created.
+- The extension writes each tweet link as its full URL.
+- `npx convex run tweetLinks:backfill` keys older links and then expands older
+  tweets.
 
 Extension Reddit captures use the dedicated `items.clipReddit` mutation and an
 owner-scoped `reddit:<postId>` key. An optional `redditCapture` field embeds the

@@ -15,7 +15,21 @@ function textOf(node: Node): string {
   if (!(node instanceof Element)) return "";
   if (node instanceof HTMLImageElement) return node.alt;
   if (node instanceof HTMLBRElement) return "\n";
+  if (node instanceof HTMLAnchorElement && isShortLink(node))
+    return linkOf(node);
   return Array.from(node.childNodes, textOf).join("");
+}
+
+const isShortLink = (a: HTMLAnchorElement) =>
+  /^https:\/\/t\.co\//.test(a.getAttribute("href") ?? "");
+
+/**
+ * The full URL of a tweet link. X shows a shortened form but keeps the
+ * `https://` prefix and the rest of a long path in hidden spans, then a `…`.
+ */
+function linkOf(a: HTMLAnchorElement): string {
+  const text = (a.textContent ?? "").trim().replace(/…$/, "");
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`;
 }
 
 /** Whether `el` belongs to `article` itself, not to a nested article or a quoted tweet inside it. */

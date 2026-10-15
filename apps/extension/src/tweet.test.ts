@@ -20,9 +20,14 @@ describe("parseTweet", () => {
       url: "https://x.com/jane/status/1001",
       author: "Jane Doe",
       handle: "jane",
-      text: "Fresh sourdough starter, day three 🍞\nStill bubbling. See example.com/starter",
+      text: "Fresh sourdough starter, day three 🍞\nStill bubbling. See https://example.com/starter",
       images: [],
     });
+  });
+  it("writes tweet links as full URLs, leaving mentions and hashtags", () => {
+    expect(parseTweet(load("links"))?.text).toBe(
+      "Mockup tools by @framer #design\n1. https://mocku.com\n2. https://studio.morflax.com/templates/very-long-path\n3. https://reactbits.dev",
+    );
   });
   it("reads photos at large size, in order", () => {
     expect(parseTweet(load("images"))).toMatchObject({
