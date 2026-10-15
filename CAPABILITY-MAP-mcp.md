@@ -1,6 +1,7 @@
 # Capability Map: MindSpool MCP
 
-Status: proposed; awaiting review before module specifications.
+Status: approved by the user with “proceed”; module specifications require their
+own review.
 
 ## Objective
 
@@ -86,11 +87,11 @@ tweet multi-link extraction work in the original checkout.
 Review module boundaries, dependency direction, build order, and assumptions.
 After approval, write the following specs one at a time, with review after each:
 
-| Module          | Future specification    | Status      |
-| --------------- | ----------------------- | ----------- |
-| `mcp-access`    | `SPEC-mcp-access.md`    | Not started |
-| `mcp-discovery` | `SPEC-mcp-discovery.md` | Not started |
-| `mcp-labels`    | `SPEC-mcp-labels.md`    | Not started |
+| Module          | Future specification                     | Status           |
+| --------------- | ---------------------------------------- | ---------------- |
+| `mcp-access`    | [SPEC-mcp-access.md](SPEC-mcp-access.md) | Draft for review |
+| `mcp-discovery` | `SPEC-mcp-discovery.md`                  | Not started      |
+| `mcp-labels`    | `SPEC-mcp-labels.md`                     | Not started      |
 
 The access spec must establish the hosted authorization flow and client
 compatibility from current official documentation. Transport, hosting location,
