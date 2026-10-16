@@ -1,7 +1,7 @@
 # Tasks: Hosted MCP account access
 
 Spec: [SPEC-mcp-access.md](../SPEC-mcp-access.md). Plan: [plan.md](plan.md).
-Status: implementation started, 2026-10-16. Tasks 1–3 and Checkpoint A are complete; Task 4 is in progress. Commands run from the isolated checkout root.
+Status: implementation started, 2026-10-16. Tasks 1–3 and Checkpoint A are complete; Task 4 is complete; Task 5 is in progress. Commands run from the isolated checkout root.
 The task steps below are the checklist of record; no external tracker is used.
 Read each task with the plan's global constraints and interface contracts.
 
@@ -153,7 +153,7 @@ backend typecheck and real deployed probe results in the evidence file.
 `readMcpConfig()`, `verifyMcpAccessToken(request, config, signal)`, and
 `ownerIdForMcpSubject(subject, configuredSessionIssuer)`.
 
-- [ ] Add refusal tests: wrong issuer/resource/client, missing subject, session/ID
+- [x] Add refusal tests: wrong issuer/resource/client, missing subject, session/ID
       tokens, expired/revoked tokens, disabled/deleted user, disallowed account, malformed
       provider response, and timeout. The owner-mapping regression uses the existing fixture:
 
@@ -165,11 +165,11 @@ backend typecheck and real deployed probe results in the evidence file.
 
   Also assert that substituting another issuer cannot select that same owner's clips.
 
-- [ ] Run red, then implement strict configuration and provider-response validation
+- [x] Run red, then implement strict configuration and provider-response validation
       using the recorded schema. Verify OAuth token and active-user status on each
       request under one five-second deadline. Fixed provider URLs only; no fetch of a
       client-supplied issuer, resource, token URL, or metadata URL.
-- [ ] Run green. Verify provider faults produce unavailable errors, credentials
+- [x] Run green. Verify provider faults produce unavailable errors, credentials
       never appear in thrown messages, and foreign/missing claims cannot reach internal
       library operations. Do not change `auth.config.ts` or browser auth semantics.
 
