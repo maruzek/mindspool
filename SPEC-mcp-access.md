@@ -1,7 +1,9 @@
 # Spec: Hosted MCP account access
 
 Module: `mcp-access` in [CAPABILITY-MAP-mcp.md](CAPABILITY-MAP-mcp.md).
-Status: draft for review. Specification only; no implementation or deployment.
+Status: approved for planning by the user's “write the plan” instruction.
+Specification only; no implementation or deployment. Technical feasibility
+questions remain gates in [the implementation plan](tasks/plan.md).
 
 ## Objective
 
