@@ -22,8 +22,9 @@ connection management.
 
 **Spec:** [SPEC-mcp-access.md](../SPEC-mcp-access.md).
 **Status:** implementation authorized by the user's “begin on the work” instruction,
-2026-10-16. Task 2 is complete; Checkpoint A remains blocked on Task 1's provider and Task 3's
-deployed-runtime proofs. See [the evidence](../docs/verification/mcp-access.md).
+2026-10-16. Tasks 2 and 3 are complete; Checkpoint A remains blocked on Task 1's
+second-resource negative proof. Both read-only provider flows and the hosted
+runtime have passed. See [the evidence](../docs/verification/mcp-access.md).
 
 ## Scope and global constraints
 

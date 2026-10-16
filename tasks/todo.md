@@ -1,8 +1,8 @@
 # Tasks: Hosted MCP account access
 
 Spec: [SPEC-mcp-access.md](../SPEC-mcp-access.md). Plan: [plan.md](plan.md).
-Status: implementation started, 2026-10-16. Task 2 is complete; Tasks 1 and 3 have
-blocked runtime proofs. Checkpoint A has not passed. Commands run from the isolated checkout root.
+Status: implementation started, 2026-10-16. Tasks 2 and 3 are complete; Task 1's
+second-resource negative proof is pending. Checkpoint A has not passed. Commands run from the isolated checkout root.
 The task steps below are the checklist of record; no external tracker is used.
 Read each task with the plan's global constraints and interface contracts.
 
@@ -39,10 +39,11 @@ Both authorization starts redirect to development sign-in. A temporary local
 read-only provider proof uses the user's browser consent; its exact resource
 uses the configured `eu-west-1.convex.site` origin. The ordinary OAuth application
 list does not establish CIMD registry state.
-The configured session issuer matches the development Clerk issuer. Codex provider
+The configured session issuer matches the development Clerk issuer. Both provider
 consent, real token/audience, existing owner mapping, active-user lookup, refresh,
-and revocation passed. Claude, actual second-resource refusal, inactive-account
-negative cases, and deployed runtime remain open. This is not actual CLI MCP
+and revocation passed. The hosted probe also confirms the exact web identity owner.
+Actual second-resource refusal is pending; inactive-account negative cases remain
+in the planned verifier/lifecycle tests. This is not actual CLI MCP
 connection evidence. See
 [the evidence](../docs/verification/mcp-access.md).
 
@@ -108,24 +109,26 @@ and existing `requireOwner`.
       and `MINDSPOOL_MCP_PROOF_ENABLED=true`, and refuses anonymous/foreign disallowed
       callers even when enabled. It uses the existing app JWT only for this temporary
       development probe, returns no library data, and allocates no durable session.
-- [ ] Add the guarded HTTP action. Classify the deployment, then bundle/deploy
+- [x] Add the guarded HTTP action. Classify the deployment, then bundle/deploy
       once with `pnpm --filter @mindspool/backend exec convex dev --once --typecheck enable`.
       Exercise initialize/notification/list against the real route with a development
       user's existing authentication, without printing its token.
-- [ ] Run two interleaved authenticated callers, verify responses stay independent,
+- [x] Run two interleaved authenticated callers, verify responses stay independent,
       and record runtime compatibility, bundle result, timing, versions, and failures.
       Disable the proof flag after the check; Task 7 removes the route.
 
-Progress: guarded route and ten local HTTP/auth tests are implemented. Convex isolate
-bundling and generated types pass. Bundle-only mode intentionally skipped the push.
-This worktree's baseline predates newer changes in the original checkout, so coordinate
-the shared development deployment before replacing it. No proof flag
-was enabled; actual authenticated hosted calls remain unverified. T3 browser automation
-reported no connected host. Task 3 is not complete.
+Progress: complete. Merged the four newer library commits into this isolated branch
+and preserved the current dev features; original checkout unchanged. The classified
+development deployment accepted the bundle. Actual authenticated initialize,
+notification, and empty-list calls passed with two distinct existing browser sessions
+of the same owner, independent IDs, JSON responses, and no session headers. Observed
+latency 186–248 ms; anonymous requests returned 401. The probe flag was removed and
+disabled 404 verified. The real web identity query matches OAuth ownership exactly.
+Distinct-user isolation remains covered by local route tests.
 
-Foundation verification: `pnpm check` passes (866 tests, workspace typechecks and
+Foundation verification: `pnpm check` passes after branch integration (967 tests, workspace typechecks and
 builds); Firefox build passes. Fresh independent review found no issues in Tasks 1–3.
-The remaining provider and deployed-runtime proofs still block Checkpoint A.
+The remaining second-resource provider proof still blocks Checkpoint A.
 
 **Acceptance:** actual Convex runtime handles SDK requests; probe is unavailable in
 production; no credential or content escapes into evidence.

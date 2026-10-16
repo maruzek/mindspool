@@ -150,11 +150,11 @@ contents were written to the evidence. Owner comparison read at most 100 owner
 statistics rows into process memory; it did not create or impersonate an owner.
 
 This is a provider flow using the Codex public client identity, not an actual
-Codex CLI connection to `/mcp`. Claude's browser proof remains pending. The
+Codex CLI connection to `/mcp`. Claude's later proof is recorded below. The
 harness's `wrongResourceWouldBeRejected` result is an audience comparison only;
 it is **not** evidence of an actual second-resource grant or a deployed handler
-refusing it. Those negative cases, account-disable/delete refusals, and hosted
-Convex execution remain open.
+refusing it. The second-resource attempt remains open; account-disable/delete
+refusals still require their planned negative tests.
 
 ### Claude first attempt and callback diagnostics
 
@@ -177,7 +177,17 @@ The shell-managed callback process was also found terminated by `SIGTERM` before
 its four-hour deadline. It has been relaunched as a detached local process with
 the same entry URL, preserved redacted results, and a renewed four-hour lifetime.
 Fresh HTTP requests verify both the entrypoint and the corrected results page.
-Claude needs a retry after its allowed scopes are saved.
+Claude was then retried after its allowed scopes were saved.
+
+### Claude read-only provider proof
+
+The user's retry passed every check in the Codex proof table: issuer-bound
+callback, code exchange and live verification (`200`), exact regional MCP
+audience, read/refresh scopes without label-write, active-user lookup, existing
+owner mapping, refresh preserving all bindings, immediate revocation, and a
+revoked refresh grant refused with `400`. Its verified `client_id` is exactly
+`https://claude.ai/oauth/claude-code-client-metadata`. The updated results page
+shows both clients passed. Neither result establishes actual CLI MCP operation.
 
 ### Documented provider schema and remaining checks
 
@@ -269,12 +279,50 @@ This supports bundling compatibility; it is not a deployed-runtime execution pro
 `convex codegen --typecheck enable` generated the API types separately against
 the same selected development deployment, without deploying the application.
 
-No running backend was replaced and no proof flag was enabled. The worktree's
+At that initial bundle-only checkpoint, no running backend was replaced and no proof flag was enabled. The worktree's
 baseline predates changes on the original checkout; replacing the shared dev
 backend should be coordinated with the owner of that newer work. T3 preview
 `status` and `open` both explicitly reported no connected browser automation host.
 There was therefore no authenticated deployed probe call and no measured hosted
-request latency. These Task 3 runtime checks remain **blocked**.
+request latency. The later deployed proof below completes those Task 3 checks.
+
+### Deployed development runtime proof
+
+The MCP branch was updated with the original checkout's four newer library/media/
+tweet-link commits before deploying, preserving the current development features.
+The MCP task list remains active; the tweet-link plan/tasks were archived with
+correct relative links. Conflicts were limited to plan/archive links and generated
+API imports, which were regenerated through the installed Convex CLI. The original
+checkout was not changed. Merge commit: `fdf0ef1`.
+
+After the integrated branch passed `pnpm check`, Convex `1.46.0` deployed it with
+`convex dev --once --typecheck enable` to the classified personal development
+deployment `graceful-stork-346`. Deployment preparation completed in 8.93 seconds.
+The probe returned `404` before enabling its development flag.
+
+The proof used two existing active browser sessions for the same existing library
+owner. Short-lived, 60-second Convex-template JWTs were requested from those
+sessions using the development instance credential; no sessions or users were
+created and no credentials were persisted. A real `identity.current` query through
+the normal Convex client confirmed its returned web `tokenIdentifier`-based owner
+exactly matches the verified OAuth subject plus the configured issuer.
+
+| Hosted check                         | Result                                                    | Observed latency |
+| ------------------------------------ | --------------------------------------------------------- | ---------------- |
+| Anonymous request with probe enabled | `401`                                                     | 198 ms           |
+| Two overlapping initialize requests  | `200`, independent IDs `101`/`202`, protocol `2025-11-25` | 248 / 216 ms     |
+| Initialized notification             | `202`, no response body                                   | 219 ms           |
+| Interleaved tool lists               | `200`, independent IDs `303`/`404`, empty registries      | 193 / 186 ms     |
+| JSON/no-session behavior             | JSON results, no session header on any response           | Passed           |
+| Disabled after cleanup               | `404`                                                     | Verified         |
+
+The live callers used different existing sessions of the same owner; distinct-user
+isolation remains covered by the local two-user route tests. These observed
+latencies are a development smoke sample, not a performance guarantee. The first
+harness run failed because its dynamic import of the SDK's CommonJS entrypoint
+did not expose the constructor; correcting the harness import fixed it. Cleanup
+disabled the flag after both the failed run and the successful run. No production
+deployment or environment configuration was touched.
 
 ## Checkpoint A and remaining work
 
@@ -286,27 +334,30 @@ Before Task 4:
    audience support, opaque tokens, and PKCE are configured; DCR stays disabled.
    Complete real consent/resource/revocation checks rather than relying on
    settings or metadata alone.
-3. Codex browser consent, owner comparison, response fields, refresh, and provider
-   revocation are now observed. Complete the Claude proof and remaining negative
-   cases, including a real second-resource attempt and inactive-account refusal.
-4. Coordinate the development deployment, run the authenticated probe with two
-   callers, record latency and errors, then disable the probe flag.
+3. Both browser provider proofs, exact web/OAuth owner comparison, response fields,
+   refresh, and provider revocation are observed. Complete the real second-resource
+   attempt using the prepared local negative test. Disabled/deleted-account
+   refusals still need the planned verifier tests and later disposable-account
+   lifecycle verification; the live active-user response fields are established.
+4. Task 3's deployment, interleaved authenticated calls, timings, and flag cleanup
+   are complete. Review the feasibility evidence before Task 4.
 
-Tasks 4–12 have not started. No schema or public owner-impersonation parameters
+Tasks 4–12 have not started. No MCP tables or public owner-impersonation parameters
 were added. The `/mcp` endpoint, settings page, search tools, and label-editing
 tools are not available from this foundation.
 
 ## Verification of the foundation
 
-| Check                                              | Result                                                                                                     |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                   | Passed; existing install-script policy retained                                                            |
-| `pnpm check`                                       | Passed: repository formatting, 866 tests, all workspace typechecks and web/extension/Android export builds |
-| MCP tests included above                           | 19 passed: nine transport and ten guarded HTTP-probe cases                                                 |
-| `pnpm --filter @mindspool/extension build:firefox` | Passed                                                                                                     |
-| Convex isolate bundle and generated types          | Passed; no application deployment performed                                                                |
-| Fresh independent review                           | No findings within Tasks 1–3; installed SDK source and focused tests checked                               |
-| Real hosted runtime and both CLI OAuth lifecycles  | Not verified; blockers above remain open                                                                   |
+| Check                                                              | Result                                                                                                                              |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                   | Passed; existing install-script policy retained                                                                                     |
+| `pnpm check`                                                       | Passed after branch integration: repository formatting, 967 tests, all workspace typechecks and web/extension/Android export builds |
+| MCP tests included above                                           | 19 passed: nine transport and ten guarded HTTP-probe cases                                                                          |
+| `pnpm --filter @mindspool/extension build:firefox`                 | Passed                                                                                                                              |
+| Convex isolate bundle, generated types, and development deployment | Passed; authenticated hosted SDK lifecycle verified and probe disabled afterward                                                    |
+| Fresh independent review                                           | No findings within Tasks 1–3; installed SDK source and focused tests checked                                                        |
+| Both browser provider proofs                                       | Passed; consent, binding, owner, refresh, and revocation                                                                            |
+| Actual Codex/Claude CLI MCP lifecycles                             | Not verified; planned after the final endpoint exists                                                                               |
 
 Web tests emitted jsdom `scrollTo` notices while passing. No tests were skipped,
 removed, or weakened for this change. The original checkout's Git working tree
