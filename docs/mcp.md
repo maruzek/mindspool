@@ -17,11 +17,24 @@ provide `mindspool:read`, default read-only consent, and separately approved
 provider revocation must be demonstrated with actual tokens. Do not substitute
 an app session JWT or client ID for the OAuth resource proof.
 
-The inspected instance currently has no OAuth applications, audience claims
-disabled, JWT access tokens enabled, and CIMD not advertised. No provider settings
-have been changed. Development configuration and browser OAuth proof must be
-completed before implementing the authorization layer. Production configuration
-and deployment require separate authorization.
+The development instance now has opaque access tokens, required PKCE, published
+CIMD with pre-registration restrictions, audience validation enabled, and a
+`mindspool:read` default. No OAuth clients have been registered yet, and the two
+custom scopes are not advertised in public discovery. Finish scope advertising
+and CIMD registration, then complete the browser OAuth proof before implementing
+the authorization layer. Production configuration and deployment require separate
+authorization.
+
+In the development dashboard's OAuth applications → Applications tab, choose
+Add application → Pre-register CIMD client for each verified URL:
+
+- Codex: `https://chatgpt.com/oauth/codex/client.json`
+- Claude Code: `https://claude.ai/oauth/claude-code-client-metadata`
+
+Permit `mindspool:read` and `mindspool:labels:write` for each client, then choose
+Allow client. These are allowed scopes, not a user grant; keep the instance default
+read-only. In the Scopes tab, also enable metadata advertising for both custom
+scopes. Real authorization still needs an explicit consent/resource-binding proof.
 
 ## Temporary runtime probe
 

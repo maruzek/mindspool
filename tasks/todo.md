@@ -30,11 +30,14 @@ for `VerifiedMcpClaims`, plus exact provider revocation/active-user procedures.
       If resource binding is absent, present the concrete failed proof before any
       production feature implementation. Do not equate client ID with audience.
 
-Progress: read-only inspection confirmed a development instance, but no OAuth clients,
-audience claims disabled, JWT access tokens enabled, and CIMD not advertised.
+Progress: development setup now confirms opaque tokens, required PKCE, restricted
+CIMD, audience validation enabled, and an exact `mindspool:read` default. The user
+saved the dashboard settings; a previewed development-only API patch enabled audience
+validation and removed email/profile from defaults. Both real client metadata URLs
+are verified, but no clients are registered yet and custom scopes are not advertised.
 The configured session issuer matches the development Clerk issuer. Actual token,
 owner, refresh, consent, active-user, and revocation proofs remain open. See
-[the evidence](../docs/verification/mcp-access.md); no provider configuration changed.
+[the evidence](../docs/verification/mcp-access.md).
 
 **Acceptance:** user/client/resource identity is demonstrable; existing owner maps
 exactly; revocation/refresh/active-user behavior is evidenced or explicitly blocks A.

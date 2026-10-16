@@ -7,10 +7,11 @@ The hosted account-access feature is not ready for use or release.
 
 ## Development provider inspection (Task 1)
 
-Read-only requests used a local development Clerk key without printing it.
+Initial read-only requests used a local development Clerk key without printing it.
 `GET /v1/instance` confirmed `environment_type: development`. No provider settings,
 clients, grants, scopes, or users were changed. Convex's CLI confirmed the existing
 personal development deployment `graceful-stork-346` for project `mindspool`.
+The table below records that initial snapshot; the follow-up records later setup.
 
 | Proof                                           | Observed evidence                                                                                                                                                                      | Result                                                                                           |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -33,6 +34,64 @@ Public discovery was read from the development Clerk issuer's
 Read-only Convex environment lookup also confirmed `MINDSPOOL_ENVIRONMENT=development`
 and that `CLERK_JWT_ISSUER_DOMAIN` exactly matches that Clerk issuer. This proves
 configured issuer consistency, not a real user's OAuth-to-library owner mapping.
+
+### Development setup follow-up
+
+After the user saved the dashboard settings, another development-only API read
+confirmed opaque tokens, required PKCE, published CIMD support, and admission
+restricted to pre-registered clients. DCR remains disabled. The saved defaults
+still included `email` and `profile`; audience validation was still disabled.
+
+Using the existing development test key with Clerk CLI `3.4.1`, the following
+request was first previewed with `--dry-run`, then applied and independently
+read back through `GET /v1/instance/oauth_application_settings`:
+
+```json
+{
+  "default_scopes": ["mindspool:read"],
+  "aud_claim_enabled": true
+}
+```
+
+Verified current state:
+
+- `default_scopes: ["mindspool:read"]`
+- `aud_claim_enabled: true`; refresh audience backfill remains disabled
+- `oauth_jwt_access_tokens: false`
+- `pkce_required: true`
+- `client_id_metadata_documents_advertised: true`
+- Both pre-registration admission restrictions are true; DCR is false
+- Public discovery advertises CIMD, token endpoint authentication `none`, and
+  `authorization_response_iss_parameter_supported: true`
+
+No users, grants, or production configuration were changed. Settings alone are
+not a token/resource/refresh/revocation proof. There are still zero OAuth clients,
+and public `scopes_supported` still omits both MindSpool scopes. The read scope is
+accepted as an instance default; label-write scope existence and both advertising
+flags need checking in the Scopes tab.
+
+Both proposed client metadata URLs were fetched successfully with HTTP 200:
+
+| Client      | Metadata URL                                          |
+| ----------- | ----------------------------------------------------- |
+| Codex       | `https://chatgpt.com/oauth/codex/client.json`         |
+| Claude Code | `https://claude.ai/oauth/claude-code-client-metadata` |
+
+Each document's `client_id` exactly equals its URL, authentication method is
+`none`, grants include authorization code and refresh, and redirect URIs include
+`http://127.0.0.1/callback` and `http://localhost/callback`. The stable Codex URL
+applies because this Clerk instance advertises issuer-bound authorization
+responses; see [official Codex registration documentation](https://learn.chatgpt.com/docs/extend/mcp#oauth-client-registration).
+The Claude URL was confirmed in installed Claude Code `2.1.301` and by fetching
+the actual document. Installed Codex remains `0.162.1`.
+
+Next dashboard action: Applications → Add application → Pre-register CIMD client,
+enter each URL, assign the two MindSpool scopes as the permitted scope ceiling,
+and choose Allow client. This does not grant users write access: that still
+requires explicit OAuth consent and the later app-side grant. The current Clerk
+CLI Backend API catalog exposes ordinary OAuth application creation but no CIMD
+pre-registration or scope-catalog management endpoint; no undocumented endpoints
+were tried and no confidential-client fallback was substituted.
 
 ### Provider schema findings, not verified token fixtures
 
@@ -136,10 +195,10 @@ request latency. These Task 3 runtime checks remain **blocked**.
 Before Task 4:
 
 1. Review this evidence and the pinned dependency choices.
-2. Configure development-only custom scopes/read defaults, a compatible public
-   client or CIMD, intended-resource audience support, and opaque tokens. DCR stays
-   disabled. These settings require real consent/resource/revocation checks rather
-   than relying on their presence in metadata.
+2. Finish development-only scope advertising and pre-register the two verified
+   CIMD clients. Read-only defaults, audience support, opaque tokens, and PKCE are
+   now configured; DCR stays disabled. Real consent/resource/revocation checks
+   remain required rather than relying on settings or metadata alone.
 3. Complete browser OAuth with a development account; compare its existing app
    owner identifier and obtain sanitized verification fixtures. Exercise a wrong
    resource, refresh, active-account refusal, and provider revocation.
