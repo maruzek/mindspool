@@ -109,8 +109,8 @@ does not establish these clients' admission or grant state.
 The configured Convex site URL is
 `https://graceful-stork-346.eu-west-1.convex.site`; the canonical development MCP
 resource includes `/mcp` on that exact regional origin. A temporary loopback
-callback is prepared in the ignored plan workspace, with a 20-minute process
-lifetime. It requests read access only, validates state/issuer and S256 PKCE,
+callback is prepared in the ignored plan workspace, with a four-hour process
+lifetime (extended after the initial 20-minute callback expired). It requests read access only, validates state/issuer and S256 PKCE,
 suppresses request logging, keeps credentials in memory, and writes only
 explicitly redacted evidence. Its intended provider checks include verification,
 existing library owner comparison, active-user status, refresh, and revocation of
