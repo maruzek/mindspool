@@ -1,7 +1,7 @@
 # Tasks: Hosted MCP account access
 
 Spec: [SPEC-mcp-access.md](../SPEC-mcp-access.md). Plan: [plan.md](plan.md).
-Status: implementation started, 2026-10-16. Tasks 1–3 and Checkpoint A are complete; Task 4 is complete; Task 5 is in progress. Commands run from the isolated checkout root.
+Status: implementation started, 2026-10-16. Tasks 1–3 and Checkpoint A are complete; Tasks 4 and 5 are complete; Checkpoint B is ready for review. Commands run from the isolated checkout root.
 The task steps below are the checklist of record; no external tracker is used.
 Read each task with the plan's global constraints and interface contracts.
 
@@ -189,7 +189,7 @@ owner mapping; no verification success cached across requests.
 `configuration`, `list`, `setLabelWrite`, `disconnect`, and `reconnect` with the
 plan's exact inputs.
 
-- [ ] Write two-owner lifecycle tests and concurrent-first-request/revocation tests.
+- [x] Write two-owner lifecycle tests and concurrent-first-request/revocation tests.
       Include this transition: app write-enable plus token write scope permits editing;
       app downgrade refuses that same still-valid token; reconnect resets to read-only.
 
@@ -200,11 +200,11 @@ plan's exact inputs.
   Assert both the record's app permission and the returned principal's effective
   scopes; possession of token scope alone must not enable editing.
 
-- [ ] Run red; add the indexed table and transactional lookup/create/authorization.
+- [x] Run red; add the indexed table and transactional lookup/create/authorization.
       Implement public controls with authenticated owner checks and ten-row pagination.
       Do not delete tombstones or permit public owner/principal arguments. Do not add
       a reference to the provider-revocation scheduler until its Task 11 implementation.
-- [ ] Run green for one record under concurrent creation; revoke wins against later
+- [x] Run green for one record under concurrent creation; revoke wins against later
       authorization; anonymous/foreign public actions fail; replaying an old token cannot
       reactivate a record; repeat disconnect is safe. Generate required Convex types and
       verify no generated API accidentally makes `authorize` public.

@@ -23,7 +23,7 @@ connection management.
 **Spec:** [SPEC-mcp-access.md](../SPEC-mcp-access.md).
 **Status:** implementation authorized by the user's “begin on the work” instruction,
 2026-10-16. Tasks 1–3 and Checkpoint A are complete. Both read-only provider flows, the real
-second-resource rejection, and the hosted runtime have passed. Task 4 is in progress. See [the evidence](../docs/verification/mcp-access.md).
+second-resource rejection, and the hosted runtime have passed. Tasks 4 and 5 are implemented; Checkpoint B is ready for review. See [the evidence](../docs/verification/mcp-access.md).
 
 ## Scope and global constraints
 

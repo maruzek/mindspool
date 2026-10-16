@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { mcpConnectionFields } from "./mcpValidators";
 import {
   itemFields,
   itemLabelFields,
@@ -16,6 +17,10 @@ import {
 } from "./boardValidators";
 
 export default defineSchema({
+  mcpConnections: defineTable(mcpConnectionFields)
+    .index("by_owner_client", ["ownerId", "clientId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_subject", ["subject"]),
   boards: defineTable(boardFields).index("by_owner_label", [
     "ownerId",
     "labelId",

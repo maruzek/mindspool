@@ -1,6 +1,7 @@
 # MindSpool MCP access
 
-The feasibility checks have passed; implementation of authorization is in progress. There is no usable `/mcp` endpoint
+Feasibility and the authorization implementation are complete; the authorization
+checkpoint is ready for review. There is no usable `/mcp` endpoint
 yet. The current module is account connection and permissions; clip discovery
 and label-editing tools belong to subsequent modules.
 
