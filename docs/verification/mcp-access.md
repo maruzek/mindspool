@@ -398,3 +398,11 @@ issuer-format regression tests. Typecheck and generated bindings pass. Convex
 disabled and no `/mcp` route is published. No production or original-checkout
 changes were made. The approved plan's Checkpoint B calls for reviewing the
 connection schema and revocation races before publishing the endpoint.
+
+Final checkpoint verification after the issuer-format fix: `pnpm check` passed
+1,053 tests (schema 42, backend 457, web 307, extension 128, mobile 119), all six
+workspace typecheck tasks, and web/Chrome-extension/Android export builds. The
+final development push completed in 8.51 seconds. Anonymous POSTs to both `/mcp`
+and the disabled `/__mcp_probe` returned `404` afterward. The temporary local OAuth
+proof server was stopped after all test grants had been revoked. Both Git working
+trees are clean; Checkpoint B remains ready for the planned human review.
