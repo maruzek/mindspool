@@ -1,6 +1,6 @@
 # MindSpool MCP access
 
-Implementation is at the feasibility stage. There is no usable `/mcp` endpoint
+The feasibility checks have passed; implementation of authorization is in progress. There is no usable `/mcp` endpoint
 yet. The current module is account connection and permissions; clip discovery
 and label-editing tools belong to subsequent modules.
 
@@ -21,8 +21,7 @@ The development instance now has opaque access tokens, required PKCE, published
 CIMD with pre-registration restrictions, audience validation enabled, and a
 `mindspool:read` default. Both custom scopes now appear in public discovery, and
 the user has pre-registered both CIMD clients. Authorization initiation with each
-client reaches the development sign-in page. Complete the browser OAuth proof
-before implementing the authorization layer. Production configuration and
+client reaches the development sign-in page. Both browser OAuth proofs and the real second-resource negative check have passed. Production configuration and
 deployment require separate authorization.
 
 In the development dashboard's OAuth applications → Applications tab, choose
@@ -47,8 +46,8 @@ not a claim that either CLI has connected to the unfinished `/mcp` endpoint.
 Both provider flows have passed read-only consent, exact audience and existing
 owner mapping, active-user lookup, refresh, and immediate test-grant revocation.
 The hosted Convex SDK probe has also passed, including exact identity comparison
-through the existing web-auth query. The real second-resource negative proof
-remains pending; use **Test wrong-resource rejection** on the temporary local page.
+through the existing web-auth query. A real token issued for a different resource was rejected before user/library lookup,
+and its test grant was revoked.
 Actual CLI MCP lifecycles and inactive-account refusal tests remain separate checks.
 
 ## Temporary runtime probe

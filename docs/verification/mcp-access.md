@@ -2,7 +2,7 @@
 
 Date: 2026-10-16. Plan: [tasks/plan.md](../../tasks/plan.md).
 Worktree: `/home/martin/dev/MindSpool-mcp-spec`, branch `feature/mcp-spec`.
-Baseline: `2dc0f7a`. This records Tasks 1–3 only; Checkpoint A is **blocked**.
+Baseline: `2dc0f7a`. This records the completed Tasks 1–3; Checkpoint A has **passed**.
 The hosted account-access feature is not ready for use or release.
 
 ## Development provider inspection (Task 1)
@@ -324,26 +324,31 @@ did not expose the constructor; correcting the harness import fixed it. Cleanup
 disabled the flag after both the failed run and the successful run. No production
 deployment or environment configuration was touched.
 
+## Actual second-resource negative proof
+
+The user completed the negative browser consent on the development instance. The
+harness obtained and verified a real read-only token for
+`https://mindspool-mcp-negative.invalid/mcp`. The issuer-bound callback and token
+exchange/verification passed (`200`); the token matched that alternate resource
+and did not match the canonical MindSpool resource. The harness rejected it before
+any user or library lookup (`libraryLookupAttempted: false`), then revoked its
+fresh test grant (`200`). No request was made to the alternate resource URL.
+This completes the concrete resource-binding feasibility proof. The production
+verifier must enforce this same boundary; this is still provider-harness evidence,
+not an actual CLI MCP lifecycle.
+
 ## Checkpoint A and remaining work
 
-Before Task 4:
+Tasks 1–3 pass, including both real provider consent flows, exact existing web
+owner mapping, active-user fields, refresh and immediate revocation, an actual
+second-resource refusal, and the deployed SDK lifecycle. The user reviewed the
+consent/results and supplied the passing screenshots. Exact dependencies remain
+server/client `2.3.1` and Zod `4.6.7`; their prior review and runtime proof stand.
+No production environment was touched. Task 4 proceeds under the approved plan.
 
-1. Review this evidence and the pinned dependency choices.
-2. Scope advertising and the user-reported CIMD registrations are prepared;
-   both authorization starts reach development sign-in. Read-only defaults,
-   audience support, opaque tokens, and PKCE are configured; DCR stays disabled.
-   Complete real consent/resource/revocation checks rather than relying on
-   settings or metadata alone.
-3. Both browser provider proofs, exact web/OAuth owner comparison, response fields,
-   refresh, and provider revocation are observed. Complete the real second-resource
-   attempt using the prepared local negative test. Disabled/deleted-account
-   refusals still need the planned verifier tests and later disposable-account
-   lifecycle verification; the live active-user response fields are established.
-4. Task 3's deployment, interleaved authenticated calls, timings, and flag cleanup
-   are complete. Review the feasibility evidence before Task 4.
-
-Tasks 4–12 have not started. No MCP tables or public owner-impersonation parameters
-were added. The `/mcp` endpoint, settings page, search tools, and label-editing
+Disabled/deleted-account refusal still needs the planned verifier tests and later
+disposable-account lifecycle evidence. Actual CLI MCP lifecycles also remain
+unverified. The `/mcp` endpoint, settings page, search tools, and label-editing
 tools are not available from this foundation.
 
 ## Verification of the foundation

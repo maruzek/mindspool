@@ -1,8 +1,7 @@
 # Tasks: Hosted MCP account access
 
 Spec: [SPEC-mcp-access.md](../SPEC-mcp-access.md). Plan: [plan.md](plan.md).
-Status: implementation started, 2026-10-16. Tasks 2 and 3 are complete; Task 1's
-second-resource negative proof is pending. Checkpoint A has not passed. Commands run from the isolated checkout root.
+Status: implementation started, 2026-10-16. Tasks 1–3 and Checkpoint A are complete; Task 4 is in progress. Commands run from the isolated checkout root.
 The task steps below are the checklist of record; no external tracker is used.
 Read each task with the plan's global constraints and interface contracts.
 
@@ -22,7 +21,7 @@ for `VerifiedMcpClaims`, plus exact provider revocation/active-user procedures.
 - [x] Classify the selected Clerk and Convex instances as development without
       printing secrets. Inspect custom-scope/CIMD availability, consent defaults, PKCE,
       resource indicators, token verification response, refresh and grant revocation.
-- [ ] With development browser sign-in, compare the same user's OAuth subject to
+- [x] With development browser sign-in, compare the same user's OAuth subject to
       the existing Convex owner identifier. Try a second resource/environment and record
       how tokens issued for it are rejected. Record client identities and redacted field
       names, never raw credentials. Determine how deleted/disabled users are detected.
@@ -42,7 +41,8 @@ list does not establish CIMD registry state.
 The configured session issuer matches the development Clerk issuer. Both provider
 consent, real token/audience, existing owner mapping, active-user lookup, refresh,
 and revocation passed. The hosted probe also confirms the exact web identity owner.
-Actual second-resource refusal is pending; inactive-account negative cases remain
+A real second-resource grant was rejected before user/library lookup and revoked;
+inactive-account negative cases remain
 in the planned verifier/lifecycle tests. This is not actual CLI MCP
 connection evidence. See
 [the evidence](../docs/verification/mcp-access.md).
@@ -128,7 +128,7 @@ Distinct-user isolation remains covered by local route tests.
 
 Foundation verification: `pnpm check` passes after branch integration (967 tests, workspace typechecks and
 builds); Firefox build passes. Fresh independent review found no issues in Tasks 1–3.
-The remaining second-resource provider proof still blocks Checkpoint A.
+The real second-resource provider proof also passed.
 
 **Acceptance:** actual Convex runtime handles SDK requests; probe is unavailable in
 production; no credential or content escapes into evidence.
@@ -138,9 +138,9 @@ backend typecheck and real deployed probe results in the evidence file.
 
 ### Checkpoint A: Feasibility
 
-- [ ] Tasks 1–3 pass, including real intended-resource rejection, exact owner
+- [x] Tasks 1–3 pass, including real intended-resource rejection, exact owner
       mapping, active-user checks, and deployed runtime proof. No production touched.
-- [ ] Review evidence and exact pinned dependencies with the user. Resolve any
+- [x] Review evidence and exact pinned dependencies with the user. Resolve any
       failed/blocked proof by revising the spec/plan before Task 4.
 
 ## Task 4: Normalize verified claims into the existing owner identity
