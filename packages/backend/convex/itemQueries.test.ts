@@ -17,17 +17,30 @@ async function setup() {
   const alice = t.withIdentity({ subject: "alice" });
   const bob = t.withIdentity({ subject: "bob" });
   let n = 0;
-  const save = (
+  const save = async (
     who: typeof alice,
     originalInput: string,
     inputType: "url" | "text" = "text",
-  ) =>
-    who.mutation(api.items.create, {
+  ) => {
+    const id = await who.mutation(api.items.create, {
       originalInput,
       inputType,
       captureSource: "web",
       captureKey: `k${n++}`,
     });
+    // A saved link is pending enrichment; settle it now rather than race the
+    // scheduled fetch, so these tests isolate labeling state.
+    const pending = (
+      await t.run((ctx) => ctx.db.query("processingRuns").collect())
+    ).find((r) => r.itemId === id && r.kind === "enrichment");
+    if (pending)
+      await t.mutation(internal.processingRuns.finish, {
+        runId: pending._id,
+        itemId: id,
+        result: { status: "failed", error: "offline" },
+      });
+    return id;
+  };
   const label = (who: typeof alice, name: string) =>
     who.mutation(api.labels.create, { name });
   /** A model label at the given confidence (below 0.65 is unsure). */

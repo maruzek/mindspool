@@ -14,6 +14,7 @@ import { DeleteItemDialog } from "./DeleteItemDialog";
 import { RunCard } from "./RunCard";
 import { InspectorLabels } from "./InspectorLabels";
 import { InspectorPreview } from "./InspectorPreview";
+import { SourcePost } from "./SourcePost";
 
 /**
  * Right-hand panel driven by `?item`. It has its own provider so it stays
@@ -111,6 +112,7 @@ function Detail({
         ) : (
           <div className="flex flex-col gap-6">
             <InspectorPreview item={item} />
+            {item.fromPost && <SourcePost post={item.fromPost} />}
             <InspectorLabels itemId={item._id} />
             <RunCard
               itemId={item._id}

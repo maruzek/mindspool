@@ -24,6 +24,15 @@ async function fixture(labelNames = ["Recipes", "Quick", "News"]) {
     captureSource: "web",
     captureKey: "one",
   });
+  // A saved link is pending enrichment; settle it so these tests isolate labels.
+  const enrichmentRun = (
+    await t.run((ctx) => ctx.db.query("processingRuns").collect())
+  ).find((r) => r.itemId === itemId && r.kind === "enrichment");
+  await t.mutation(internal.processingRuns.finish, {
+    runId: enrichmentRun!._id,
+    itemId,
+    result: { status: "failed", error: "offline" },
+  });
   const labels: Id<"labels">[] = [];
   for (const name of labelNames)
     labels.push(await alice.mutation(api.labels.create, { name }));

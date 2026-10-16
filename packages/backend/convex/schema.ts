@@ -42,6 +42,7 @@ export default defineSchema({
   items: defineTable(itemFields)
     .index("by_owner", ["ownerId"])
     .index("by_owner_capture_key", ["ownerId", "captureKey"])
+    .index("by_owner_url_key", ["ownerId", "urlKey"])
     .index("by_owner_source", ["ownerId", "sourceKind"])
     .index("by_owner_review", ["ownerId", "needsReview"])
     .index("by_owner_review_source", ["ownerId", "needsReview", "sourceKind"])

@@ -97,6 +97,12 @@ export const itemFields = {
   imageAssets: v.array(asset),
   updatedAt: v.number(),
   pendingEnrichmentRunId: v.optional(v.id("processingRuns")),
+  /** Dedupe identity of a link (`urlKey` in schema/links.ts); absent on notes and on links saved before it existed. */
+  urlKey: v.optional(v.string()),
+  /** Set on a tweet once its links were turned into Items, so they are never made again. */
+  linksExtracted: v.optional(v.boolean()),
+  /** The tweet this link was first found in (tweetLinks.ts); may since have been deleted. */
+  fromItemId: v.optional(v.id("items")),
   // Denormalized for search and filters; written only by itemState.ts.
   // Absent on items saved before these existed (flags absent = false).
   searchText: v.optional(v.string()),
@@ -127,6 +133,10 @@ export const itemPreview = v.object({
     }),
   ),
   labelCount: v.number(),
+  /** First image to show for the item (clip image, else the page's og:image). */
+  thumbnailUrl: v.optional(v.string()),
+  /** Images in the item's gallery; set with `thumbnailUrl`. */
+  imageCount: v.optional(v.number()),
   /** Unsure labels among the (at most four) links read for this preview. */
   unsureCount: v.optional(v.number()),
   /** A decision run is pending. */
@@ -146,6 +156,17 @@ export const itemDetail = v.object({
   redditCapture: itemFields.redditCapture,
   /** Omitted when empty. */
   imageAssets: v.optional(v.array(asset)),
+  /** Safe image URLs in display order (at most 10); omitted when empty. */
+  images: v.optional(v.array(v.string())),
+  /** The post this link was found in, while it still exists. */
+  fromPost: v.optional(
+    v.object({
+      _id: v.id("items"),
+      url: v.string(),
+      title: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+    }),
+  ),
 });
 export const itemPage = paginationResultValidator(itemPreview);
 export const LABEL_DESCRIPTION_MAX = 500;

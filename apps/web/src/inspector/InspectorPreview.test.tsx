@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { InspectorPreview } from "./InspectorPreview";
 import type { ItemDetail } from "./types";
@@ -52,19 +52,13 @@ const link = (extra: Partial<ItemDetail> = {}): ItemDetail => ({
   enrichmentStatus: "not_started",
   ...extra,
 });
-const external = (url: string) => ({
-  kind: "external" as const,
-  url,
-  purpose: "image" as const,
-});
-
 describe("InspectorPreview for a clipped tweet", () => {
   const tweet = link({
     sourceMetadata: { title: "Jane (@jane)", author: "jane", siteName: "X" },
     extractedText: "Line one\nLine two <b>not html</b>",
-    imageAssets: [
-      external("https://pbs.twimg.com/media/A.jpg"),
-      external("https://pbs.twimg.com/media/B.jpg"),
+    images: [
+      "https://pbs.twimg.com/media/A.jpg",
+      "https://pbs.twimg.com/media/B.jpg",
     ],
   });
 
@@ -77,7 +71,7 @@ describe("InspectorPreview for a clipped tweet", () => {
     expect(text.className).toContain("whitespace-pre-wrap");
     expect(text.querySelector("b")).toBeNull();
   });
-  it("shows each image lazily, decorative, without a referrer", () => {
+  it("shows the first image as the header and the rest in a strip", () => {
     const { container } = render(<InspectorPreview item={tweet} />);
     const imgs = [...container.querySelectorAll("img")];
     expect(imgs.map((i) => i.getAttribute("src"))).toEqual([
@@ -86,36 +80,50 @@ describe("InspectorPreview for a clipped tweet", () => {
     ]);
     for (const img of imgs) {
       expect(img.getAttribute("alt")).toBe("");
-      expect(img.getAttribute("loading")).toBe("lazy");
       expect(img.getAttribute("referrerpolicy")).toBe("no-referrer");
     }
+    expect(
+      screen.getByRole("button", { name: "Open image 1 of 2" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Open image 2 of 2" }),
+    ).toBeTruthy();
   });
-  it("shows images for a tweet without text", () => {
+  it("shows a hero but no strip for one image", () => {
     const { container } = render(
       <InspectorPreview
-        item={link({
-          imageAssets: [external("https://pbs.twimg.com/media/A.jpg")],
-        })}
+        item={link({ images: ["https://pbs.twimg.com/media/A.jpg"] })}
       />,
     );
     expect(screen.queryByLabelText("Text")).toBeNull();
     expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(container.querySelector("ul")).toBeNull();
   });
-  it("skips stored assets, which have no URL here", () => {
+  it("gives four images a hero plus three strip buttons", () => {
     const { container } = render(
       <InspectorPreview
         item={link({
-          imageAssets: [
-            {
-              kind: "stored",
-              storageId: "s" as never,
-              purpose: "image",
-            },
-          ],
+          images: [1, 2, 3, 4].map((n) => `https://cdn.test/${n}.jpg`),
         })}
       />,
     );
-    expect(container.querySelectorAll("img")).toHaveLength(0);
+    expect(container.querySelectorAll("ul button")).toHaveLength(3);
+  });
+  it("shows the brand tile without images or when the header fails to load", () => {
+    const none = render(<InspectorPreview item={link()} />);
+    expect(none.container.querySelector("img")).toBeNull();
+    expect(none.container.querySelector("svg[data-brand='x']")).not.toBeNull();
+    cleanup();
+    const broken = render(
+      <InspectorPreview
+        item={link({ images: ["https://pbs.twimg.com/media/A.jpg"] })}
+      />,
+    );
+    fireEvent.error(broken.container.querySelector("img")!);
+    expect(broken.container.querySelector("img")).toBeNull();
+    expect(
+      broken.container.querySelector("svg[data-brand='x']"),
+    ).not.toBeNull();
   });
 });
 

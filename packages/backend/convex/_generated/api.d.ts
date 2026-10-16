@@ -22,8 +22,10 @@ import type * as boards from "../boards.js";
 import type * as clef from "../clef.js";
 import type * as decisionProvider from "../decisionProvider.js";
 import type * as decisions from "../decisions.js";
+import type * as enrichment from "../enrichment.js";
 import type * as http from "../http.js";
 import type * as identity from "../identity.js";
+import type * as itemImages from "../itemImages.js";
 import type * as itemLabels from "../itemLabels.js";
 import type * as itemState from "../itemState.js";
 import type * as items from "../items.js";
@@ -31,10 +33,12 @@ import type * as labels from "../labels.js";
 import type * as libraryWriters from "../libraryWriters.js";
 import type * as mcp_proof from "../mcp/proof.js";
 import type * as mcp_transport from "../mcp/transport.js";
+import type * as pageMetadata from "../pageMetadata.js";
 import type * as processingRuns from "../processingRuns.js";
 import type * as redditCaptureModel from "../redditCaptureModel.js";
 import type * as sampleContent from "../sampleContent.js";
 import type * as seed from "../seed.js";
+import type * as tweetLinks from "../tweetLinks.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -58,8 +62,10 @@ declare const fullApi: ApiFromModules<{
   clef: typeof clef;
   decisionProvider: typeof decisionProvider;
   decisions: typeof decisions;
+  enrichment: typeof enrichment;
   http: typeof http;
   identity: typeof identity;
+  itemImages: typeof itemImages;
   itemLabels: typeof itemLabels;
   itemState: typeof itemState;
   items: typeof items;
@@ -67,10 +73,12 @@ declare const fullApi: ApiFromModules<{
   libraryWriters: typeof libraryWriters;
   "mcp/proof": typeof mcp_proof;
   "mcp/transport": typeof mcp_transport;
+  pageMetadata: typeof pageMetadata;
   processingRuns: typeof processingRuns;
   redditCaptureModel: typeof redditCaptureModel;
   sampleContent: typeof sampleContent;
   seed: typeof seed;
+  tweetLinks: typeof tweetLinks;
   validators: typeof validators;
 }>;
 

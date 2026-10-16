@@ -44,7 +44,8 @@ Users: a single signed-in owner, desktop first, usable down to phone width.
 5. Preview content, with whitespace preserved (`whitespace-pre-wrap`) for notes:
    - note: the original text in a scrollable region (no height limit on what is stored; the region scrolls);
    - link: the URL, the canonical URL when it differs, and `sourceMetadata` description, author and site name when present.
-     The design's image tile is the same hatched kind tile as the list; no image is fetched or rendered.
+     The header is the first image (16:9, hotlinked) or the brand tile when there is none or it fails to load; the other images
+     form a strip below it. Any image opens a full-height viewer (←/→, swipe, Escape).
 6. Adding a label means choosing from existing labels. Creating a label stays in the sidebar's dialog (it navigates to the
    new label, which would be wrong inside an item). Listed under Open Questions.
 7. "Remove" on an item's label writes the existing manual `exclude` decision (`itemLabels.remove`); future suggestions

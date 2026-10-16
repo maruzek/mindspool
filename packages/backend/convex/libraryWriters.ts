@@ -11,6 +11,9 @@ import {
   linkSearchFields,
 } from "./itemState";
 import { startDecisionOrFail } from "./decisions";
+import { startEnrichment } from "./enrichment";
+import { internal } from "./_generated/api";
+import { urlKey } from "../../schema/src/links";
 type Capture = Pick<
   Doc<"items">,
   "originalInput" | "inputType" | "captureSource" | "captureKey"
@@ -47,7 +50,35 @@ export async function captureItem(
     }
     return existing._id;
   }
+  // A link is saved once: a bare link already in the library is that Item.
+  // Clips carry their own content, so they keep their capture-key identity.
+  if (isPlainLink(args)) {
+    const same = await findLink(ctx, ownerId, args.originalInput);
+    if (same) return same._id;
+  }
   return insertCapture(ctx, ownerId, args);
+}
+
+function isPlainLink(args: Capture) {
+  return (
+    args.inputType === "url" &&
+    !args.extractedText &&
+    !args.imageAssets?.length &&
+    !args.redditCapture &&
+    !args.sourceMetadata
+  );
+}
+
+/** The owner's Item for the same link, if any (by `urlKey`; older duplicates may exist, so the first). */
+export async function findLink(ctx: MutationCtx, ownerId: string, url: string) {
+  const key = urlKey(url);
+  if (!key) return null;
+  return ctx.db
+    .query("items")
+    .withIndex("by_owner_url_key", (q) =>
+      q.eq("ownerId", ownerId).eq("urlKey", key),
+    )
+    .first();
 }
 /** Shared initial save path; repeats never enter labeling/statistics insertion. */
 export async function insertCapture(
@@ -60,14 +91,20 @@ export async function insertCapture(
     Partial<
       Pick<
         Doc<"items">,
-        "sourceMetadata" | "extractedText" | "imageAssets" | "redditCapture"
+        | "sourceMetadata"
+        | "extractedText"
+        | "imageAssets"
+        | "redditCapture"
+        | "fromItemId"
       >
     >,
 ) {
+  const key = input.inputType === "url" ? urlKey(input.originalInput) : null;
   const itemId = await ctx.db.insert("items", {
     ...input,
     ownerId,
     ...(input.inputType === "url" ? { originalUrl: input.originalInput } : {}),
+    ...(key ? { urlKey: key } : {}),
     captureStatus: "captured",
     enrichmentStatus: "not_started",
     imageAssets: input.imageAssets ?? [],
@@ -80,14 +117,22 @@ export async function insertCapture(
     }),
   });
   await adjustStats(ctx, ownerId, { total: 1 });
-  // Best effort: a labeling problem must never fail the save.
+  // Best effort: an enrichment or labeling problem must never fail the save.
   try {
-    const hasLabel = await ctx.db
-      .query("labels")
-      .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
-      .first();
     const item = await ctx.db.get(itemId);
-    if (hasLabel && item) await startDecisionOrFail(ctx, item, "clef-flash");
+    if (item && input.inputType === "url") {
+      // Labeling waits for the page's title and description (enrichment.complete).
+      await startEnrichment(ctx, item, true);
+    } else if (item) {
+      const hasLabel = await ctx.db
+        .query("labels")
+        .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+        .first();
+      if (hasLabel) await startDecisionOrFail(ctx, item, "clef-flash");
+    }
+    // A tweet listing resources becomes one Item per resource (tweetLinks.ts).
+    if (item?.sourceKind === "x" && item.extractedText)
+      await ctx.scheduler.runAfter(0, internal.tweetLinks.run, { itemId });
   } catch {
     // Swallowed on purpose.
   }
