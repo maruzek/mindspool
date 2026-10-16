@@ -45,6 +45,10 @@ Reddit posts) keep their capture-key identity.
   saved as its own link Item, with the tweet's capture source. It is then
   enriched (title, description, `og:image` thumbnail) and labeled like a pasted
   link.
+- Each saved link records the tweet it was found in (`fromItemId`). The
+  inspector shows it as "Found in post", which opens the tweet. A link that was
+  already saved keeps its own origin. The card is hidden once the tweet is
+  deleted.
 - This runs once per tweet (`linksExtracted`), so a deleted resource is not
   re-created.
 - The extension writes each tweet link as its full URL.

@@ -91,7 +91,11 @@ export async function insertCapture(
     Partial<
       Pick<
         Doc<"items">,
-        "sourceMetadata" | "extractedText" | "imageAssets" | "redditCapture"
+        | "sourceMetadata"
+        | "extractedText"
+        | "imageAssets"
+        | "redditCapture"
+        | "fromItemId"
       >
     >,
 ) {

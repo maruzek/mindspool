@@ -55,6 +55,39 @@ describe("item inspector frame", () => {
         ?.getAttribute("data-state"),
     ).toBe("expanded");
   });
+  it("links to the post a link was found in", async () => {
+    backend.detail = (args) => {
+      const { id } = args as { id: string };
+      return id === "a"
+        ? {
+            ...detail("a"),
+            fromPost: {
+              _id: "tweet",
+              url: "https://x.com/noah/status/1",
+              title: "Noah (@noah)",
+              excerpt: "7 Mockup tools every designer should bookmark.",
+            },
+          }
+        : { ...detail(id), sourceMetadata: { title: "The tweet" } };
+    };
+    const router = await renderAt("/library?item=a");
+    const link = await screen.findByRole("link", { name: /Noah \(@noah\)/ });
+    expect(screen.getByText("Found in post")).toBeTruthy();
+    expect(
+      screen.getByText("7 Mockup tools every designer should bookmark."),
+    ).toBeTruthy();
+    fireEvent.click(link);
+    expect(
+      await screen.findByRole("heading", { name: "The tweet" }),
+    ).toBeTruthy();
+    expect(router.state.location.search).toMatchObject({ item: "tweet" });
+  });
+  it("shows no source post for a link saved directly", async () => {
+    backend.detail = (args) => detail((args as { id: string }).id);
+    await renderAt("/library?item=a");
+    await screen.findByRole("heading", { name: "Soup recipe" });
+    expect(screen.queryByText("Found in post")).toBeNull();
+  });
   it("shows a skeleton while loading", async () => {
     backend.detail = () => undefined;
     await renderAt("/library?item=a");

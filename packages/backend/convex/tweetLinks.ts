@@ -50,6 +50,7 @@ export async function extractTweetLinks(
       inputType: "url",
       captureSource: tweet.captureSource,
       captureKey: `xlink:${itemId}:${n}`,
+      fromItemId: itemId,
     });
     created++;
   }
@@ -141,6 +142,13 @@ export const apply = internalMutation({
   },
 });
 
+/** Links extracted before `fromItemId` existed carry the tweet's id in their capture key. */
+function fromCaptureKey(ctx: MutationCtx, captureKey: string) {
+  const match = /^xlink:([^:]+):\d+$/.exec(captureKey);
+  const fromItemId = match && ctx.db.normalizeId("items", match[1]!);
+  return fromItemId ? { fromItemId } : {};
+}
+
 const KEY_BATCH = 100;
 const EXTRACT_BATCH = 5;
 
@@ -165,8 +173,14 @@ export const backfill = internalMutation({
     for (const item of page.page) {
       if (phase === "keys") {
         const key = item.originalUrl ? urlKey(item.originalUrl) : null;
-        if (item.inputType !== "url" || item.urlKey || !key) continue;
-        await ctx.db.patch(item._id, { urlKey: key });
+        const patch = {
+          ...(item.inputType === "url" && !item.urlKey && key
+            ? { urlKey: key }
+            : {}),
+          ...(item.fromItemId ? {} : fromCaptureKey(ctx, item.captureKey)),
+        };
+        if (Object.keys(patch).length === 0) continue;
+        await ctx.db.patch(item._id, patch);
         updated++;
       } else {
         updated += await extractTweetLinks(ctx, item._id);

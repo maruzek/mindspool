@@ -341,3 +341,56 @@ describe('full text of a clip cut short by "Show more"', () => {
     expect(await links()).not.toContain("http://iconly.design");
   });
 });
+
+describe("the post a link was found in", () => {
+  it("is recorded on each link and shown in its detail", async () => {
+    const { alice, clip, extract, items } = setup();
+    const tweet = await clip("1", noah);
+    await extract(tweet);
+    const link = (await items()).find(
+      (i) => i.originalInput === "https://mocku.com",
+    )!;
+    expect(link.fromItemId).toBe(tweet);
+    const detail = await alice.query(api.items.detail, { id: link._id });
+    expect(detail?.fromPost).toEqual({
+      _id: tweet,
+      url: "https://x.com/someone/status/1",
+      title: "Someone (@someone)",
+      excerpt: `${noah.slice(0, 200)}…`,
+    });
+  });
+
+  it("is not set on a link that was already saved", async () => {
+    const { clip, paste, extract, items } = setup();
+    const pasted = await paste("https://mocku.com");
+    await extract(await clip("1", noah));
+    expect((await items()).find((i) => i._id === pasted)?.fromItemId).toBe(
+      undefined,
+    );
+  });
+
+  it("disappears from the detail once the post is deleted", async () => {
+    const { alice, clip, extract, items } = setup();
+    const tweet = await clip("1", noah);
+    await extract(tweet);
+    const link = (await items()).find((i) => i.fromItemId === tweet)!;
+    await alice.mutation(api.items.remove, { id: tweet });
+    const detail = await alice.query(api.items.detail, { id: link._id });
+    expect(detail).not.toBeNull();
+    expect(detail?.fromPost).toBeUndefined();
+  });
+
+  it("is restored by the backfill from older capture keys", async () => {
+    const { t, clip, extract, items } = setup();
+    const tweet = await clip("1", noah);
+    await extract(tweet);
+    await t.run(async (ctx) => {
+      for (const item of await ctx.db.query("items").collect())
+        await ctx.db.patch(item._id, { fromItemId: undefined });
+    });
+    await t.mutation(internal.tweetLinks.backfill, {});
+    const links = (await items()).filter((i) => i.sourceKind === "web");
+    expect(links).toHaveLength(7);
+    expect(links.every((i) => i.fromItemId === tweet)).toBe(true);
+  });
+});

@@ -101,6 +101,8 @@ export const itemFields = {
   urlKey: v.optional(v.string()),
   /** Set on a tweet once its links were turned into Items, so they are never made again. */
   linksExtracted: v.optional(v.boolean()),
+  /** The tweet this link was first found in (tweetLinks.ts); may since have been deleted. */
+  fromItemId: v.optional(v.id("items")),
   // Denormalized for search and filters; written only by itemState.ts.
   // Absent on items saved before these existed (flags absent = false).
   searchText: v.optional(v.string()),
@@ -156,6 +158,15 @@ export const itemDetail = v.object({
   imageAssets: v.optional(v.array(asset)),
   /** Safe image URLs in display order (at most 10); omitted when empty. */
   images: v.optional(v.array(v.string())),
+  /** The post this link was found in, while it still exists. */
+  fromPost: v.optional(
+    v.object({
+      _id: v.id("items"),
+      url: v.string(),
+      title: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+    }),
+  ),
 });
 export const itemPage = paginationResultValidator(itemPreview);
 export const LABEL_DESCRIPTION_MAX = 500;

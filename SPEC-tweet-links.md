@@ -105,6 +105,18 @@ When a tweet's text grows after extraction, only the links new to the text are
 saved. A resource you deleted is therefore not re-created. To re-run one tweet:
 `npx convex run tweetLinks:run '{"itemId": "…"}'`.
 
+## Source post (added 2026-10-16)
+
+Each link Item created from a tweet stores `fromItemId`, the tweet it was found
+in.
+
+- `items.detail` returns `fromPost` (`_id`, `url`, `title`, and a 200-character
+  `excerpt`) while that tweet still exists and is the owner's.
+- The inspector shows a "Found in post" card that opens the tweet.
+- Links that were saved before keep no source.
+- The backfill restores `fromItemId` from older `xlink:<tweetId>:<n>` capture
+  keys.
+
 ## Tech Stack
 
 The stack is unchanged: Convex 1.46 (mutations, scheduler, `convex-test`),
@@ -189,7 +201,6 @@ export function urlKey(raw: string): string | null { … }
 
 1. Threshold of 2 links (literal reading of the request). A tweet with one
    resource link is not expanded. Lower it to 1 if wanted.
-2. There is no visible link between the tweet and its resources yet. The
-   resources are normal Items, found by search and filters.
+2. Resolved: the resources show their source post in the inspector.
 3. A plain pasted tweet URL followed by a full clip of the same tweet still
    gives two Items (clips keep capture-key identity).
