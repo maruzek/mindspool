@@ -156,6 +156,29 @@ it is **not** evidence of an actual second-resource grant or a deployed handler
 refusing it. Those negative cases, account-disable/delete refusals, and hosted
 Convex execution remain open.
 
+### Claude first attempt and callback diagnostics
+
+Claude's first browser callback contained an OAuth error and no authorization
+code. The initial proof page incorrectly showed the same generic completion
+message for that outcome; it did not establish a successful authorization.
+Its first sanitized record preserved only that this was not `access_denied`, so
+the original error code cannot be recovered. The user then confirmed a scope was
+missing from the Claude CIMD client and is correcting that configuration; the
+specific provider error has not yet been established.
+
+The local proof now displays pass/failure separately and records allowlisted
+OAuth error codes and known scope/context hints, without raw descriptions,
+callback queries, or credentials. The previous page was exercised and failed an
+assertion that Claude's incomplete authorization was visible; the corrected live
+page passes it while retaining the successful Codex result. Additional checks
+verify `invalid_scope` reporting and redaction of arbitrary error text.
+
+The shell-managed callback process was also found terminated by `SIGTERM` before
+its four-hour deadline. It has been relaunched as a detached local process with
+the same entry URL, preserved redacted results, and a renewed four-hour lifetime.
+Fresh HTTP requests verify both the entrypoint and the corrected results page.
+Claude needs a retry after its allowed scopes are saved.
+
 ### Documented provider schema and remaining checks
 
 The [versioned Clerk Backend API schema](https://github.com/clerk/openapi-specs/blob/main/bapi/2026-08-20.yml)
