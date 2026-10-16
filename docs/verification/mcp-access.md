@@ -149,3 +149,21 @@ Before Task 4:
 Tasks 4–12 have not started. No schema or public owner-impersonation parameters
 were added. The `/mcp` endpoint, settings page, search tools, and label-editing
 tools are not available from this foundation.
+
+## Verification of the foundation
+
+| Check                                              | Result                                                                                                     |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                   | Passed; existing install-script policy retained                                                            |
+| `pnpm check`                                       | Passed: repository formatting, 866 tests, all workspace typechecks and web/extension/Android export builds |
+| MCP tests included above                           | 19 passed: nine transport and ten guarded HTTP-probe cases                                                 |
+| `pnpm --filter @mindspool/extension build:firefox` | Passed                                                                                                     |
+| Convex isolate bundle and generated types          | Passed; no application deployment performed                                                                |
+| Fresh independent review                           | No findings within Tasks 1–3; installed SDK source and focused tests checked                               |
+| Real hosted runtime and both CLI OAuth lifecycles  | Not verified; blockers above remain open                                                                   |
+
+Web tests emitted jsdom `scrollTo` notices while passing. No tests were skipped,
+removed, or weakened for this change. The original checkout's Git working tree
+remains clean. Implementation commits are `c195cce` (transport), `2baf6e5`
+(provider evidence), and `97601d4` (guarded probe); plan status and this final
+verification are recorded separately.

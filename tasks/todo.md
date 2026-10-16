@@ -1,7 +1,8 @@
 # Tasks: Hosted MCP account access
 
 Spec: [SPEC-mcp-access.md](../SPEC-mcp-access.md). Plan: [plan.md](plan.md).
-Status: proposed, not executed. Commands run from the isolated checkout root.
+Status: implementation started, 2026-10-16. Task 2 is complete; Tasks 1 and 3 have
+blocked runtime proofs. Checkpoint A has not passed. Commands run from the isolated checkout root.
 The task steps below are the checklist of record; no external tracker is used.
 Read each task with the plan's global constraints and interface contracts.
 
@@ -18,16 +19,22 @@ rather than fabricate a red/green cycle.
 **Produces:** a redacted provider capability table and concrete field/identity mappings
 for `VerifiedMcpClaims`, plus exact provider revocation/active-user procedures.
 
-- [ ] Classify the selected Clerk and Convex instances as development without
+- [x] Classify the selected Clerk and Convex instances as development without
       printing secrets. Inspect custom-scope/CIMD availability, consent defaults, PKCE,
       resource indicators, token verification response, refresh and grant revocation.
 - [ ] With development browser sign-in, compare the same user's OAuth subject to
       the existing Convex owner identifier. Try a second resource/environment and record
       how tokens issued for it are rejected. Record client identities and redacted field
       names, never raw credentials. Determine how deleted/disabled users are detected.
-- [ ] Record each proof as passed, failed, or blocked, with source and environment.
+- [x] Record each proof as passed, failed, or blocked, with source and environment.
       If resource binding is absent, present the concrete failed proof before any
       production feature implementation. Do not equate client ID with audience.
+
+Progress: read-only inspection confirmed a development instance, but no OAuth clients,
+audience claims disabled, JWT access tokens enabled, and CIMD not advertised.
+The configured session issuer matches the development Clerk issuer. Actual token,
+owner, refresh, consent, active-user, and revocation proofs remain open. See
+[the evidence](../docs/verification/mcp-access.md); no provider configuration changed.
 
 **Acceptance:** user/client/resource identity is demonstrable; existing owner maps
 exactly; revocation/refresh/active-user behavior is evidenced or explicitly blocks A.
@@ -46,11 +53,11 @@ is marked confirmed. `pnpm exec prettier --check docs/verification/mcp-access.md
 where `registerTools` is `(server: McpServer) => void`. The proof passes an empty
 registration; later production callers supply their principal-bound registration.
 
-- [ ] Review the exact dependency tarballs/provenance and script policy. Add the
+- [x] Review the exact dependency tarballs/provenance and script policy. Add the
       pinned server/Zod runtime dependencies and client test dependency with pnpm;
       do not blanket-enable dependency scripts. Confirm these package imports bundle
       without a Node HTTP listener or dynamic unsupported code generation.
-- [ ] Write real SDK client/handler tests for initialize, `notifications/initialized`,
+- [x] Write real SDK client/handler tests for initialize, `notifications/initialized`,
       empty `tools/list`, JSON response, and unsupported protocol. One concrete assertion:
 
   ```ts
@@ -63,9 +70,13 @@ registration; later production callers supply their principal-bound registration
   message with client info and negotiated supported version. It supplies no auth
   because the production authorization wrapper is a later, separate boundary.
 
-- [ ] Run the focused test red, then implement the SDK factory with stateless JSON
+- [x] Run the focused test red, then implement the SDK factory with stateless JSON
       transport. Run green and backend typecheck. Keep request state isolated and close
       resources after each completed response.
+
+Progress: `c195cce` implements the pinned factory. Nine real SDK tests pass; backend
+typecheck and the full backend suite passed (292 tests at this checkpoint).
+`pnpm install --frozen-lockfile` passes; existing build-script policy is unchanged.
 
 **Acceptance:** actual SDK handles the lifecycle; no stateful sessions or Node-server
 adapter; exact versions and lockfile are reproducible.
@@ -83,7 +94,7 @@ the reviewed script policy.
 and existing `requireOwner`.
 **Produces:** development-only `/__mcp_probe` evidence; this is not the final endpoint.
 
-- [ ] Test that the probe returns `404` unless `MINDSPOOL_ENVIRONMENT=development`
+- [x] Test that the probe returns `404` unless `MINDSPOOL_ENVIRONMENT=development`
       and `MINDSPOOL_MCP_PROOF_ENABLED=true`, and refuses anonymous/foreign disallowed
       callers even when enabled. It uses the existing app JWT only for this temporary
       development probe, returns no library data, and allocates no durable session.
@@ -94,6 +105,17 @@ and existing `requireOwner`.
 - [ ] Run two interleaved authenticated callers, verify responses stay independent,
       and record runtime compatibility, bundle result, timing, versions, and failures.
       Disable the proof flag after the check; Task 7 removes the route.
+
+Progress: guarded route and ten local HTTP/auth tests are implemented. Convex isolate
+bundling and generated types pass. Bundle-only mode intentionally skipped the push.
+This worktree's baseline predates newer changes in the original checkout, so coordinate
+the shared development deployment before replacing it. No proof flag
+was enabled; actual authenticated hosted calls remain unverified. T3 browser automation
+reported no connected host. Task 3 is not complete.
+
+Foundation verification: `pnpm check` passes (866 tests, workspace typechecks and
+builds); Firefox build passes. Fresh independent review found no issues in Tasks 1–3.
+The remaining provider and deployed-runtime proofs still block Checkpoint A.
 
 **Acceptance:** actual Convex runtime handles SDK requests; probe is unavailable in
 production; no credential or content escapes into evidence.

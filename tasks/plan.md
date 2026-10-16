@@ -21,8 +21,9 @@ connection management.
 `@modelcontextprotocol/client` 2.3.1 as a backend test dependency.
 
 **Spec:** [SPEC-mcp-access.md](../SPEC-mcp-access.md).
-**Status:** draft for review, 2026-10-16. No feature code, installs, provider
-configuration, deployments, or real-client authentication performed in planning.
+**Status:** implementation authorized by the user's “begin on the work” instruction,
+2026-10-16. Task 2 is complete; Checkpoint A remains blocked on Task 1's provider and Task 3's
+deployed-runtime proofs. See [the evidence](../docs/verification/mcp-access.md).
 
 ## Scope and global constraints
 
