@@ -66,6 +66,8 @@ describe("MCP environment configuration", () => {
     ["MINDSPOOL_MCP_RESOURCE_URL", "https://dev.convex.site/other"],
     ["MINDSPOOL_MCP_RESOURCE_URL", "https://user:sentinel@dev.convex.site/mcp"],
     ["CLERK_JWT_ISSUER_DOMAIN", "https://first.clerk.accounts.dev/other"],
+    ["CLERK_JWT_ISSUER_DOMAIN", "https://first.clerk.accounts.dev?"],
+    ["CLERK_JWT_ISSUER_DOMAIN", " https://first.clerk.accounts.dev"],
     ["CLERK_JWT_ISSUER_DOMAIN", "https://first.clerk.accounts.dev?query=yes"],
     ["CLERK_SECRET_KEY", "sk_live_sentinel"],
     ["CLERK_SECRET_KEY", "pk_test_sentinel"],

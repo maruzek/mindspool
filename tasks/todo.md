@@ -217,7 +217,7 @@ owner-only revocation/reactivation is durable and retry-safe.
 
 ### Checkpoint B: Authorization
 
-- [ ] Backend tests/typecheck pass; anonymous/foreign access and scope bypass fail.
+- [x] Backend tests/typecheck pass; anonymous/foreign access and scope bypass fail.
 - [ ] Review connection schema and revocation races before publishing `/mcp`.
 
 ## Task 6: Enforce shared admission quotas

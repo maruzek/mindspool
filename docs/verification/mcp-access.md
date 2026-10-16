@@ -369,3 +369,32 @@ removed, or weakened for this change. The original checkout's Git working tree
 remains clean. Implementation commits are `c195cce` (transport), `2baf6e5`
 (provider evidence), and `97601d4` (guarded probe); plan status and this final
 verification are recorded separately.
+
+## Authorization implementation checkpoint (Tasks 4–5)
+
+Live token verification and active-user checks now use only fixed Clerk Backend
+API endpoints, reject redirects, share a five-second deadline (including body
+parsing), and cache no approval. Token kind, expiry, revocation, resource, client,
+account policy and user status are enforced before trusted claims are returned.
+Only the two MindSpool scopes survive normalization. Provider faults are generic
+unavailable errors; credentials and provider bodies are not attached to errors.
+Issuer spelling is preserved exactly; malformed spellings that URL parsing would
+otherwise normalize are rejected. Existing app JWT authentication is unchanged.
+
+The new connection table is indexed by owner/client, owner and subject. Initial
+access is read-only; write permission is the intersection of live consent and the
+app setting. All lookup/create/permission/revocation decisions run in Convex
+transactions. Disconnect retains a revoked tombstone, repeated disconnect is
+idempotent, old token retries cannot reactivate it, and explicit owner reconnect
+resets permission to read-only. The list returns at most ten safe summaries per
+page; public controls never accept an owner or timestamp override. Authorization
+is internal in the generated API. Provider cleanup is deferred to Task 11; local
+disconnect is already authoritative.
+
+Tests were observed failing before implementation, then passing. The backend
+suite passed 455 tests after Tasks 4–5; the final configuration review added two
+issuer-format regression tests. Typecheck and generated bindings pass. Convex
+`1.46.0` accepted the development schema/functions in 10.37 seconds. MCP remains
+disabled and no `/mcp` route is published. No production or original-checkout
+changes were made. The approved plan's Checkpoint B calls for reviewing the
+connection schema and revocation races before publishing the endpoint.

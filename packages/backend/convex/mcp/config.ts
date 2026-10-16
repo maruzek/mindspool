@@ -70,7 +70,8 @@ export function readMcpConfig(): McpConfig {
     httpsUrl(resourceUrl).href !== resourceUrl
   )
     throw new McpConfigurationError();
-  if (httpsUrl(sessionIssuer).pathname !== "/" || sessionIssuer.includes("|"))
+  const issuerOrigin = httpsUrl(sessionIssuer).origin;
+  if (sessionIssuer !== issuerOrigin && sessionIssuer !== `${issuerOrigin}/`)
     throw new McpConfigurationError();
   if (!allowedClientIds.length) throw new McpConfigurationError();
   for (const client of allowedClientIds) httpsUrl(client);
