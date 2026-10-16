@@ -36,11 +36,14 @@ saved the dashboard settings; a previewed development-only API patch enabled aud
 validation and removed email/profile from defaults. Both real client metadata URLs
 are verified; the user completed registration and both scopes are now advertised.
 Both authorization starts redirect to development sign-in. A temporary local
-read-only provider proof is ready for the user's browser consent; its exact resource
+read-only provider proof uses the user's browser consent; its exact resource
 uses the configured `eu-west-1.convex.site` origin. The ordinary OAuth application
 list does not establish CIMD registry state.
-The configured session issuer matches the development Clerk issuer. Actual token,
-owner, refresh, consent, active-user, and revocation proofs remain open. See
+The configured session issuer matches the development Clerk issuer. Codex provider
+consent, real token/audience, existing owner mapping, active-user lookup, refresh,
+and revocation passed. Claude, actual second-resource refusal, inactive-account
+negative cases, and deployed runtime remain open. This is not actual CLI MCP
+connection evidence. See
 [the evidence](../docs/verification/mcp-access.md).
 
 **Acceptance:** user/client/resource identity is demonstrable; existing owner maps

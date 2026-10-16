@@ -117,13 +117,46 @@ existing library owner comparison, active-user status, refresh, and revocation o
 the fresh test grant. The local entrypoint, exact resource/scope redirect,
 `no-store`, and invalid-state refusal were exercised before presenting the page.
 
-Browser consent and token checks are still pending. The T3 browser `status` and
+At this preparation checkpoint, browser consent and token checks were pending. The T3 browser `status` and
 `open` tools again report no connected automation host, so the user must open the
 prepared local page in their own browser. No library contents are returned, no
 CLI configuration is edited, and this provider-only harness does not establish
 actual CLI lifecycle success or hosted Convex execution.
 
-### Provider schema findings, not verified token fixtures
+### Codex read-only provider proof
+
+The user completed the Codex browser flow and supplied the consent/result screens.
+The consent screen requested only reading saved clips and labels. The local
+callback recorded these live results:
+
+| Check                                        | Observed result                                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Issuer-bound callback and S256 code exchange | Matching issuer; token endpoint `200`                                                           |
+| Live opaque-token verification               | `200`; expected OAuth object, Codex client identity, active/unexpired token                     |
+| Resource binding                             | `aud` exactly contains `https://graceful-stork-346.eu-west-1.convex.site/mcp`                   |
+| Granted permissions                          | Exactly `mindspool:read` and `offline_access`; label-write absent                               |
+| Existing owner mapping                       | Verified subject plus exact session issuer matches an existing development `ownerStats.ownerId` |
+| Different issuer separation                  | Same subject under a different issuer does not match that owner                                 |
+| Active-user lookup                           | `200`; `banned`, `locked`, and `deprovisioned` are present and false                            |
+| Refresh                                      | `200`; subject, client, resource, and scopes preserved                                          |
+| Fresh test-grant revocation                  | Published `/oauth/token/revoke` returned `200`; live verification then reported revocation      |
+| Refresh after revocation                     | `400`; revoked grant refused                                                                    |
+
+The real verification response contains `object`, `id`, `client_id`, `subject`,
+`scopes`, `aud`, `revoked`, `expired`, `expiration`, `created_at`, and `updated_at`.
+`object` was `clerk_idp_oauth_access_token`; `client_id` was the exact Codex CIMD
+URL. No account identifiers, bearer credentials, refresh credentials, or library
+contents were written to the evidence. Owner comparison read at most 100 owner
+statistics rows into process memory; it did not create or impersonate an owner.
+
+This is a provider flow using the Codex public client identity, not an actual
+Codex CLI connection to `/mcp`. Claude's browser proof remains pending. The
+harness's `wrongResourceWouldBeRejected` result is an audience comparison only;
+it is **not** evidence of an actual second-resource grant or a deployed handler
+refusing it. Those negative cases, account-disable/delete refusals, and hosted
+Convex execution remain open.
+
+### Documented provider schema and remaining checks
 
 The [versioned Clerk Backend API schema](https://github.com/clerk/openapi-specs/blob/main/bapi/2026-08-20.yml)
 documents `POST /oauth_applications/access_tokens/verify` returning either:
@@ -136,8 +169,8 @@ documents `POST /oauth_applications/access_tokens/verify` returning either:
 Its example timestamps for `expiration` are Unix seconds, unlike the planned
 internal millisecond `expiresAt`. There is no issuer field in that response
 schema. The verified instance credential and exact configured session issuer
-must establish issuer identity; this still requires a real fixture and owner
-comparison before Task 4. Missing `aud` cannot be replaced by a client ID.
+must establish issuer identity; the Codex proof above now demonstrates the
+matching owner and real response fields. Missing `aud` cannot be replaced by a client ID.
 An actor-chain `act` may also be present for exchanged tokens; no exchanged-token
 acceptance is established by this proof.
 
@@ -230,9 +263,9 @@ Before Task 4:
    audience support, opaque tokens, and PKCE are configured; DCR stays disabled.
    Complete real consent/resource/revocation checks rather than relying on
    settings or metadata alone.
-3. Complete browser OAuth with a development account; compare its existing app
-   owner identifier and obtain sanitized verification fixtures. Exercise a wrong
-   resource, refresh, active-account refusal, and provider revocation.
+3. Codex browser consent, owner comparison, response fields, refresh, and provider
+   revocation are now observed. Complete the Claude proof and remaining negative
+   cases, including a real second-resource attempt and inactive-account refusal.
 4. Coordinate the development deployment, run the authenticated probe with two
    callers, record latency and errors, then disable the probe flag.
 

@@ -44,6 +44,9 @@ issuer-bound callback, and keeps credentials in process memory. It checks live
 token verification, owner mapping against existing owner statistics, refresh,
 and revocation of its freshly approved test grant. This is a provider proof,
 not a claim that either CLI has connected to the unfinished `/mcp` endpoint.
+The Codex provider flow has passed read-only consent, exact audience and existing
+owner mapping, active-user lookup, refresh, and immediate test-grant revocation.
+Claude's browser flow and the remaining negative cases are still pending.
 
 ## Temporary runtime probe
 
