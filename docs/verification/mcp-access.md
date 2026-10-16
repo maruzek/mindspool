@@ -93,6 +93,36 @@ CLI Backend API catalog exposes ordinary OAuth application creation but no CIMD
 pre-registration or scope-catalog management endpoint; no undocumented endpoints
 were tried and no confidential-client fallback was substituted.
 
+### Client registration and sign-in preparation
+
+The user completed CIMD pre-registration and scope advertising. A fresh metadata
+read now includes both `mindspool:read` and `mindspool:labels:write`. Authorization
+initiation for both exact client IDs, with read/refresh scopes, S256 PKCE, a
+loopback callback, and the exact development resource, returns `302` to the
+development Account Portal sign-in page with no OAuth error. This is initiation
+evidence, not completed consent/token evidence.
+
+The ordinary `GET /v1/oauth_applications` list still reports zero rows. It must
+not be interpreted as proof that the separate CIMD registry is empty; its count
+does not establish these clients' admission or grant state.
+
+The configured Convex site URL is
+`https://graceful-stork-346.eu-west-1.convex.site`; the canonical development MCP
+resource includes `/mcp` on that exact regional origin. A temporary loopback
+callback is prepared in the ignored plan workspace, with a 20-minute process
+lifetime. It requests read access only, validates state/issuer and S256 PKCE,
+suppresses request logging, keeps credentials in memory, and writes only
+explicitly redacted evidence. Its intended provider checks include verification,
+existing library owner comparison, active-user status, refresh, and revocation of
+the fresh test grant. The local entrypoint, exact resource/scope redirect,
+`no-store`, and invalid-state refusal were exercised before presenting the page.
+
+Browser consent and token checks are still pending. The T3 browser `status` and
+`open` tools again report no connected automation host, so the user must open the
+prepared local page in their own browser. No library contents are returned, no
+CLI configuration is edited, and this provider-only harness does not establish
+actual CLI lifecycle success or hosted Convex execution.
+
 ### Provider schema findings, not verified token fixtures
 
 The [versioned Clerk Backend API schema](https://github.com/clerk/openapi-specs/blob/main/bapi/2026-08-20.yml)
@@ -195,10 +225,11 @@ request latency. These Task 3 runtime checks remain **blocked**.
 Before Task 4:
 
 1. Review this evidence and the pinned dependency choices.
-2. Finish development-only scope advertising and pre-register the two verified
-   CIMD clients. Read-only defaults, audience support, opaque tokens, and PKCE are
-   now configured; DCR stays disabled. Real consent/resource/revocation checks
-   remain required rather than relying on settings or metadata alone.
+2. Scope advertising and the user-reported CIMD registrations are prepared;
+   both authorization starts reach development sign-in. Read-only defaults,
+   audience support, opaque tokens, and PKCE are configured; DCR stays disabled.
+   Complete real consent/resource/revocation checks rather than relying on
+   settings or metadata alone.
 3. Complete browser OAuth with a development account; compare its existing app
    owner identifier and obtain sanitized verification fixtures. Exercise a wrong
    resource, refresh, active-account refusal, and provider revocation.

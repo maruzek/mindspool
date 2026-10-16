@@ -19,11 +19,11 @@ an app session JWT or client ID for the OAuth resource proof.
 
 The development instance now has opaque access tokens, required PKCE, published
 CIMD with pre-registration restrictions, audience validation enabled, and a
-`mindspool:read` default. No OAuth clients have been registered yet, and the two
-custom scopes are not advertised in public discovery. Finish scope advertising
-and CIMD registration, then complete the browser OAuth proof before implementing
-the authorization layer. Production configuration and deployment require separate
-authorization.
+`mindspool:read` default. Both custom scopes now appear in public discovery, and
+the user has pre-registered both CIMD clients. Authorization initiation with each
+client reaches the development sign-in page. Complete the browser OAuth proof
+before implementing the authorization layer. Production configuration and
+deployment require separate authorization.
 
 In the development dashboard's OAuth applications → Applications tab, choose
 Add application → Pre-register CIMD client for each verified URL:
@@ -35,6 +35,15 @@ Permit `mindspool:read` and `mindspool:labels:write` for each client, then choos
 Allow client. These are allowed scopes, not a user grant; keep the instance default
 read-only. In the Scopes tab, also enable metadata advertising for both custom
 scopes. Real authorization still needs an explicit consent/resource-binding proof.
+
+The actual development resource URL is
+`https://graceful-stork-346.eu-west-1.convex.site/mcp`; preserve the regional
+hostname when issuing tokens and checking audiences. A temporary local provider
+proof page requests only `mindspool:read offline_access`, validates PKCE and the
+issuer-bound callback, and keeps credentials in process memory. It checks live
+token verification, owner mapping against existing owner statistics, refresh,
+and revocation of its freshly approved test grant. This is a provider proof,
+not a claim that either CLI has connected to the unfinished `/mcp` endpoint.
 
 ## Temporary runtime probe
 

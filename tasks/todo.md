@@ -34,7 +34,11 @@ Progress: development setup now confirms opaque tokens, required PKCE, restricte
 CIMD, audience validation enabled, and an exact `mindspool:read` default. The user
 saved the dashboard settings; a previewed development-only API patch enabled audience
 validation and removed email/profile from defaults. Both real client metadata URLs
-are verified, but no clients are registered yet and custom scopes are not advertised.
+are verified; the user completed registration and both scopes are now advertised.
+Both authorization starts redirect to development sign-in. A temporary local
+read-only provider proof is ready for the user's browser consent; its exact resource
+uses the configured `eu-west-1.convex.site` origin. The ordinary OAuth application
+list does not establish CIMD registry state.
 The configured session issuer matches the development Clerk issuer. Actual token,
 owner, refresh, consent, active-user, and revocation proofs remain open. See
 [the evidence](../docs/verification/mcp-access.md).
