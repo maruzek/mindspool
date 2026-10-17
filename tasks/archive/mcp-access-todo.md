@@ -300,14 +300,14 @@ backend typecheck and development HTTP smoke evidence.
 **Consumes:** request ID, optional connection reference, known tool/outcome, duration.
 **Produces:** internal `recordMcpEvent({ requestId, connectionId?, tool?, outcome, durationMs })`.
 
-- [ ] Test strict payloads and expiry: allowed fields only, no raw provider error,
+- [x] Test strict payloads and expiry: allowed fields only, no raw provider error,
       headers, tokens, argument objects, query text, title, URL, email, or subject.
       Inspect serialized stored rows with sentinel secrets and assert their absence.
-- [ ] Run red; add expiry/connection-indexed diagnostics and call the safe recorder
+- [x] Run red; add expiry/connection-indexed diagnostics and call the safe recorder
       from success/failure paths. Clamp event strings/numbers, set a seven-day expiry,
       and keep provider payloads out of platform logs. A diagnostic-storage failure
       must not change a completed tool's outcome or retry its operation.
-- [ ] Run green; demonstrate `401`, `403`, `429`, provider failure, and successful
+- [x] Run green; demonstrate `401`, `403`, `429`, provider failure, and successful
       call produce useful outcome/timing records without sensitive content.
 
 **Acceptance:** diagnosable access lifecycle; explicit retention and no payload logging;

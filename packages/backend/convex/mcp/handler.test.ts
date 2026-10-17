@@ -10,7 +10,7 @@ import schema from "../schema";
 import { modules } from "../test.setup";
 import { McpAuthorizationError } from "./auth";
 import type { EnabledMcpConfig } from "./config";
-import type { McpAdmission, McpServices } from "./handler";
+import type { McpAdmission, McpEvent, McpServices } from "./handler";
 import { handleMcpMetadata, handleMcpRequest } from "./handler";
 import type { McpTool } from "./tools";
 import { connectionTool, defineTool, McpToolError } from "./tools";
@@ -88,6 +88,7 @@ function services(overrides: Partial<McpServices> = {}) {
     verify: 0,
     ingress: 0,
     admissions: [] as { connectionId: string; isWrite: boolean }[],
+    events: [] as McpEvent[],
   };
   const allow = async (): Promise<McpAdmission> => ({ allowed: true });
   const value: McpServices = {
@@ -123,6 +124,9 @@ function services(overrides: Partial<McpServices> = {}) {
       throw new Error("no queries in handler tests");
     },
     tools: [connectionTool],
+    record: async (event) => {
+      calls.events.push(event);
+    },
     ...overrides,
   };
   return { value, calls };
@@ -516,6 +520,113 @@ describe("MCP request handler", () => {
   });
 });
 
+describe("MCP request diagnostics", () => {
+  async function outcome(
+    request: Request,
+    overrides: Partial<McpServices> = {},
+  ) {
+    const s = services(overrides);
+    await handleMcpRequest(request, s.value);
+    expect(s.calls.events).toHaveLength(1);
+    return s.calls.events[0]!;
+  }
+
+  it("records success with the connection, tool and timing", async () => {
+    const event = await outcome(post(call("mindspool_connection")));
+    expect(event).toEqual({
+      requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      connectionId: "connection_alice",
+      tool: "mindspool_connection",
+      outcome: "ok",
+      durationMs: 0,
+      now: Date.UTC(2026, 9, 17, 12, 0, 30),
+    });
+  });
+
+  it.each([
+    ["invalid_token", post(call("mindspool_connection"), { token: "" }), {}],
+    [
+      "insufficient_scope",
+      post(call("test_write")),
+      { tools: [connectionTool, writeTestTool] },
+    ],
+    [
+      "forbidden",
+      post(call("mindspool_connection")),
+      {
+        authorize: async () => {
+          throw new ConvexError({ code: "FORBIDDEN", message: "x" });
+        },
+      },
+    ],
+    [
+      "rate_limited",
+      post(call("mindspool_connection")),
+      {
+        admitConnection: async () => ({
+          allowed: false as const,
+          retryAfterSeconds: 3,
+        }),
+      },
+    ],
+    [
+      "unavailable",
+      post(call("mindspool_connection")),
+      {
+        verify: async () => {
+          throw new McpAuthorizationError("unavailable");
+        },
+      },
+    ],
+    [
+      "tool_error",
+      post(call("test_fail")),
+      { tools: [failingTool(new Error("boom"))] },
+    ],
+  ] as [string, Request, Partial<McpServices>][])(
+    "records %s",
+    async (expected, request, overrides) => {
+      expect((await outcome(request, overrides)).outcome).toBe(expected);
+    },
+  );
+
+  it("records a timeout distinctly", async () => {
+    vi.useFakeTimers();
+    const s = services({ verify: () => new Promise(() => {}) });
+    const pending = handleMcpRequest(
+      post(call("mindspool_connection")),
+      s.value,
+    );
+    await vi.advanceTimersByTimeAsync(15_000);
+    await pending;
+    expect(s.calls.events[0]!.outcome).toBe("timeout");
+    vi.useRealTimers();
+  });
+
+  it("records only registered tool names", async () => {
+    const event = await outcome(post(call("Bearer sentinel-secret")));
+    expect(event).not.toHaveProperty("tool");
+  });
+
+  it("returns the completed result when recording fails, without re-running the tool", async () => {
+    const s = services({
+      tools: [connectionTool, writeTestTool],
+      record: async () => {
+        throw new Error("storage down");
+      },
+    });
+    const response = await handleMcpRequest(
+      post(call("test_write"), { token: "alice-write" }),
+      s.value,
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()).result.structuredContent).toEqual({
+      ok: true,
+    });
+    expect(writeEffect).toHaveBeenCalledOnce();
+  });
+});
+
 describe("protected-resource metadata", () => {
   it("publishes the resource, issuer and scopes without user data", async () => {
     const response = handleMcpMetadata(
@@ -641,6 +752,38 @@ describe("hosted /mcp route", () => {
       status: "active",
     });
     expect(buckets.map((b) => b.scope).sort()).toEqual(["ingress", "request"]);
+  });
+
+  it("stores diagnostics without tokens, subjects, arguments or provider payloads", async () => {
+    const t = convexTest(schema, modules);
+    await t.fetch(
+      "/mcp",
+      routed(
+        call("mindspool_connection", { q: "sentinel-query" }),
+        "sentinel-token",
+      ),
+    );
+    await t.fetch(
+      "/mcp",
+      routed(call("mindspool_connection"), "sentinel-token"),
+    );
+    await t.fetch("/mcp", routed(call("mindspool_connection")));
+    const rows = await t.run((ctx) => ctx.db.query("mcpDiagnostics").collect());
+    expect(rows.map((row) => row.outcome).sort()).toEqual([
+      "invalid_token",
+      "ok",
+      "tool_error",
+    ]);
+    const stored = JSON.stringify(rows);
+    for (const secret of [
+      "sentinel",
+      "user_a",
+      issuer,
+      codex,
+      "sk_test",
+      "Bearer",
+    ])
+      expect(stored).not.toContain(secret);
   });
 
   it("challenges anonymous calls and serves public metadata", async () => {

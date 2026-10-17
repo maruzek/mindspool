@@ -32,6 +32,14 @@ function mcpServices(ctx: ActionCtx): McpServices {
       }),
     runQuery: (query, args) => ctx.runQuery(query, args),
     tools: productionTools,
+    record: async ({ connectionId, ...event }) => {
+      await ctx.runMutation(internal.mcpDiagnostics.recordMcpEvent, {
+        ...event,
+        ...(connectionId
+          ? { connectionId: connectionId as Id<"mcpConnections"> }
+          : {}),
+      });
+    },
   };
 }
 

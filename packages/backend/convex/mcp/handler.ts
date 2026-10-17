@@ -17,6 +17,29 @@ import type {
   VerifiedMcpPrincipal,
 } from "./types";
 
+export type McpOutcome =
+  | "ok"
+  | "tool_error"
+  | "invalid_token"
+  | "insufficient_scope"
+  | "forbidden"
+  | "rate_limited"
+  | "unavailable"
+  | "timeout"
+  | "bad_request"
+  | "method_not_allowed"
+  | "too_large"
+  | "internal_error";
+
+export type McpEvent = {
+  requestId: string;
+  connectionId?: string;
+  tool?: string;
+  outcome: McpOutcome;
+  durationMs: number;
+  now: number;
+};
+
 export type McpAdmission =
   { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
@@ -38,7 +61,11 @@ export type McpServices = Readonly<{
   }) => Promise<McpAdmission>;
   runQuery: McpToolContext["runQuery"];
   tools: readonly McpTool[];
+  record: (event: McpEvent) => Promise<void>;
 }>;
+
+/** What one request learned along the way, for its diagnostic record. */
+type Trace = { connectionId?: string; tool?: string };
 
 const MAX_BODY_BYTES = 65_536;
 const REQUEST_DEADLINE_MS = 15_000;
@@ -148,6 +175,7 @@ async function serve(
   services: McpServices,
   config: EnabledMcpConfig,
   signal: AbortSignal,
+  trace: Trace,
 ): Promise<Response> {
   if (!hostAllowed(request, config) || !originAllowed(request, config))
     return forbidden();
@@ -182,11 +210,15 @@ async function serve(
   } catch (error) {
     return authorizationFailure(config, error);
   }
+  trace.connectionId = principal.connectionId;
 
   // v1 has no standalone SSE stream or transport session.
   if (method !== "POST") return json(405, null, { Allow: "POST" });
 
   const calls = calledTools(body);
+  // Only registered names are recorded, and only for a single call.
+  if (calls.length === 1 && requiredScopesFor(services.tools, calls[0]!))
+    trace.tool = calls[0];
   let isWrite = false;
   for (const name of calls) {
     const required = requiredScopesFor(services.tools, name);
@@ -236,26 +268,86 @@ export async function handleMcpRequest(
   }
   if (!config.enabled) return new Response(null, { status: 404 });
 
+  const started = services.now();
+  const trace: Trace = {};
+  let timedOut = false;
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<Response>((resolve) => {
     timer = setTimeout(() => {
+      timedOut = true;
       controller.abort();
       resolve(unavailable());
     }, REQUEST_DEADLINE_MS);
   });
+  let response: Response;
   try {
-    return await Promise.race([
-      serve(request, services, config, controller.signal),
+    response = await Promise.race([
+      serve(request, services, config, controller.signal, trace),
       deadline,
     ]);
   } catch {
-    return json(500, {
+    response = json(500, {
       error: "server_error",
       error_description: "Something went wrong",
     });
   } finally {
     clearTimeout(timer);
+  }
+  const now = services.now();
+  try {
+    await services.record({
+      requestId: crypto.randomUUID(),
+      ...(trace.connectionId ? { connectionId: trace.connectionId } : {}),
+      ...(trace.tool ? { tool: trace.tool } : {}),
+      outcome: timedOut ? "timeout" : await outcomeOf(response),
+      durationMs: now - started,
+      now,
+    });
+  } catch {
+    // A diagnostic failure never changes or repeats a completed request.
+  }
+  return response;
+}
+
+/** True when any JSON-RPC result in the body is a tool error (`isError`). */
+async function hasToolError(response: Response) {
+  try {
+    const body: unknown = await response.clone().json();
+    return (Array.isArray(body) ? body : [body]).some(
+      (message) => message?.result?.isError === true,
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function outcomeOf(response: Response): Promise<McpOutcome> {
+  switch (response.status) {
+    case 200:
+      return (await hasToolError(response)) ? "tool_error" : "ok";
+    case 202:
+      return "ok";
+    case 401:
+      return "invalid_token";
+    case 403:
+      return response.headers
+        .get("www-authenticate")
+        ?.includes("insufficient_scope")
+        ? "insufficient_scope"
+        : "forbidden";
+    case 405:
+      return "method_not_allowed";
+    case 413:
+      return "too_large";
+    case 429:
+      return "rate_limited";
+    case 503:
+      return "unavailable";
+    case 500:
+      return "internal_error";
+    default:
+      return "bad_request";
   }
 }
 

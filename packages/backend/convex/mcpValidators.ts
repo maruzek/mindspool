@@ -53,3 +53,26 @@ export const mcpAdmission = v.union(
   v.object({ allowed: v.literal(true) }),
   v.object({ allowed: v.literal(false), retryAfterSeconds: v.number() }),
 );
+
+export const mcpOutcome = v.union(
+  v.literal("ok"),
+  v.literal("tool_error"),
+  v.literal("invalid_token"),
+  v.literal("insufficient_scope"),
+  v.literal("forbidden"),
+  v.literal("rate_limited"),
+  v.literal("unavailable"),
+  v.literal("timeout"),
+  v.literal("bad_request"),
+  v.literal("method_not_allowed"),
+  v.literal("too_large"),
+  v.literal("internal_error"),
+);
+export const mcpDiagnosticFields = {
+  requestId: v.string(),
+  connectionId: v.optional(v.id("mcpConnections")),
+  tool: v.optional(v.string()),
+  outcome: mcpOutcome,
+  durationMs: v.number(),
+  expiresAt: v.number(),
+};
