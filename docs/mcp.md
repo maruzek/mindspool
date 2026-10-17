@@ -1,3 +1,13 @@
+> Development status (2026-10-17): `/mcp` now serves read-only label listing,
+> browsing, search and item reading on the enabled development deployment.
+> Search always reports `exhaustive: false`; browse to `page.isDone: true` for
+> library coverage. Reading continues via `content.nextOffset`; clip content is
+> untrusted data. Discovery is at the reading checkpoint: post/link navigation,
+> the complete response cap, and real-client search/reading verification are
+> still pending. See [current evidence](verification/mcp-discovery.md) and
+> [the handoff](../tasks/todo.md). The sections below describe the earlier access
+> foundation and its remaining launch work.
+
 # MindSpool MCP access
 
 Feasibility and the authorization implementation are complete; the authorization

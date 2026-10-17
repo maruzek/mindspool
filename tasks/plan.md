@@ -24,9 +24,10 @@ merge.
 
 ## Progress (2026-10-17)
 
-Tasks 0-3 are done on `feature/mcp-discovery`, together with access Tasks 6-8 (admission quotas, the `/mcp`
-handler and registry, diagnostics). Development is deployed and verified with Claude Code. See the handoff in
-[todo.md](todo.md).
+Tasks 0–6 are done on `feature/mcp-discovery`, together with access Tasks 6–8 (admission quotas, the `/mcp`
+handler and registry, diagnostics). All discovery tools are deployed to development; labels/browse were verified
+with Claude Code, and search/reading have automated real-handler evidence. Stopped at the "reading works"
+checkpoint for user review before Task 7. See the handoff in [todo.md](todo.md).
 
 ## Prerequisites (gates, not tasks)
 

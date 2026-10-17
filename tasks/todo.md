@@ -5,15 +5,18 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ## Handoff (2026-10-17)
 
-Branch `feature/mcp-discovery` (not pushed, not merged). Done: Tasks 0-3, plus access Tasks 6-8 that discovery
-depends on (tracked in [archive/mcp-access-todo.md](archive/mcp-access-todo.md)). Deployed to the **development**
-Convex deployment only (`graceful-stork-346`); never touch production without asking. MCP is enabled there and
-works with Claude Code (evidence: [docs/verification/mcp-discovery.md](../docs/verification/mcp-discovery.md)).
-**Next: Task 4** (search), then Task 5 (get_item), then Task 6, stopping at "reading works". Tasks 4-9 are NOT
-built. After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
+Branch `feature/mcp-discovery` (not pushed, not merged). Done: discovery Tasks 0–6, plus access Tasks 6–8
+(tracked in [archive/mcp-access-todo.md](archive/mcp-access-todo.md)). All four discovery tools are deployed to
+**development** only (`graceful-stork-346`); never touch production without asking. Claude Code previously
+verified labels/browse; search and reading have real-handler automated evidence, with real-client verification
+still pending ([evidence](../docs/verification/mcp-discovery.md)).
+**Current checkpoint: "reading works" — user review before Task 7.** Tasks 7–9 are NOT built: post/link navigation,
+whole-result 64 KiB cap and continuation resource omission, then complete docs and real-client verification.
+After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
 (commit generated `_generated/api.d.ts`; `pnpm typecheck` must pass after codegen). Tools live in
-`convex/mcp/discovery.ts`, are registered in `convex/mcp/registry.ts`, and read through `convex/mcpDiscovery.ts`.
-Also still open: Codex check, access Tasks 9-12.
+`convex/mcp/discovery.ts`, pure detail shaping in `convex/mcp/tools/shape.ts`, registration in
+`convex/mcp/registry.ts`, and internal reads in `convex/mcpDiscovery.ts`.
+Also still open: Codex check, access Tasks 9–12.
 
 ## Gate: before Task 1
 
@@ -63,7 +66,7 @@ Also still open: Codex check, access Tasks 9-12.
 - [x] All backend tests and typecheck pass; browse a seeded 25-item label through the real handler in a test.
 - [x] Review with user before continuing. (Reviewed 2026-10-17; Claude Code browsed a 33-clip label on development.)
 
-- [ ] **Task 4: `mindspool_search_items`** (S)
+- [x] **Task 4: `mindspool_search_items`** (S)
   - Acceptance: library or label scope; app query rules (1-200 chars, 16 words); best-match order; always
     `exhaustive: false`; includes inbox and unlabeled clips for library scope; snippets present; description tells the
     agent to use browse for "all".
@@ -71,7 +74,7 @@ Also still open: Codex check, access Tasks 9-12.
   - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, tests
   - Dependencies: Task 3 (parallel with Task 5)
 
-- [ ] **Task 5: `mindspool_get_item` (text items)** (M)
+- [x] **Task 5: `mindspool_get_item` (text items)** (M)
   - Acceptance: `ItemDetail` with metadata, `userInput` (<= 4,000, flagged), `content` window (20,000 chars,
     `offset`/`nextOffset`/`totalChars`/`truncated`), `links` (original, canonical, in-content http(s), deduplicated by
     `urlKey`, <= 50 flagged), all labels (<= 100 flagged), image URLs only (<= 10), `linkedPageRead`, `untrusted: true`.
@@ -81,7 +84,7 @@ Also still open: Codex check, access Tasks 9-12.
   - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, `mcp/tools/shape.ts`, tests
   - Dependencies: Task 3 (parallel with Task 4)
 
-- [ ] **Task 6: Reddit content in the stream** (S)
+- [x] **Task 6: Reddit content in the stream** (S)
   - Acceptance: for items with `redditCapture`, `content` is the post text followed by the comments, in one offset-
     addressed stream; bounded and continuable like other content; summaries show only the snippet.
   - Verify: `vitest run convex/mcpDiscovery.test.ts` with a Reddit fixture spanning several windows.
@@ -90,7 +93,7 @@ Also still open: Codex check, access Tasks 9-12.
 
 ### Checkpoint: reading works
 
-- [ ] All backend tests and typecheck pass; every tool callable through the real handler with a read-only principal.
+- [x] All backend tests and typecheck pass; every tool callable through the real handler with a read-only principal.
 - [ ] Review with user before continuing.
 
 ## Phase 3: Resources first, hardening, proof

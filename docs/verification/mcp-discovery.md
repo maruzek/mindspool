@@ -89,5 +89,59 @@ mindspool <resource URL>`, then `/mcp` browser sign-in with read-only consent.
   out of order (7 inversions among the 33 clips; same order as the web app). The
   tool description and spec now say so.
 
-Not yet verified: Codex, a write-scope token, search and `get_item`
-(not built), result sizes against client token budgets, revocation.
+Not yet verified: Codex, a write-scope token, real-client search and `get_item`, result sizes against client token budgets, revocation.
+
+## Tasks 4–6: search and reading (2026-10-17)
+
+All four discovery tools are registered with `mindspool:read` and read-only annotations.
+Search reuses `searchItemsPage` / `searchLabelItemsPage`, preserving the app's ranking,
+query validation and scope filters, with `exhaustive: false` on every page. Item detail
+reuses `itemDetailFor`; label membership is read through the existing owner/item/decision
+index (101 rows maximum to detect the 100-label cap). Pure response shaping lives in
+`mcp/tools/shape.ts`.
+
+`mcpDiscovery.test.ts` exercises the real handler with read-only principals and Convex
+queries, covering:
+
+- library and label search parity with the public app queries, unlabeled inbox clips,
+  source and review filters, excluded membership, suggested labels and snippets;
+- query limits, label scope validation, query-bound cursors and search pagination;
+- detail metadata, bounded user input, safe image URLs, canonical/original/in-content
+  links deduplicated by `urlKey`, including X URLs;
+- exact multi-window text reassembly, past-end offsets and identical `NOT_FOUND` for
+  malformed, deleted and foreign ids;
+- visible 100-label and 50-link caps, and failed/pending/not-started enrichment reporting
+  `linkedPageRead: false`;
+- Reddit post and comments in one three-window stream, without duplicating the persisted
+  projection; browse results retain only a short snippet;
+- HTTP 403 before any query for each of the four tools when the principal lacks read scope.
+
+Pure shaping tests additionally cover empty content, exact limits, canonical precedence,
+balanced URL punctuation and credential-bearing URL exclusion.
+
+Development deployment (`graceful-stork-346`) accepted `pnpm exec convex dev --once`;
+generated API types are included. No production deployment or schema change.
+
+Still unverified by real clients: search, reading and continuation (Codex and Claude Code).
+Tasks 7–8 still supply post/link navigation, the whole-response 64 KiB cap and omission of
+resources on continuation calls. Those remain required before claiming contract completion.
+
+Fresh review found and regression tests reproduced two edge cases: Unicode queries
+could break cursor encoding, and long punctuation tails made link trimming quadratic.
+Cursors now encode/decode UTF-8 and bind trimmed queries; URL trimming counts bracket
+balance once. Real-handler tests enumerate Unicode labels/search and heavily padded
+queries; a 30,000-bracket test guards bounded extraction time (the previous code took
+7.94 seconds). Both findings passed their regression tests after the fixes.
+
+Validation: backend 40 files / 548 tests; schema 42 tests, web 307,
+extension 128, and mobile 119 tests passed. Formatting and all six package
+type checks passed. The unrestricted test run hit timeouts in existing
+`itemLabels.test.ts` and `itemState.invariant.test.ts` plus a worker-start
+failure during memory pressure; rerunning with `VITEST_MAX_WORKERS=2` passed.
+Both review findings are resolved; no deferred review findings.
+
+All three builds passed (`pnpm build`, including the Android export). The full
+check was interrupted during mobile bundling after formatting, all tests and all
+type checks passed; the build stage then completed separately. No runtime code
+changed between those checks. The final backend rerun also retained the original
+authorization regression alongside the new four-tool scope tests.
