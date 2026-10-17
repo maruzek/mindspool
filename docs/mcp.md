@@ -139,5 +139,6 @@ Provider errors and disabled accounts retain revocation state. The temporary
 
 Current evidence, real-client results and unverified cases are recorded in
 [discovery verification](verification/mcp-discovery.md) and
-[access verification](verification/mcp-access.md). Both modules remain short of
-full launch acceptance until the outstanding live lifecycle checks are proven.
+[access verification](verification/mcp-access.md). Development verification is
+recorded for both modules, including CLI-agent limitations. Human launch review
+and any production deployment require separate approval.

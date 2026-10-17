@@ -3,7 +3,9 @@
 Date: 2026-10-16. Plan: [the access plan](../../tasks/archive/mcp-access-plan.md).
 Worktree: `/home/martin/dev/MindSpool-mcp-spec`, branch `feature/mcp-spec`.
 Baseline: `2dc0f7a`. This records the completed Tasks 1–3; Checkpoint A has **passed**.
-The hosted account-access feature is not ready for use or release.
+This opening section is the historical feasibility checkpoint; current development
+verification and remaining limitations are recorded in the dated follow-ups below.
+No production release is authorized.
 
 ## Development provider inspection (Task 1)
 
@@ -423,7 +425,8 @@ CLI inspection and OAuth showed Codex0.163.0 `mcp add` initiates OAuth with adve
 scopes, even after explicit read-only login. The UI therefore provides a TOML block
 and `codex mcp login mindspool --scopes mindspool:read`. Claude2.1.285 uses HTTP add
 and `/mcp` authentication; its `--scope user` is explicitly configuration scope.
-The actual Claude write-upgrade flow remains unverified.
+The follow-up below records the actual token permission intersection and installed
+CLI status checks; optional headless login behavior is recorded separately.
 
 The development deployment now includes a five-minute retention schedule and
 `mcpMaintenance`. Cleanup removes at most 100 expired diagnostic/bucket rows per
@@ -439,24 +442,132 @@ the credential-holding client or administrator uses Clerk's supported `revokeTok
 procedure; local disconnect remains authoritative. No bearer token storage was
 added. Clearing client credentials is not recorded as provider revocation proof.
 
-Remaining runtime acceptance: authenticated preview layout/keyboard/control checks;
-approve/deny, OAuth write upgrade, downgrade, refresh, old/new token disconnect,
-provider revocation, disabled/deleted-account and reconnect scenarios using
-**disposable development users**. No real user account is disabled or deleted by
-this work. Existing isolated verifier/connection tests remain regression evidence,
-not a substitute for these live lifecycle checks. The temporary proof route is
+At this checkpoint, authenticated preview and the disposable-account runtime
+matrix were still open. The subsequent follow-ups record their results. No real
+user account was disabled or deleted. Existing isolated verifier/connection tests
+remain regression evidence and are distinguished from live lifecycle checks. The temporary proof route is
 absent from `http.ts`, and production wiring imports no proof helper.
 
 Management preflight: Clerk CLI 3.4.1 doctor could read local credentials/project
 linkage, but application/instance checks failed with expired management-session
-authentication. No provider user mutation was attempted. Approval for a dedicated
-disposable development user and its eventual irreversible deletion/admin override
-is pending. The attached T3 automation tab still reports no Clerk session at both
-loopback hostnames despite the user's sign-in confirmation; authenticated UI
-checks remain open rather than borrowing another browser session.
+authentication. No provider user mutation was attempted. The user subsequently approved a dedicated
+disposable development user and its eventual irreversible deletion/admin override. The attached preview initially had no session; the follow-up below records its
+recovery and authenticated checks.
 
 Live development maintenance checks: `cleanupExpired` returned `deleted: 0`;
 `purgeDeletedAccount` for the active account returned `purged: false`; a
 nonexistent synthetic subject returned `purged: true` with no rows to remove.
 This proves deployed entry-point/provider behavior, not a populated account
 deletion. Root typecheck after code generation and final formatting passed.
+
+### Authenticated T3 preview follow-up
+
+The session mismatch was resolved by navigating through T3's environment-port
+target after a failed Clerk return navigation. The attached preview now reports
+an active session and renders both connected clients. At 1440px and 390px,
+document scroll width stays within the viewport; long command blocks scroll
+inside their own containers and no connection/copy button extends beyond the
+viewport. All three copy controls announce success. Keyboard traversal reaches
+copy controls, the permission disclosure and connection controls with visible
+focus; Enter toggles the disclosure. The browser exposed a nested main landmark;
+the page wrapper was changed to a div, leaving one shell main landmark. All 317
+web tests and the web typecheck passed after this fix. Permission mutations on
+the real account were not used as browser evidence.
+
+The snapshot includes the expected Clerk development-key warning and historical
+Clerk telemetry aborts; the failed return navigation recorded a connection-refused
+error before recovery. These are not claimed as a warning-free browser run.
+
+### Disposable development account: deployed controls and maintenance
+
+With explicit user approval, a dedicated Clerk test user was created, banned,
+unbanned and permanently deleted. For both allowed client IDs, deployed server
+functions proved initial read-only status, write permission requiring both app
+enablement and declared scope, read-only scope remaining read-only, immediate
+downgrade, repeated authorization refusal after disconnect, and read-only
+reconnect. These calls used development administrator identities and internal
+authorization entry points; they are not recorded as OAuth-token evidence.
+The active and banned accounts were preserved by cleanup. After provider deletion,
+bounded cleanup removed both connection rows; zero rows remained. The original
+allowlist was unchanged. No real user was banned/deleted.
+
+An isolated native development sign-in also completed through Clerk's documented
+test-email/code flow. A Codex client-ID PKCE grant returned both access and refresh
+tokens. Tokens remained in process memory and the disposable user was deleted.
+The complete real-token matrix follows.
+
+### Real-token lifecycle matrix (2026-10-17)
+
+The isolated runner created a development test user, completed native sign-in
+and development email-code verification, then used S256 PKCE with each client's
+actual public metadata client ID. Consent approval/denial and token operations
+used Clerk's Frontend/OAuth endpoints; they did not borrow the real user's browser
+cookies. Both installed CLIs also called the production status tool with
+disposable credentials. This distinguishes protocol lifecycle proof from the
+original real-browser CLI sign-ins recorded earlier.
+
+| Scenario                                                         | Codex client ID      | Claude Code client ID |
+| ---------------------------------------------------------------- | -------------------- | --------------------- |
+| Deny returns no authorization code                               | Passed               | Passed                |
+| Approve read-only grant                                          | Passed               | Passed                |
+| App enablement alone preserves a read-only token                 | Passed               | Passed                |
+| OAuth write scope plus app enablement exposes write permission   | Passed               | Passed                |
+| Installed CLI reports read-only and write status                 | Observed across runs | Passed                |
+| App downgrade immediately removes effective write permission     | Passed               | Passed                |
+| Refresh returns a usable resource-bound access token             | Passed               | Passed                |
+| Disconnect denies old/current/refreshed credentials              | 403/401/403          | 403/401/403           |
+| Provider refresh after local disconnect remains blocked locally  | Passed               | Passed                |
+| Explicit reconnect resets to read only                           | Passed               | Passed                |
+| Provider revocation rejects access and refresh                   | Passed               | Passed                |
+| Fresh consent after revocation restores read access              | Passed               | Passed                |
+| Account allowlist restriction rejects existing tokens            | Passed               | Passed                |
+| Banned account rejected; disabled-account cleanup preserves rows | Passed               | Passed                |
+| Unban restores access; provider deletion rejects access          | Passed               | Passed                |
+
+The 401 for an older token is a provider-invalidated credential, while 403 is the
+local block for a still-valid credential; all disconnected requests were denied.
+Repeated requests reused JSON-RPC request ID 1 across transitions and did not
+bypass fresh authorization. Deadline/cancellation faults remain automated
+handler/verifier evidence; no provider fault injection was added to development.
+
+One Codex read-only attempt and a later write-status attempt returned false
+booleans despite other successful invocations and passing direct protocol checks.
+The read-only result passed with an isolated server name, and write status passed
+in the earlier run. These intermittent CLI-agent reports are retained as a
+limitation; no claim of a failure-free series is made.
+
+The allowlist was restored exactly. All disposable users were deleted and their
+connection state purged; no bearer values appear in committed evidence. A live
+public connection-list query also confirmed the real owner cannot see the
+disposable owner's connections while those rows existed. The deployed
+`/__mcp_probe` remains 404 and unauthenticated `/mcp` remains 401.
+
+Codex 0.163.0 also completed both documented explicit-scope login commands
+(read only, then read plus label write) using its own PKCE/callback implementation
+and a disposable development consent session; temporary client credentials were
+logged out afterward.
+
+Sources for the test runner: [Clerk test emails/codes](https://clerk.com/docs/guides/development/testing/test-emails-and-phones),
+[official consent implementation](https://github.com/clerk/javascript/blob/main/packages/clerk-js/src/core/modules/oauthApplication/index.ts),
+and the versioned Clerk 2026-08-20 Backend API schema. Native OAuth tests are HTTP
+protocol tests; the UI checks used the shared T3 preview.
+
+Claude Code 2.1.285 then completed its own `mcp add --transport http --scope user`
+and `mcp login` using a uniquely named temporary entry. Its authorization request
+included both MindSpool scopes. With the credentials stored by that login, the
+actual CLI reported read-only permissions, write permission after app enablement,
+and read-only permissions immediately after downgrade. No bearer header was
+injected for these three checks. The temporary entry/credentials were removed
+and the disposable user deleted. `--no-browser` requires an interactive terminal;
+the test used a PTY. Project-scoped `.mcp.json` entries require separate project
+approval, so the documented user-scope setup was used.
+
+All disposable grant tests used development test emails/codes, with no real SMS
+or email-code delivery and no plan changes. Human launch review remains open;
+production was not changed.
+
+Final cleanup checks confirmed neither temporary client entry remains. Only the
+original two connections for one owner remain on development, and both original
+Codex and Claude connections still report read-only permissions. The shared T3
+preview remains signed in on Integrations with one main landmark. Final root
+formatting and diff whitespace checks passed.

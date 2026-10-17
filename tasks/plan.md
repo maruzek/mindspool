@@ -17,17 +17,17 @@ clips extracted from them.
 The user authorized consolidating the tweet-link work, MCP access foundation,
 and these discovery documents into local `main`. Both feature histories are
 included, full checks pass, and the source worktree is retained. The tweet-link
-integration gate below is satisfied. Access Tasks 6–12 remain unfinished in the
-archived access plan; Task 0 must still confirm the dispatcher before discovery
-implementation proceeds. No endpoint was enabled or deployment performed by the
+integration gate below is satisfied. At that integration checkpoint, access Tasks 6–12 were unfinished;
+the current implementation and verification status follows below. No endpoint was enabled or deployment performed by the
 merge.
 
 ## Progress (2026-10-17)
 
 Discovery Tasks 0–9 are implemented and verified on development. Both real clients exercised
 the four discovery tools, exact browse membership/order and content continuation. The user-approved
-resource-count field and bounded migration are deployed: all 75 items have counts, with zero mismatches. Access UI/setup/maintenance are also implemented; authenticated preview and full
-disposable-user lifecycle acceptance remain open. See [todo.md](todo.md).
+resource-count field and bounded migration are deployed: all 75 items have counts, with zero mismatches. Access UI/setup/maintenance, authenticated preview checks and disposable-user
+OAuth lifecycle verification are complete on development. CLI-agent limitations
+and the remaining human outcome review are documented. See [todo.md](todo.md).
 
 ## Prerequisites (gates, not tasks)
 
@@ -35,9 +35,9 @@ disposable-user lifecycle acceptance remain open. See [todo.md](todo.md).
    `items.detail`'s `fromPost`, and `tweetLinks:backfill`. After it merges, rebase or merge `main` into
    `feature/mcp-spec`. Tasks 7 and 8 need it; Tasks 1-6 only need the rebase for a stable base.
 2. **`mcp-access` dispatcher must exist.** Discovery registers tools through the access module's registry with a
-   declared required scope and a verified `VerifiedMcpPrincipal` (`packages/backend/convex/mcp/`). The archived access
-   task list still shows unchecked boxes (rate limiting, diagnostics, settings UI, revocation, real-client evidence), and
-   `docs/mcp.md` says there is no usable `/mcp` endpoint yet. Task 0 confirms what is actually in place before building.
+   declared required scope and a verified `VerifiedMcpPrincipal` (`packages/backend/convex/mcp/`). Task 0 confirmed
+   the dispatcher and scope enforcement before tool implementation. The archived access
+   checklist and verification documents now record the completed development work.
 
 ## Architecture decisions
 

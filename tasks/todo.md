@@ -11,13 +11,15 @@ and verified on **development** only (`graceful-stork-346`). The user-approved o
 counts, with zero mismatches. Both Codex and Claude Code verified exact 33-item label membership/order,
 search, reading, resources and two-window content continuation. See the
 [evidence](../docs/verification/mcp-discovery.md).
-Access connection UI/setup and maintenance are implemented; authenticated preview and
-disposable-account lifecycle proof remain open. Never touch production without approval.
+Access connection UI/setup and maintenance are implemented; authenticated preview
+layout/keyboard checks and the disposable-account OAuth lifecycle matrix passed.
+CLI-agent limitations are documented. Human outcome review remains open. Never
+touch production without approval.
 After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
 (commit generated `_generated/api.d.ts`; `pnpm typecheck` must pass after codegen). Tools live in
 `convex/mcp/discovery.ts`, pure detail shaping in `convex/mcp/tools/shape.ts`, registration in
 `convex/mcp/registry.ts`, and internal reads in `convex/mcpDiscovery.ts`.
-Access Tasks 9–12 remain partially open; see the archived checklist.
+Access Tasks 9–12 have development verification; see the archived checklist and limitations.
 
 ## Gate: before Task 1
 

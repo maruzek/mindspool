@@ -218,7 +218,7 @@ owner-only revocation/reactivation is durable and retry-safe.
 ### Checkpoint B: Authorization
 
 - [x] Backend tests/typecheck pass; anonymous/foreign access and scope bypass fail.
-- [ ] Review connection schema and revocation races before publishing `/mcp`.
+- [x] Review connection schema and revocation races before publishing `/mcp`. (Fresh review completed; count-hydration finding corrected and verified.)
 
 ## Task 6: Enforce shared admission quotas
 
@@ -318,9 +318,9 @@ diagnostic failure cannot duplicate a future write.
 
 ### Checkpoint C: Hosted backend flow
 
-- [x] (Claude Code only; Codex and a resource-mismatch check still open) A development account connects through browser OAuth and calls the real
+- [x] Both clients connect through browser OAuth and call the real
       connection tool. Direct unauthorized calls and deliberate resource mismatch fail.
-- [ ] Backend tests/typecheck and observed response budgets pass. Review safe
+- [x] Backend tests/typecheck and observed response budgets pass. Review safe
       diagnostics and the fixed-window quota limitation before building the settings UI.
 
 ## Task 9: Ship authenticated connection management in the web app
@@ -332,16 +332,16 @@ diagnostic failure cannot duplicate a future write.
 **Consumes:** public `mcpConnections` list/actions, existing auth gate and UI primitives.
 **Produces:** `/settings/integrations`, discoverable via sidebar navigation.
 
-- [ ] Write component tests for loading, no connections, paginated/error states,
+- [x] Write component tests for loading, no connections, paginated/error states,
       granted/effective permission copy, enable/disable, disconnect/reconnect, pending
       controls, keyboard access, and same-client/all-devices wording. Query the safe
       `configuration` API for enabled state and endpoint URL. Switch accounts
       while a mutation is pending; its late response must not update the new account UI.
-- [ ] Run red; implement the page within existing tokens/components. Explain read
+- [x] Run red; implement the page within existing tokens/components. Explain read
       access shares saved content with the client; scope enablement does not grant OAuth
       scope by itself; reconnect clears write enablement; web sign-out is not disconnect.
       Keep server errors visible without assuming a rejected mutation changed state.
-- [ ] Run green, regenerate the route tree through the existing build, and inspect
+- [x] Run green, regenerate the route tree through the existing build, and inspect
       the actual development page at desktop/mobile widths through the T3 browser.
 
 **Acceptance:** signed-in owners can manage only their connections; all lifecycle
@@ -358,17 +358,18 @@ web typecheck/build and browser keyboard/390px/1440px checks.
 **Consumes:** deployment-controlled canonical resource URL, never a clip/client-supplied URL.
 **Produces:** copyable read-only connection commands and explicit write-upgrade steps.
 
-- [ ] Test correct environment URL, safe rendering/copying, setup for both clients,
+- [x] Test correct environment URL, safe rendering/copying, setup for both clients,
       unavailable configuration, and the distinction between Claude configuration
       `--scope user` and actual OAuth permission. Do not interpolate untrusted client
       display names into shell commands.
-- [ ] Implement the setup component and record the exact commands confirmed against
-      installed CLI help. Codex read-only setup uses `codex mcp add` then
-      `codex mcp login mindspool --scopes mindspool:read`; write upgrade requests
+- [x] Implement the setup component and record the exact commands confirmed against
+      installed CLI help. Codex read-only setup uses a TOML server block then
+      `codex mcp login mindspool --scopes mindspool:read` (live inspection showed
+      `mcp add` starts OAuth using advertised broader scopes); write upgrade requests
       `mindspool:read,mindspool:labels:write` after app enablement. For Claude, test
       HTTP add plus `/mcp` authentication and its configured OAuth scopes; prefer CIMD
       and document a pre-registered public client only when that fallback is demonstrated.
-- [ ] Run component tests and record the actual consent/permission result in both
+- [x] Run component tests and record the actual consent/permission result in both
       clients; do not assume advertised scopes or clearing local credentials proves
       effective authorization or revocation. Document troubleshooting and reconnect.
 
@@ -380,9 +381,9 @@ web typecheck/build; actual instructions exercised in both CLI versions.
 
 ### Checkpoint D: Usable account controls
 
-- [ ] Both clients complete read-only setup, and settings actions match observed
+- [x] Both clients complete read-only setup, and settings actions match observed
       server permissions. No write tool is claimed to exist in this module.
-- [ ] Web tests/typecheck/build pass; real browser checks cover layout and keyboard.
+- [x] Web tests/typecheck/build pass; real browser checks cover layout and keyboard.
 
 ## Task 11: Complete provider revocation and bounded maintenance
 
@@ -393,16 +394,16 @@ web typecheck/build; actual instructions exercised in both CLI versions.
 **Produces:** scheduled provider cleanup following local disconnect; internal bounded
 `cleanupExpired` and `purgeDeletedAccount` operations; a five-minute maintenance schedule.
 
-- [ ] Test disconnect commits locally even if provider cleanup fails. Test expired
+- [x] Test disconnect commits locally even if provider cleanup fails. Test expired
       buckets/events deleted in batches of at most 100, continuations drain larger sets,
       and events become cleanup-eligible 15 minutes before their seven-day maximum.
       and revoked active-account tombstones survive unlimited refresh lifetime.
       Provider timeouts/errors must never be interpreted as account deletion.
-- [ ] Run red; implement supported provider grant revocation using fixed provider
+- [x] Run red; implement supported provider grant revocation using fixed provider
       endpoints and server credentials, as established by Task 1. If automatic grant
       revocation is unsupported, record the provider's supported manual procedure;
       keep the local block authoritative. Schedule only after local revocation.
-- [ ] Implement internal account purge only after verified provider deletion,
+- [x] Implement internal account purge only after verified provider deletion,
       removing owner connection/diagnostic rows in bounded transactions; disabled
       accounts retain revocation state. Add the expiry-cleanup cron and run green.
       Avoid scanning all account documents on each request or storing raw tokens.
@@ -421,17 +422,17 @@ backend typecheck and development cleanup/revocation evidence.
 **Consumes:** the actual hosted development endpoint, both CLI clients, settings UI.
 **Produces:** per-client acceptance matrix with versions, timing, results, limitations.
 
-- [ ] For both clients, exercise approve/deny, read-only status, app enablement plus
+- [x] For both clients, exercise approve/deny, read-only status, app enablement plus
       OAuth write scope, app downgrade, refresh, local disconnect with old/new access
       tokens, provider revocation, active-account restriction, disabled/deleted account,
       and explicit reconnect. Confirm a timed-out/replayed request never gains permission
       and no status output exposes identity or credentials. Use only disposable dev users.
-- [ ] Verify existing browser auth/library still work and another owner cannot read
+- [x] Verify existing browser auth/library still work and another owner cannot read
       the first owner's connections. Record no claim of clip search or label mutation;
       injected write tests prove authorization only. Record provider/account/runtime
       costs or limits actually encountered; confirm the temporary probe route is absent
       and test-only proof helpers are not imported by production wiring.
-- [ ] Run final checks below, redact evidence, review the diff, and commit only
+- [x] Run final checks below, redact evidence, review the diff, and commit only
       observed results. Leave any unverified result open with its concrete blocker.
 
 **Acceptance:** all six access-spec success criteria have executable/runtime evidence;
@@ -442,27 +443,35 @@ no production changed; next module can reuse the verified principal/dispatch con
 
 ### Checkpoint E: Access acceptance
 
-- [ ] All access success criteria pass with real-client evidence and regression checks.
+- [x] Development access success criteria have real-client/protocol evidence and regression checks; CLI-agent limitations are recorded.
 - [ ] Human reviews outcome and remaining limitations. Production deployment and
-      `mcp-discovery`/`mcp-labels` implementation remain separate authorized work.
+      `mcp-labels` implementation remain separate authorized work. Discovery was
+      separately authorized and is verified on this branch.
 
 ## Current handoff (2026-10-17)
 
-Tasks 9–10: connection controls and safe client setup are implemented, with
-component tests and generated routes verified. Authenticated T3 preview checks at
-390px/1440px and keyboard traversal remain open: the attached automation tab
-continues to report no Clerk session despite the user's sign-in confirmation.
-Do not substitute another browser's session as evidence.
+Tasks 9–12 have development implementation and verification. The authenticated
+T3 preview passed 390px/1440px layout, copy feedback, keyboard traversal and
+keyboard scrolling of long commands. A nested main landmark was corrected;
+all 317 web tests and web typecheck passed afterward.
 
-Task 11: bounded retention cron and provider-verified account cleanup are
-implemented, tested and deployed to development. Provider revocation uses the
-documented credential-holder procedure; clearing local credentials is not proof.
+With explicit user approval, disposable development accounts proved the actual
+OAuth matrix for both client IDs: approve/deny, read-only/app+scope permission
+intersection, downgrade, refresh, old/current/new-token disconnect, provider
+revocation, fresh consent, account restriction, ban/unban and provider deletion.
+Disconnected tokens returned 403/401/403; all were denied. Bounded account cleanup
+removed populated connection state and the original allowlist was restored.
+The public connection list hid the disposable owner's rows from the real owner.
 
-Task 12: both real clients passed read-only discovery, exact browse membership
-and continuation, but the disposable-account lifecycle matrix remains open.
-Clerk CLI doctor reports expired management authentication; no Clerk write
-scopes are configured. Explicit approval for disposable-user creation, temporary
-disabling and irreversible deletion/admin override has been requested. No real
-user was disabled/deleted. Root check passed 1,169 tests, all types/builds, plus
-the separate Firefox extension build. Generated backend API changes were followed
-by another successful root typecheck.
+The evidence distinguishes native HTTP OAuth protocol checks, installed-client
+status calls and original browser-based sign-ins. Codex's explicit read-only and
+write-scope login commands passed. Individual Codex CLI-agent status reports were
+intermittent; successful read/write reports and passing protocol assertions are
+recorded without claiming a failure-free run. Claude
+also completed its actual user-scope add/login flow and reported read-only, app-
+enabled write and downgraded permissions using its own stored OAuth credentials.
+Temporary entries/credentials and users were removed; no-browser login used a PTY.
+
+Root check passed 1,169 tests, all types/builds, plus Firefox. The generated backend
+API was followed by another successful root typecheck. No real account was
+banned/deleted; no production changed. Human outcome/launch review remains open.

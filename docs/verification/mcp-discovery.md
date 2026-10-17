@@ -200,6 +200,6 @@ deleted and its absence confirmed.
 Final `VITEST_MAX_WORKERS=2 pnpm check` passed: 1,169 tests (42 schema, 563 backend,
 317 web, 128 extension, 119 mobile), all type checks and all builds. The separate
 Firefox extension build also passed.
-Authenticated preview checks remain pending: the T3 browser is signed out;
-the user supplied a screenshot showing the integrations setup page rendered in
-another browser. Signed-out layouts at 390px and 1440px have no horizontal overflow.
+Authenticated T3 preview checks subsequently passed at 390px and 1440px: no
+page-level horizontal overflow, copy success announcements and keyboard focus
+through disclosure/connection controls. See the access verification follow-up.
