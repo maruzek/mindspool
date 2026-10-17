@@ -40,7 +40,7 @@ class ConnectionsBoundary extends Component<
 export function IntegrationsPage() {
   const { userId, sessionId } = useAuth();
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-8 p-5 md:p-10">
+    <div className="mx-auto w-full max-w-4xl space-y-8 p-5 md:p-10">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Settings
@@ -53,7 +53,7 @@ export function IntegrationsPage() {
       <ConnectionsBoundary key={`${userId}:${sessionId}`}>
         <Connections />
       </ConnectionsBoundary>
-    </main>
+    </div>
   );
 }
 
