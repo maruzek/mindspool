@@ -229,7 +229,7 @@ owner-only revocation/reactivation is durable and retry-safe.
 **Produces:** internal `admitIngress({ now })` and
 `admitConnection({ connectionId, isWrite, now })` with `{ allowed, retryAfterSeconds }`.
 
-- [ ] Freeze time in tests. Admit requests 1–120, refuse 121, reset at next UTC
+- [x] Freeze time in tests. Admit requests 1–120, refuse 121, reset at next UTC
       minute; admit writes 1–30, refuse 31; verify one owner cannot consume another's
       bucket and concurrent calls never exceed a window quota.
 
@@ -240,10 +240,10 @@ owner-only revocation/reactivation is durable and retry-safe.
   Here the test clock is 43 seconds into the fixed window. Cover global verification
   admission 300/301 and prove a refused write does not consume a request admission.
 
-- [ ] Run red; implement indexed, transactional buckets with a two-minute expiry.
+- [x] Run red; implement indexed, transactional buckets with a two-minute expiry.
       Caller-supplied timestamps are internal only and obtained from the handler clock.
       No read-then-write outside a transaction or process-local fallback.
-- [ ] Run green with window-boundary burst behavior explicitly asserted and documented.
+- [x] Run green with window-boundary burst behavior explicitly asserted and documented.
 
 **Acceptance:** shared quotas survive independent workers; atomic write admission;
 bounded records and deterministic `Retry-After`.

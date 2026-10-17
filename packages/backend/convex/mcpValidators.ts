@@ -36,3 +36,20 @@ export const mcpPrincipal = v.object({
   connectionId: v.id("mcpConnections"),
   scopes: v.array(mcpScope),
 });
+
+export const mcpRateScope = v.union(
+  v.literal("ingress"),
+  v.literal("request"),
+  v.literal("write"),
+);
+export const mcpRateBucketFields = {
+  scope: mcpRateScope,
+  key: v.string(),
+  windowStart: v.number(),
+  count: v.number(),
+  expiresAt: v.number(),
+};
+export const mcpAdmission = v.union(
+  v.object({ allowed: v.literal(true) }),
+  v.object({ allowed: v.literal(false), retryAfterSeconds: v.number() }),
+);

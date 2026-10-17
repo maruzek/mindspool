@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { mcpConnectionFields } from "./mcpValidators";
+import { mcpConnectionFields, mcpRateBucketFields } from "./mcpValidators";
 import {
   itemFields,
   itemLabelFields,
@@ -21,6 +21,9 @@ export default defineSchema({
     .index("by_owner_client", ["ownerId", "clientId"])
     .index("by_owner", ["ownerId"])
     .index("by_subject", ["subject"]),
+  mcpRateBuckets: defineTable(mcpRateBucketFields)
+    .index("by_scope_key_window", ["scope", "key", "windowStart"])
+    .index("by_expiry", ["expiresAt"]),
   boards: defineTable(boardFields).index("by_owner_label", [
     "ownerId",
     "labelId",
