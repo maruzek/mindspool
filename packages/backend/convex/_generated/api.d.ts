@@ -38,6 +38,7 @@ import type * as mcp_handler from "../mcp/handler.js";
 import type * as mcp_proof from "../mcp/proof.js";
 import type * as mcp_registry from "../mcp/registry.js";
 import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_tools_shape from "../mcp/tools/shape.js";
 import type * as mcp_transport from "../mcp/transport.js";
 import type * as mcp_types from "../mcp/types.js";
 import type * as mcpConnections from "../mcpConnections.js";
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/proof": typeof mcp_proof;
   "mcp/registry": typeof mcp_registry;
   "mcp/tools": typeof mcp_tools;
+  "mcp/tools/shape": typeof mcp_tools_shape;
   "mcp/transport": typeof mcp_transport;
   "mcp/types": typeof mcp_types;
   mcpConnections: typeof mcpConnections;

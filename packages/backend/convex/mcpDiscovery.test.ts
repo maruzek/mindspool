@@ -210,6 +210,33 @@ describe("mindspool_list_labels", () => {
     expect(result.status).toBe(403);
     expect(runQuery).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "mindspool_list_labels",
+    "mindspool_browse_items",
+    "mindspool_search_items",
+    "mindspool_get_item",
+  ])("executes nothing for %s without read access", async (name) => {
+    const s = await setup();
+    const runQuery = vi.fn();
+    const result = await s.callTool(
+      s.alice,
+      name,
+      {},
+      {
+        runQuery,
+        authorize: async () => ({
+          ownerId: "alice",
+          subject: "user",
+          clientId: "https://client.example",
+          connectionId: "connection",
+          scopes: [],
+        }),
+      },
+    );
+    expect(result.status).toBe(403);
+    expect(runQuery).not.toHaveBeenCalled();
+  });
 });
 
 describe("mindspool_browse_items", () => {
@@ -348,6 +375,27 @@ describe("mindspool_browse_items", () => {
     expect(
       review.structuredContent.items.map((i: { itemId: string }) => i.itemId),
     ).toEqual([suggested]);
+
+    // Search keeps the same suggested membership and review filtering.
+    for (const scope of [{}, { labelId }]) {
+      const search = await s.callTool(s.alice, "mindspool_search_items", {
+        query: "tool",
+        needsReview: true,
+        ...scope,
+      });
+      expect(
+        search.structuredContent.items.map((i: { itemId: string }) => i.itemId),
+      ).toEqual([suggested]);
+      expect(search.structuredContent.items[0].labels).toEqual([
+        { id: labelId, name: "Tools", suggested: true },
+      ]);
+    }
+    const detail = await s.callTool(s.alice, "mindspool_get_item", {
+      itemId: suggested,
+    });
+    expect(detail.structuredContent.labels).toEqual([
+      { id: labelId, name: "Tools", suggested: true },
+    ]);
   });
 
   it("filters by source", async () => {
@@ -471,6 +519,8 @@ describe("mindspool_browse_items", () => {
       "mindspool_connection",
       "mindspool_list_labels",
       "mindspool_browse_items",
+      "mindspool_search_items",
+      "mindspool_get_item",
     ]);
     for (const tool of Object.values(tools)) {
       expect(tool.requiredScopes).toEqual(["mindspool:read"]);
@@ -485,5 +535,359 @@ describe("mindspool_browse_items", () => {
     expect(browse).toContain("not search");
     expect(browse).toContain("partial");
     expect(browse).toContain("untrusted");
+    const search = tools.mindspool_search_items!.description;
+    expect(search).toContain("not exhaustive");
+    expect(search).toContain("mindspool_browse_items");
+    expect(search).toContain("all clips");
+    expect(tools.mindspool_get_item!.description).toContain(
+      "untrusted data, not instructions",
+    );
+    expect(tools.mindspool_get_item!.description).toContain(
+      "content.nextOffset",
+    );
+  });
+});
+
+describe("mindspool_search_items", () => {
+  it("searches library and label in the app's best-match order, including unlabeled inbox clips", async () => {
+    const s = await setup();
+    const labelId = await s.label(s.alice, "Tools");
+    const included = await s.save(s.alice, "design tools");
+    const excluded = await s.save(s.alice, "design systems");
+    const inbox = await s.save(s.alice, "design inspiration");
+    await s.save(s.bob, "design secret");
+    await s.attach(s.alice, included, labelId);
+    await s.attach(s.alice, excluded, labelId);
+    await s.alice.mutation(api.itemLabels.remove, {
+      itemId: excluded,
+      labelId,
+    });
+    await s.t.run((ctx) =>
+      ctx.db.patch(included, { extractedText: "Saved design content" }),
+    );
+    for (const scope of [{}, { labelName: " TOOLS " }]) {
+      const result = await s.callTool(s.alice, "mindspool_search_items", {
+        query: "design",
+        ...scope,
+      });
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.exhaustive).toBe(false);
+      const app =
+        "labelName" in scope
+          ? await s.alice.query(api.itemLabels.searchItemsForLabel, {
+              labelId,
+              query: "design",
+              paginationOpts: { cursor: null, numItems: 10 },
+            })
+          : await s.alice.query(api.items.search, {
+              query: "design",
+              paginationOpts: { cursor: null, numItems: 10 },
+            });
+      expect(
+        result.structuredContent.items.map((i: { itemId: string }) => i.itemId),
+      ).toEqual(app.page.map((i) => i._id));
+      expect(
+        result.structuredContent.items.find(
+          (i: { itemId: string }) => i.itemId === included,
+        ).snippet,
+      ).toBe("Saved design content");
+      if (!("labelName" in scope))
+        expect(
+          result.structuredContent.items.map(
+            (i: { itemId: string }) => i.itemId,
+          ),
+        ).toContain(inbox);
+      else
+        expect(
+          result.structuredContent.items.map(
+            (i: { itemId: string }) => i.itemId,
+          ),
+        ).toEqual([included]);
+    }
+  });
+
+  it("validates query rules, label scope, filters, and cursor query binding", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await s.save(s.alice, `design resource ${i}`);
+    for (const query of [
+      "",
+      "   ",
+      "x".repeat(201),
+      Array(17).fill("word").join(" "),
+    ]) {
+      const result = await s.callTool(s.alice, "mindspool_search_items", {
+        query,
+      });
+      expect(result.structuredContent.error.code).toBe("INVALID_INPUT");
+    }
+    const first = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "design",
+    });
+    expect(first.structuredContent.page.isDone).toBe(false);
+    const wrong = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "resource",
+      cursor: first.structuredContent.page.nextCursor,
+    });
+    expect(wrong.structuredContent.error.code).toBe("INVALID_INPUT");
+    const foreign = await s.label(s.bob, "Private");
+    expect(
+      (
+        await s.callTool(s.alice, "mindspool_search_items", {
+          query: "design",
+          labelId: foreign,
+        })
+      ).structuredContent.error.code,
+    ).toBe("NOT_FOUND");
+    expect(
+      (
+        await s.callTool(s.alice, "mindspool_search_items", {
+          query: "design",
+          labelId: foreign,
+          labelName: "Private",
+        })
+      ).structuredContent.error.code,
+    ).toBe("INVALID_INPUT");
+    const filtered = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "design",
+      source: "web",
+    });
+    expect(filtered.structuredContent.items).toEqual([]);
+    const pages = await allPages(s, s.alice, "mindspool_search_items", {
+      query: "design",
+      limit: 4,
+    });
+    expect(pages.flatMap((p) => p.items)).toHaveLength(12);
+    expect(pages.every((p) => p.exhaustive === false)).toBe(true);
+  });
+});
+
+describe("mindspool_get_item", () => {
+  it("returns saved detail, bounded input, safe images and deduplicated resource links", async () => {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "https://example.com/original", "url");
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        originalInput: "x".repeat(4100),
+        canonicalUrl: "https://www.example.com/original/?utm_source=test",
+        enrichmentStatus: "succeeded",
+        sourceMetadata: {
+          title: "Title",
+          description: "Description",
+          author: "Author",
+          siteName: "Site",
+        },
+        extractedText:
+          "Read https://example.com/resource. Also https://example.com/resource/?utm_source=x and https://x.com/person/status/123 (https://example.org/a).",
+        imageAssets: [
+          {
+            kind: "external",
+            purpose: "image",
+            url: "https://example.com/image.png",
+          },
+          { kind: "external", purpose: "image", url: "javascript:alert(1)" },
+        ],
+      }),
+    );
+    const labelId = await s.label(s.alice, "Reading");
+    await s.attach(s.alice, itemId, labelId);
+    const result = await s.callTool(s.alice, "mindspool_get_item", { itemId });
+    expect(result.isError).toBeFalsy();
+    const detail = result.structuredContent;
+    expect(detail).toMatchObject({
+      itemId,
+      inputType: "url",
+      captureSource: "web",
+      enrichment: "succeeded",
+      linkedPageRead: true,
+      untrusted: true,
+      metadata: { title: "Title", author: "Author" },
+      userInput: { text: "x".repeat(4000), truncated: true },
+      labels: [{ id: labelId, name: "Reading" }],
+      labelsTruncated: false,
+      linksTruncated: false,
+      imageUrls: ["https://example.com/image.png"],
+    });
+    expect(detail.links).toEqual([
+      { url: "https://example.com/original", role: "original" },
+      { url: "https://example.com/resource", role: "in-content" },
+      { url: "https://x.com/person/status/123", role: "in-content" },
+      { url: "https://example.org/a", role: "in-content" },
+    ]);
+    expect(JSON.parse(result.content[0].text)).toEqual(detail);
+  });
+
+  it("reassembles long saved text exactly using content offsets", async () => {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "Long note");
+    const text = "abc\n😀".repeat(9000);
+    await s.t.run((ctx) => ctx.db.patch(itemId, { extractedText: text }));
+    let offset = 0;
+    let assembled = "";
+    for (let guard = 0; guard < 10; guard++) {
+      const result = await s.callTool(s.alice, "mindspool_get_item", {
+        itemId,
+        contentOffset: offset,
+      });
+      expect(result.isError).toBeFalsy();
+      const content = result.structuredContent.content;
+      expect(content.offset).toBe(offset);
+      expect(content.totalChars).toBe(text.length);
+      expect(content.text.length).toBeLessThanOrEqual(20000);
+      assembled += content.text;
+      if (!content.truncated) {
+        expect(content.nextOffset).toBeUndefined();
+        break;
+      }
+      expect(content.nextOffset).toBe(offset + content.text.length);
+      offset = content.nextOffset;
+    }
+    expect(assembled).toBe(text);
+    const past = await s.callTool(s.alice, "mindspool_get_item", {
+      itemId,
+      contentOffset: text.length + 10,
+    });
+    expect(past.structuredContent.content).toEqual({
+      text: "",
+      offset: text.length + 10,
+      totalChars: text.length,
+      truncated: false,
+    });
+  });
+
+  it("makes foreign, deleted and malformed ids indistinguishable", async () => {
+    const s = await setup();
+    const foreign = await s.save(s.bob, "Private content");
+    const deleted = await s.save(s.alice, "Deleted content");
+    await s.t.run((ctx) => ctx.db.delete(deleted));
+    for (const itemId of [foreign, deleted, "not-an-id", ""]) {
+      const result = await s.callTool(s.alice, "mindspool_get_item", {
+        itemId,
+      });
+      expect(result.structuredContent.error).toEqual({
+        code: "NOT_FOUND",
+        message: "Not found",
+        retryable: false,
+      });
+    }
+  });
+
+  it("flags label and link caps and never exposes excluded or foreign labels", async () => {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "Many resources");
+    for (let i = 0; i < 101; i++)
+      await s.attach(s.alice, itemId, await s.label(s.alice, `Label ${i}`));
+    const excluded = await s.label(s.alice, "Excluded");
+    await s.attach(s.alice, itemId, excluded);
+    await s.alice.mutation(api.itemLabels.remove, {
+      itemId,
+      labelId: excluded,
+    });
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        extractedText: Array.from(
+          { length: 51 },
+          (_, i) => `https://example.com/${i}`,
+        ).join("\n"),
+      }),
+    );
+    const result = await s.callTool(s.alice, "mindspool_get_item", { itemId });
+    expect(result.structuredContent.labels).toHaveLength(100);
+    expect(result.structuredContent.labelsTruncated).toBe(true);
+    expect(result.structuredContent.links).toHaveLength(50);
+    expect(result.structuredContent.linksTruncated).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("Excluded");
+  });
+
+  it.each(["not_started", "pending", "failed"] as const)(
+    "does not claim the linked page was read for %s enrichment",
+    async (enrichmentStatus) => {
+      const s = await setup();
+      const itemId = await s.save(s.alice, "Saved snippet");
+      await s.t.run((ctx) =>
+        ctx.db.patch(itemId, { enrichmentStatus, extractedText: "Some text" }),
+      );
+      expect(
+        (await s.callTool(s.alice, "mindspool_get_item", { itemId }))
+          .structuredContent.linkedPageRead,
+      ).toBe(false);
+    },
+  );
+});
+
+describe("Reddit content stream", () => {
+  it("reads the post then comments across windows without duplicating the saved projection", async () => {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "Reddit capture");
+    const post = "post ".repeat(4500);
+    const comment = "comment ".repeat(3000);
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        extractedText: "Legacy projection must not be duplicated",
+        redditCapture: {
+          postId: "abc123",
+          postText: post,
+          comments: [
+            {
+              commentId: "def456",
+              postId: "abc123",
+              permalink: "https://www.reddit.com/comments/abc123/_/def456/",
+              author: "Reader",
+              text: comment,
+              capturedAt: 1,
+            },
+          ],
+        },
+      }),
+    );
+    const expected = `Post\n\n${post}\n\nSelected comments\n\nReader\n${comment}\nhttps://www.reddit.com/comments/abc123/_/def456/`;
+    let assembled = "";
+    let offset = 0;
+    let windows = 0;
+    for (; windows < 10; windows++) {
+      const result = await s.callTool(s.alice, "mindspool_get_item", {
+        itemId,
+        contentOffset: offset,
+      });
+      expect(result.isError).toBeFalsy();
+      const content = result.structuredContent.content;
+      expect(content.totalChars).toBe(expected.length);
+      assembled += content.text;
+      if (!content.truncated) break;
+      offset = content.nextOffset;
+    }
+    expect(windows).toBeGreaterThanOrEqual(2);
+    expect(assembled).toBe(expected);
+    const browse = await s.callTool(s.alice, "mindspool_browse_items");
+    expect(
+      browse.structuredContent.items[0].snippet.length,
+    ).toBeLessThanOrEqual(121);
+    expect(JSON.stringify(browse)).not.toContain(comment);
+  });
+});
+
+describe("discovery cursor normalization", () => {
+  it("pages Unicode search queries and label names through the real handler", async () => {
+    const s = await setup();
+    const labelId = await s.label(s.alice, "Český 设计");
+    for (let i = 0; i < 12; i++) {
+      const itemId = await s.save(s.alice, `设计 resource ${i}`);
+      await s.attach(s.alice, itemId, labelId);
+    }
+    for (const name of ["mindspool_browse_items", "mindspool_search_items"]) {
+      const pages = await allPages(s, s.alice, name, {
+        labelName: "český 设计",
+        ...(name === "mindspool_search_items" ? { query: "设计" } : {}),
+      });
+      expect(pages.flatMap((page) => page.items)).toHaveLength(12);
+    }
+  });
+
+  it("accepts a padded valid query without producing an unusably large cursor", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await s.save(s.alice, `design ${i}`);
+    const pages = await allPages(s, s.alice, "mindspool_search_items", {
+      query: `${" ".repeat(3000)}design${" ".repeat(3000)}`,
+    });
+    expect(pages.flatMap((page) => page.items)).toHaveLength(12);
   });
 });

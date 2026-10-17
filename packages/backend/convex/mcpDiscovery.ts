@@ -3,10 +3,10 @@ import type { Infer } from "convex/values";
 import { internalQuery } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { listLabelItemsPage } from "./itemLabels";
-import { listItemsPage } from "./items";
+import { listLabelItemsPage, searchLabelItemsPage } from "./itemLabels";
+import { itemDetailFor, listItemsPage, searchItemsPage } from "./items";
 import { listLabelsPage } from "./labels";
-import { itemPreview, sourceKind } from "./validators";
+import { itemDetail, itemPreview, sourceKind } from "./validators";
 
 // Internal only: `ownerId` always comes from the verified MCP principal, never
 // from tool arguments. Public library functions never take an owner.
@@ -170,6 +170,86 @@ export const browseItems = internalQuery({
       items: await withSnippets(ctx, page.page),
       continueCursor: page.continueCursor,
       isDone: page.isDone,
+    };
+  },
+});
+
+export const searchItems = internalQuery({
+  args: {
+    ownerId: v.string(),
+    query: v.string(),
+    labelId: v.optional(v.string()),
+    labelName: v.optional(v.string()),
+    ...filterArgs,
+    cursor: cursorArg,
+    limit: v.number(),
+  },
+  returns: v.object({
+    items: v.array(summary),
+    continueCursor: v.string(),
+    isDone: v.boolean(),
+  }),
+  handler: async (ctx, { ownerId, cursor, limit, query, ...args }) => {
+    const label = await resolveLabel(ctx, ownerId, args);
+    const options = {
+      query,
+      paginationOpts: { cursor, numItems: limit },
+      source: args.source,
+      needsReview: args.needsReview,
+    };
+    const page = await paginated(cursor, () =>
+      label
+        ? searchLabelItemsPage(ctx, ownerId, { ...options, labelId: label._id })
+        : searchItemsPage(ctx, ownerId, options),
+    );
+    return {
+      items: await withSnippets(ctx, page.page),
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+    };
+  },
+});
+
+const detailLabel = v.object({
+  id: v.id("labels"),
+  name: v.string(),
+  suggested: v.optional(v.literal(true)),
+});
+
+export const getItem = internalQuery({
+  args: { ownerId: v.string(), itemId: v.string() },
+  returns: v.object({
+    ...itemDetail.fields,
+    labels: v.array(detailLabel),
+    labelsTruncated: v.boolean(),
+  }),
+  handler: async (ctx, { ownerId, itemId }) => {
+    const item = await itemDetailFor(ctx, ownerId, itemId);
+    if (!item) throw notFound();
+    const links = await ctx.db
+      .query("itemLabels")
+      .withIndex("by_owner_item_decision", (q) =>
+        q
+          .eq("ownerId", ownerId)
+          .eq("itemId", item._id)
+          .eq("manualDecision", "include"),
+      )
+      .take(101);
+    const labels = await Promise.all(
+      links.slice(0, 100).map(async (link) => {
+        const label = await ctx.db.get(link.labelId);
+        if (!label || label.ownerId !== ownerId) return null;
+        return {
+          id: label._id,
+          name: label.name,
+          ...(link.unsure ? { suggested: true as const } : {}),
+        };
+      }),
+    );
+    return {
+      ...item,
+      labels: labels.filter((label) => label !== null),
+      labelsTruncated: links.length > 100,
     };
   },
 });
