@@ -28,7 +28,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ## Phase 2: Tools
 
-- [ ] **Task 2: `mindspool_list_labels` end to end** (M)
+- [x] **Task 2: `mindspool_list_labels` end to end** (M)
   - Acceptance: tool listed with annotations and `mindspool:read` scope; returns `{id, name, description?, hasItems}`
     pages (limit 1..50) with `Page` (`nextCursor`, `isDone`, `returned`); `hasItems` false for an empty label; a token
     without read scope executes nothing; two owners see only their own labels.
@@ -36,7 +36,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
   - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, `mcpDiscovery.test.ts`, registry wiring
   - Dependencies: Tasks 0, 1
 
-- [ ] **Task 3: `mindspool_browse_items`** (M)
+- [x] **Task 3: `mindspool_browse_items`** (M)
   - Acceptance: whole library or one label by `labelId` or `labelName`; filters `source`, `needsReview`; `ItemSummary`
     with `snippet` (~120 chars), `enrichment`, 3 labels + `labelCount`, `suggested` marking; excluded items never
     appear; `isDone` true only at the end (empty non-final page allowed); a 25+ item label enumerates fully, in order,
@@ -48,7 +48,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ### Checkpoint: browse works
 
-- [ ] All backend tests and typecheck pass; browse a seeded 25-item label through the real handler in a test.
+- [x] All backend tests and typecheck pass; browse a seeded 25-item label through the real handler in a test.
 - [ ] Review with user before continuing.
 
 - [ ] **Task 4: `mindspool_search_items`** (S)

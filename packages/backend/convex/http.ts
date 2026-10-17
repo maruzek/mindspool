@@ -7,7 +7,7 @@ import { verifyMcpAccessToken } from "./mcp/auth";
 import { readMcpConfig } from "./mcp/config";
 import type { McpServices } from "./mcp/handler";
 import { handleMcpMetadata, handleMcpRequest } from "./mcp/handler";
-import { productionTools } from "./mcp/tools";
+import { productionTools } from "./mcp/registry";
 
 const http = httpRouter();
 

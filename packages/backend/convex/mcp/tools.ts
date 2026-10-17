@@ -85,6 +85,12 @@ export function toolErrorOf(error: unknown): McpToolError {
       PUBLIC_MESSAGES[error.data.code]!,
       error.data.message,
     );
+  // Convex aborts a function that reads too much; the caller can retry.
+  if (
+    error instanceof Error &&
+    /too many (bytes|documents) read/i.test(error.message)
+  )
+    return new McpToolError("UNAVAILABLE", "Read limit reached; retry", true);
   return new McpToolError("INTERNAL_ERROR", "Something went wrong", false);
 }
 
@@ -139,8 +145,6 @@ export const connectionTool = defineTool({
   },
   handler: async (_args, { principal }) => connectionCapabilities(principal),
 });
-
-export const productionTools: readonly McpTool[] = [connectionTool];
 
 /** The closed registry used by both listing and dispatch; unknown names return null. */
 export function requiredScopesFor(

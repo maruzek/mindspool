@@ -40,6 +40,7 @@ import type * as mcp_transport from "../mcp/transport.js";
 import type * as mcp_types from "../mcp/types.js";
 import type * as mcpConnections from "../mcpConnections.js";
 import type * as mcpDiagnostics from "../mcpDiagnostics.js";
+import type * as mcpDiscovery from "../mcpDiscovery.js";
 import type * as mcpRateLimit from "../mcpRateLimit.js";
 import type * as mcpValidators from "../mcpValidators.js";
 import type * as pageMetadata from "../pageMetadata.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/types": typeof mcp_types;
   mcpConnections: typeof mcpConnections;
   mcpDiagnostics: typeof mcpDiagnostics;
+  mcpDiscovery: typeof mcpDiscovery;
   mcpRateLimit: typeof mcpRateLimit;
   mcpValidators: typeof mcpValidators;
   pageMetadata: typeof pageMetadata;
