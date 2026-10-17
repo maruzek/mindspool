@@ -262,7 +262,7 @@ bounded records and deterministic `Retry-After`.
 `connectionCapabilities(principal): ConnectionCapabilities`, and
 `requiredScopesForTool(name): readonly McpScope[] | null`.
 
-- [ ] Write handler tests for full lifecycle with two interleaved principals,
+- [x] Write handler tests for full lifecycle with two interleaved principals,
       identical structured/text status output, strict empty tool arguments, metadata
       without auth, origin/host checks, `401` discovery, insufficient-scope `403`, revoked
       connection `403`, quotas `429`, provider outage `503`, and authenticated `405`.
@@ -277,12 +277,12 @@ bounded records and deterministic `Retry-After`.
   notifications, unsupported tool names, and deadline behavior. The test-only tool
   is injected through services and is never registered by production wiring.
 
-- [ ] Run red; compose the real wrapper and registry. Enforce read-only initial
+- [x] Run red; compose the real wrapper and registry. Enforce read-only initial
       challenges, fixed metadata URLs, stateless per-request server construction,
       closed tool dispatch, and a 15-second deadline. Remove the probe route and its
       runtime registration; its guarded helper remains isolated in the existing proof
       tests and is never imported by production HTTP wiring.
-- [ ] Run green and redeploy only to classified development. Use the actual SDK
+- [ ] Run green and redeploy only to classified development. (Green locally 2026-10-17; development deploy awaits user approval.) Use the actual SDK
       client against the route to verify lifecycle and the connection tool. No token
       passthrough, arbitrary Convex executor, sampling, or shell capabilities.
 

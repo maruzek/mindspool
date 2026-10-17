@@ -1,9 +1,25 @@
-import { convexTest } from "convex-test";
 import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { handleMcpProof } from "./proof";
-import schema from "../schema";
-import { modules } from "../test.setup";
+
+// The probe has no HTTP route; production wiring never imports it.
+const as = (subject?: string) => ({
+  auth: {
+    getUserIdentity: async () =>
+      subject
+        ? {
+            subject,
+            issuer: "https://issuer.example",
+            tokenIdentifier: `https://issuer.example|${subject}`,
+          }
+        : null,
+  },
+});
+const probe = (ctx: ReturnType<typeof as>, init: RequestInit) =>
+  handleMcpProof(
+    new Request("https://example.convex.site/__mcp_probe", init),
+    ctx,
+  );
 
 function request(method = "initialize", id?: number): RequestInit {
   return {
@@ -47,23 +63,17 @@ describe("development-only MCP runtime probe", () => {
   ])("stays unavailable in %s with flag %s", async (environment, flag) => {
     vi.stubEnv("MINDSPOOL_ENVIRONMENT", environment);
     vi.stubEnv("MINDSPOOL_MCP_PROOF_ENABLED", flag);
-    const t = convexTest(schema, modules);
-    const response = await t.fetch("/__mcp_probe", request());
+    const response = await probe(as("user_a"), request());
     expect(response.status).toBe(404);
   });
 
   it("rejects anonymous callers even when enabled", async () => {
-    const response = await convexTest(schema, modules).fetch(
-      "/__mcp_probe",
-      request(),
-    );
+    const response = await probe(as(), request());
     expect(response.status).toBe(401);
   });
 
   it("rejects authenticated accounts outside the existing allowlist", async () => {
-    const response = await convexTest(schema, modules)
-      .withIdentity({ subject: "user_foreign" })
-      .fetch("/__mcp_probe", request());
+    const response = await probe(as("user_foreign"), request());
     expect(response.status).toBe(403);
   });
 
@@ -96,13 +106,12 @@ describe("development-only MCP runtime probe", () => {
     expect(response.status).toBe(503);
   });
 
-  it("serves independent interleaved users through the actual HTTP route", async () => {
-    const t = convexTest(schema, modules);
-    const alice = t.withIdentity({ subject: "user_a" });
-    const bob = t.withIdentity({ subject: "user_b" });
+  it("serves independent interleaved users", async () => {
+    const alice = as("user_a");
+    const bob = as("user_b");
     const initializations = await Promise.all([
-      alice.fetch("/__mcp_probe", request("initialize", 11)),
-      bob.fetch("/__mcp_probe", request("initialize", 22)),
+      probe(alice, request("initialize", 11)),
+      probe(bob, request("initialize", 22)),
     ]);
     const bodies = await Promise.all(
       initializations.map((response) => response.json()),
@@ -116,8 +125,8 @@ describe("development-only MCP runtime probe", () => {
       expect(response.headers.has("mcp-session-id")).toBe(false);
     }
     const [notification, listing] = await Promise.all([
-      bob.fetch("/__mcp_probe", request("notifications/initialized")),
-      alice.fetch("/__mcp_probe", request("tools/list", 33)),
+      probe(bob, request("notifications/initialized")),
+      probe(alice, request("tools/list", 33)),
     ]);
     expect(notification.status).toBe(202);
     expect(await listing.json()).toEqual({
