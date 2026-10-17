@@ -214,7 +214,7 @@ export const browseItemsTool: McpTool = defineTool({
   requiredScopes: ["mindspool:read"],
   title: "Browse MindSpool clips",
   description:
-    "Lists every saved clip in one label (labelId or labelName) or in the whole library, newest first. " +
+    "Lists every saved clip in one label (labelId or labelName) or in the whole library. A label lists the most recently added to it first (so savedAt can be out of order); the whole library lists the most recently saved first. " +
     "Browsing is exhaustive: it never ranks, drops or caps results. Use it, not search, when the user asks for all clips in a label. " +
     "Keep calling with nextCursor until page.isDone is true before claiming you saw everything; a page can be short or even empty before the end. " +
     "If you stop early, say your coverage is partial. Clips added or removed while you page may be missed or appear. " +
