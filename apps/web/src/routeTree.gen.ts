@@ -16,6 +16,7 @@ import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppLibraryRouteImport } from './routes/_app/library'
 import { Route as RailGraphRouteImport } from './routes/_rail/graph'
 import { Route as AppLabelsLabelIdRouteImport } from './routes/_app/labels.$labelId'
+import { Route as AppSettingsIntegrationsRouteImport } from './routes/_app/settings.integrations'
 import { Route as RailBoardsIndexRouteImport } from './routes/_rail/boards/index'
 import { Route as RailBoardsBoardIdRouteImport } from './routes/_rail/boards/$boardId'
 
@@ -52,6 +53,11 @@ const AppLabelsLabelIdRoute = AppLabelsLabelIdRouteImport.update({
   path: '/labels/$labelId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsIntegrationsRoute = AppSettingsIntegrationsRouteImport.update({
+  id: '/settings/integrations',
+  path: '/settings/integrations',
+  getParentRoute: () => AppRoute,
+} as any)
 const RailBoardsIndexRoute = RailBoardsIndexRouteImport.update({
   id: '/boards/',
   path: '/boards/',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof AppLibraryRoute
   '/graph': typeof RailGraphRoute
   '/labels/$labelId': typeof AppLabelsLabelIdRoute
+  '/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/boards/$boardId': typeof RailBoardsBoardIdRoute
   '/boards/': typeof RailBoardsIndexRoute
 }
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/library': typeof AppLibraryRoute
   '/graph': typeof RailGraphRoute
   '/labels/$labelId': typeof AppLabelsLabelIdRoute
+  '/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/boards/$boardId': typeof RailBoardsBoardIdRoute
   '/boards': typeof RailBoardsIndexRoute
 }
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/_app/library': typeof AppLibraryRoute
   '/_rail/graph': typeof RailGraphRoute
   '/_app/labels/$labelId': typeof AppLabelsLabelIdRoute
+  '/_app/settings/integrations': typeof AppSettingsIntegrationsRoute
   '/_rail/boards/$boardId': typeof RailBoardsBoardIdRoute
   '/_rail/boards/': typeof RailBoardsIndexRoute
 }
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/graph'
     | '/labels/$labelId'
+    | '/settings/integrations'
     | '/boards/$boardId'
     | '/boards/'
   fileRoutesByTo: FileRoutesByTo
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/graph'
     | '/labels/$labelId'
+    | '/settings/integrations'
     | '/boards/$boardId'
     | '/boards'
   id:
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/_app/library'
     | '/_rail/graph'
     | '/_app/labels/$labelId'
+    | '/_app/settings/integrations'
     | '/_rail/boards/$boardId'
     | '/_rail/boards/'
   fileRoutesById: FileRoutesById
@@ -182,6 +194,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLabelsLabelIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/integrations': {
+      id: '/_app/settings/integrations'
+      path: '/settings/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof AppSettingsIntegrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_rail/boards/': {
       id: '/_rail/boards/'
       path: '/boards'
@@ -203,12 +222,14 @@ interface AppRouteChildren {
   AppInboxRoute: typeof AppInboxRoute
   AppLibraryRoute: typeof AppLibraryRoute
   AppLabelsLabelIdRoute: typeof AppLabelsLabelIdRoute
+  AppSettingsIntegrationsRoute: typeof AppSettingsIntegrationsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppInboxRoute: AppInboxRoute,
   AppLibraryRoute: AppLibraryRoute,
   AppLabelsLabelIdRoute: AppLabelsLabelIdRoute,
+  AppSettingsIntegrationsRoute: AppSettingsIntegrationsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

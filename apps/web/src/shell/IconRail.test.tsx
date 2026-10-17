@@ -53,13 +53,19 @@ describe("icon rail", () => {
     expect(screen.queryByRole("navigation", { name: "Labels" })).toBeNull();
   });
 
-  it("links all four destinations", async () => {
+  it("links the library destinations and integrations", async () => {
     await renderAt("/graph");
     expect(
       within(primary())
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual(["/inbox", "/library", "/boards", "/graph"]);
+    ).toEqual([
+      "/inbox",
+      "/library",
+      "/boards",
+      "/graph",
+      "/settings/integrations",
+    ]);
   });
 
   it("moves between the rail and the sidebar frames", async () => {
