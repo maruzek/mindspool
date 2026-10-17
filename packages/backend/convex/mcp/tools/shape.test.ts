@@ -76,3 +76,66 @@ it("extracts URLs with long punctuation tails in bounded time", () => {
   // A generous budget catches repeated whole-string scans (several seconds).
   expect(performance.now() - start).toBeLessThan(1000);
 });
+
+it("fits escaped and multibyte content within the entire serialized tool result", () => {
+  const text = '😀\n"\\'.repeat(10000);
+  let offset = 0;
+  let assembled = "";
+  for (let guard = 0; guard < 30; guard++) {
+    const detail = detailOf({ ...row, extractedText: text }, offset);
+    const result = {
+      content: [{ type: "text", text: JSON.stringify(detail) }],
+      structuredContent: detail,
+    };
+    expect(
+      new TextEncoder().encode(JSON.stringify(result)).length,
+    ).toBeLessThanOrEqual(65536);
+    assembled += detail.content.text;
+    if (!detail.content.truncated) break;
+    expect(detail.content.nextOffset).toBeGreaterThan(offset);
+    offset = detail.content.nextOffset!;
+  }
+  expect(assembled).toBe(text);
+});
+
+it("omits resources on continuation unless requested and serializes them before content", () => {
+  const input = {
+    ...row,
+    originalUrl: "https://example.org",
+    extractedText: "a".repeat(22000),
+  };
+  const first = detailOf(input, 0);
+  expect(Object.keys(first).indexOf("links")).toBeLessThan(
+    Object.keys(first).indexOf("content"),
+  );
+  expect(detailOf(input, 20000)).not.toHaveProperty("links");
+  expect(detailOf(input, 20000, true).links).toEqual([
+    { url: "https://example.org", role: "original" },
+  ]);
+});
+
+it("flags oversized metadata and resources rather than exceeding the cap or stalling", () => {
+  const detail = detailOf(
+    {
+      ...row,
+      extractedText: "content",
+      sourceMetadata: { description: "😀".repeat(30000) },
+      labels: Array.from({ length: 100 }, (_, i) => ({
+        id: String(i),
+        name: "😀".repeat(80),
+      })),
+    },
+    0,
+  );
+  expect(
+    new TextEncoder().encode(
+      JSON.stringify({
+        content: [{ type: "text", text: JSON.stringify(detail) }],
+        structuredContent: detail,
+      }),
+    ).length,
+  ).toBeLessThanOrEqual(65536);
+  expect(detail.metadataTruncated).toBe(true);
+  expect(detail.labelsTruncated).toBe(true);
+  expect(detail.content.text.length).toBeGreaterThan(0);
+});

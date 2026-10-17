@@ -101,6 +101,10 @@ export function toolResult(output: unknown): CallToolResult {
   };
 }
 
+export const MAX_TOOL_BYTES = 64 * 1024;
+export const toolBytes = (output: unknown) =>
+  new TextEncoder().encode(JSON.stringify(toolResult(output))).byteLength;
+
 function errorResult(error: McpToolError): CallToolResult {
   const output = {
     error: {
@@ -173,7 +177,13 @@ export function registerTools(
       },
       async (args: unknown) => {
         try {
-          return toolResult(await tool.handler(args as never, context));
+          const output = await tool.handler(args as never, context);
+          if (toolBytes(output) > MAX_TOOL_BYTES)
+            throw new McpToolError(
+              "UNAVAILABLE",
+              "Result exceeds 64 KiB; retry with a smaller page limit",
+            );
+          return toolResult(output);
         } catch (error) {
           return errorResult(toolErrorOf(error));
         }

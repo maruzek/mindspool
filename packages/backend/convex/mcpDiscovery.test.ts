@@ -8,6 +8,7 @@ import type { McpServices } from "./mcp/handler";
 import { handleMcpRequest } from "./mcp/handler";
 import { productionTools } from "./mcp/registry";
 import schema from "./schema";
+import { withSnippets } from "./mcpDiscovery";
 import { modules } from "./test.setup";
 
 const resourceUrl = "https://dev.convex.site/mcp";
@@ -890,4 +891,186 @@ describe("discovery cursor normalization", () => {
     });
     expect(pages.flatMap((page) => page.items)).toHaveLength(12);
   });
+});
+
+describe("post resources", () => {
+  it("navigates only owned post/link relationships and counts resources in summaries", async () => {
+    const s = await setup();
+    const post = await s.save(
+      s.alice,
+      "https://x.com/author/status/123",
+      "url",
+    );
+    const link = await s.save(s.alice, "https://example.org/resource", "url");
+    const foreign = await s.save(s.bob, "https://example.org/private", "url");
+    await s.t.run(async (ctx) => {
+      await ctx.db.patch(link, {
+        fromItemId: post,
+        extractedText: "Resource description",
+      });
+      await ctx.db.patch(foreign, { fromItemId: post });
+      await ctx.db.patch(post, { linkedItemStats: { count: 1, revision: 0 } });
+    });
+    const detail = (
+      await s.callTool(s.alice, "mindspool_get_item", { itemId: post })
+    ).structuredContent;
+    expect(detail.linkedItems).toEqual([
+      {
+        itemId: link,
+        url: "https://example.org/resource",
+        snippet: "Resource description",
+        enrichment: "pending",
+      },
+    ]);
+    const child = (
+      await s.callTool(s.alice, "mindspool_get_item", { itemId: link })
+    ).structuredContent;
+    expect(child.fromPost).toMatchObject({
+      itemId: post,
+      url: "https://x.com/author/status/123",
+    });
+    const browse = (await s.callTool(s.alice, "mindspool_browse_items"))
+      .structuredContent;
+    expect(
+      browse.items.find((i: { itemId: string }) => i.itemId === post)
+        .linkedItemCount,
+    ).toBe(1);
+    expect(
+      browse.items.find((i: { itemId: string }) => i.itemId === link)
+        .linkedItemCount,
+    ).toBeUndefined();
+    await s.t.run((ctx) => ctx.db.delete(post));
+    expect(
+      (await s.callTool(s.alice, "mindspool_get_item", { itemId: link }))
+        .structuredContent.fromPost,
+    ).toBeUndefined();
+  });
+
+  it("bounds resource children at twenty and flags overflow", async () => {
+    const s = await setup();
+    const post = await s.save(s.alice, "Resource post");
+    for (let i = 0; i < 21; i++) {
+      const child = await s.save(s.alice, `https://example.org/${i}`, "url");
+      await s.t.run((ctx) => ctx.db.patch(child, { fromItemId: post }));
+    }
+    await s.t.run((ctx) =>
+      ctx.db.patch(post, { linkedItemStats: { count: 21, revision: 0 } }),
+    );
+    const result = (
+      await s.callTool(s.alice, "mindspool_get_item", { itemId: post })
+    ).structuredContent;
+    expect(result.linkedItems).toHaveLength(20);
+    expect(result.linkedItemsTruncated).toBe(true);
+  });
+});
+
+it("serves a ten-post page with twenty resources each within the read budget", async () => {
+  const s = await setup();
+  const labelId = await s.label(s.alice, "Resource posts");
+  for (let postIndex = 0; postIndex < 10; postIndex++) {
+    const post = await s.save(s.alice, `Post ${postIndex}`);
+    await s.attach(s.alice, post, labelId);
+    for (let i = 0; i < 20; i++) {
+      const child = await s.save(
+        s.alice,
+        `https://example.org/${postIndex}/${i}`,
+        "url",
+      );
+      await s.t.run((ctx) =>
+        ctx.db.patch(child, {
+          fromItemId: post,
+          extractedText: "resource ".repeat(5000),
+        }),
+      );
+    }
+  }
+  const { ownerId } = await s.alice.query(api.identity.current, {});
+  await s.t.run(async (ctx) => {
+    for (const post of await ctx.db
+      .query("items")
+      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+      .take(211))
+      if (!post.fromItemId)
+        await ctx.db.patch(post._id, {
+          linkedItemStats: { count: 20, revision: 0 },
+        });
+  });
+  const result = await s.callTool(s.alice, "mindspool_browse_items", {
+    labelId,
+  });
+  expect(result.isError).toBeFalsy();
+  expect(result.structuredContent.items).toHaveLength(10);
+  expect(
+    result.structuredContent.items.every(
+      (item: { linkedItemCount: number }) => item.linkedItemCount === 20,
+    ),
+  ).toBe(true);
+  const { getDocumentSize } = await import("convex/values");
+  const previews = await s.alice.query(api.itemLabels.listItemsForLabel, {
+    labelId,
+    paginationOpts: { numItems: 10, cursor: null },
+  });
+  let bytes = 0;
+  await s.t.run(async (ctx) => {
+    const db = new Proxy(ctx.db, {
+      get(target, key) {
+        if (key === "query")
+          throw new Error("Summary counts must not hydrate child rows");
+        if (key === "get")
+          return async (...args: unknown[]) => {
+            const value = await Reflect.apply(target.get, target, args);
+            if (value) bytes += getDocumentSize(value);
+            return value;
+          };
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    await withSnippets({ ...ctx, db }, previews.page, ownerId);
+  });
+  expect(bytes).toBeLessThan(1024 * 1024);
+});
+
+it("returns a bounded retryable error for an oversized label page without silently skipping labels", async () => {
+  const s = await setup();
+  for (let i = 0; i < 50; i++)
+    await s.label(s.alice, `Label ${i}`, "😀".repeat(250));
+  const large = await s.callTool(s.alice, "mindspool_list_labels");
+  expect(large.isError).toBe(true);
+  expect(large.structuredContent.error.code).toBe("UNAVAILABLE");
+  const pages = await allPages(s, s.alice, "mindspool_list_labels", {
+    limit: 10,
+  });
+  expect(pages.flatMap((page) => page.labels)).toHaveLength(50);
+  for (const page of pages)
+    expect(
+      new TextEncoder().encode(
+        JSON.stringify({
+          content: [{ type: "text", text: JSON.stringify(page) }],
+          structuredContent: page,
+        }),
+      ).byteLength,
+    ).toBeLessThanOrEqual(65536);
+});
+
+it("keeps owner selection out of every public function's argument schema", async () => {
+  const loaded = await Promise.all(
+    Object.values(modules).map((load) => load()),
+  );
+  let inspected = 0;
+  for (const module of loaded)
+    for (const exported of Object.values(module as Record<string, unknown>)) {
+      if (
+        typeof exported === "function" &&
+        "isPublic" in exported &&
+        exported.isPublic === true &&
+        "exportArgs" in exported &&
+        typeof exported.exportArgs === "function"
+      ) {
+        const validator = JSON.parse(exported.exportArgs());
+        expect(validator.value).not.toHaveProperty("ownerId");
+        inspected++;
+      }
+    }
+  expect(inspected).toBeGreaterThan(20);
 });

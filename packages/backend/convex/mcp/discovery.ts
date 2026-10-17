@@ -118,6 +118,7 @@ type PreviewRow = {
   labels: { _id: string; name: string; unsure?: boolean }[];
   labelCount: number;
   snippet?: string;
+  linkedItemCount?: number;
 };
 
 export function summaryOf(row: PreviewRow): ItemSummary {
@@ -136,6 +137,7 @@ export function summaryOf(row: PreviewRow): ItemSummary {
       ...(label.unsure ? { suggested: true as const } : {}),
     })),
     labelCount: row.labelCount,
+    ...(row.linkedItemCount ? { linkedItemCount: row.linkedItemCount } : {}),
   };
 }
 
@@ -237,6 +239,7 @@ export const browseItemsTool: McpTool = defineTool({
   outputSchema: z.strictObject({
     label: z.strictObject({ id: z.string(), name: z.string() }).optional(),
     items: z.array(itemSummary),
+    untrusted: z.literal(true),
     page: pageShape,
   }),
   annotations: readOnly,
@@ -265,6 +268,7 @@ export const browseItemsTool: McpTool = defineTool({
         ? { label: { id: result.label._id, name: result.label.name } }
         : {}),
       items: result.items.map(summaryOf),
+      untrusted: true as const,
       page: pageOf(filters, result, result.items.length),
     };
   },
@@ -290,6 +294,7 @@ export const searchItemsTool: McpTool = defineTool({
   }),
   outputSchema: z.strictObject({
     items: z.array(itemSummary),
+    untrusted: z.literal(true),
     page: pageShape,
     exhaustive: z.literal(false),
   }),
@@ -318,6 +323,7 @@ export const searchItemsTool: McpTool = defineTool({
     });
     return {
       items: result.items.map(summaryOf),
+      untrusted: true as const,
       page: pageOf(filters, result, result.items.length),
       exhaustive: false as const,
     };
@@ -335,6 +341,12 @@ export const getItemTool: McpTool = defineTool({
     "When linkedPageRead is false, do not describe the destination page as having been read.",
   inputSchema: z.strictObject({
     itemId: z.string(),
+    includeResources: z
+      .boolean()
+      .optional()
+      .describe(
+        "Repeat resource links and post relationships on continuation calls",
+      ),
     contentOffset: z
       .number()
       .int()
@@ -344,12 +356,19 @@ export const getItemTool: McpTool = defineTool({
   }),
   outputSchema: detailSchema,
   annotations: readOnly,
-  handler: async ({ itemId, contentOffset }, { principal, runQuery }) => {
+  handler: async (
+    { itemId, contentOffset, includeResources },
+    { principal, runQuery },
+  ) => {
     const result = await runQuery(internal.mcpDiscovery.getItem, {
       ownerId: principal.ownerId,
       itemId,
     });
-    return detailOf(result, contentOffset ?? 0);
+    return detailOf(
+      result,
+      contentOffset ?? 0,
+      includeResources ?? (contentOffset ?? 0) === 0,
+    );
   },
 });
 

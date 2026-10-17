@@ -1,3 +1,4 @@
+import { changeLinkedItemStats } from "./linkedItemStats";
 import { invalidateMembership } from "./boardState";
 import { ConvexError } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
@@ -105,6 +106,7 @@ export async function insertCapture(
     ownerId,
     ...(input.inputType === "url" ? { originalUrl: input.originalInput } : {}),
     ...(key ? { urlKey: key } : {}),
+    linkedItemStats: { count: 0, revision: 0 },
     captureStatus: "captured",
     enrichmentStatus: "not_started",
     imageAssets: input.imageAssets ?? [],
@@ -116,6 +118,8 @@ export async function insertCapture(
         : {}),
     }),
   });
+  if (input.fromItemId)
+    await changeLinkedItemStats(ctx, ownerId, input.fromItemId, 1);
   await adjustStats(ctx, ownerId, { total: 1 });
   // Best effort: an enrichment or labeling problem must never fail the save.
   try {

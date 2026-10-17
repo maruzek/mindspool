@@ -1,3 +1,4 @@
+import { changeLinkedItemStats } from "./linkedItemStats";
 import { cleanupItemBoards } from "./boardState";
 import { captureItem, insertCapture } from "./libraryWriters";
 import { ConvexError, v } from "convex/values";
@@ -213,6 +214,8 @@ export const remove = mutation({
     const item = requireOwned(await ctx.db.get(id), ownerId);
     for (const asset of item.imageAssets)
       if (asset.kind === "stored") await ctx.storage.delete(asset.storageId);
+    if (item.fromItemId)
+      await changeLinkedItemStats(ctx, ownerId, item.fromItemId, -1);
     await ctx.db.delete(id);
     await adjustStats(ctx, ownerId, {
       total: -1,

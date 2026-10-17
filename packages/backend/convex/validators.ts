@@ -103,6 +103,10 @@ export const itemFields = {
   linksExtracted: v.optional(v.boolean()),
   /** The tweet this link was first found in (tweetLinks.ts); may since have been deleted. */
   fromItemId: v.optional(v.id("items")),
+  /** Exact child count plus a revision protecting the bounded legacy backfill. */
+  linkedItemStats: v.optional(
+    v.object({ count: v.optional(v.number()), revision: v.number() }),
+  ),
   // Denormalized for search and filters; written only by itemState.ts.
   // Absent on items saved before these existed (flags absent = false).
   searchText: v.optional(v.string()),

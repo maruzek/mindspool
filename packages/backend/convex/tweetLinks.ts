@@ -1,3 +1,4 @@
+import { changeLinkedItemStats } from "./linkedItemStats";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -181,6 +182,8 @@ export const backfill = internalMutation({
         };
         if (Object.keys(patch).length === 0) continue;
         await ctx.db.patch(item._id, patch);
+        if ("fromItemId" in patch && patch.fromItemId)
+          await changeLinkedItemStats(ctx, item.ownerId, patch.fromItemId, 1);
         updated++;
       } else {
         updated += await extractTweetLinks(ctx, item._id);

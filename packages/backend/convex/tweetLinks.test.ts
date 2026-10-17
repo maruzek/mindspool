@@ -394,3 +394,56 @@ describe("the post a link was found in", () => {
     expect(links.every((i) => i.fromItemId === tweet)).toBe(true);
   });
 });
+
+it("maintains lightweight parent counts across extraction, deletion and retries", async () => {
+  const { t, alice, clip, extract, items } = setup();
+  const post = await clip(
+    "987654",
+    "https://example.org/one https://example.org/two",
+  );
+  await extract(post);
+  expect(
+    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+  ).toBe(2);
+  const child = (await items()).find((item) => item.fromItemId === post)!;
+  await alice.mutation(api.items.remove, { id: child._id });
+  await extract(post);
+  expect(
+    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+  ).toBe(1);
+  await t.run((ctx) => ctx.db.patch(post, { linkedItemStats: undefined }));
+  await t.action(internal.mcpDiscovery.rebuildResourceCount, { itemId: post });
+  expect(
+    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+  ).toBe(1);
+});
+
+it("refuses stale backfill counts when children change during migration", async () => {
+  const { t, alice, clip, extract, items } = setup();
+  const post = await clip(
+    "987655",
+    "https://example.org/a https://example.org/b",
+  );
+  await extract(post);
+  await t.run((ctx) => ctx.db.patch(post, { linkedItemStats: undefined }));
+  const state = await t.query(internal.mcpDiscovery.resourceCountState, {
+    itemId: post,
+  });
+  const child = (await items()).find((item) => item.fromItemId === post)!;
+  await alice.mutation(api.items.remove, { id: child._id });
+  expect(
+    await t.mutation(internal.mcpDiscovery.saveResourceCount, {
+      itemId: post,
+      ownerId: state!.ownerId,
+      revision: state!.revision,
+      count: 2,
+    }),
+  ).toBe(false);
+  expect(
+    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+  ).toBeUndefined();
+  await t.action(internal.mcpDiscovery.rebuildResourceCount, { itemId: post });
+  expect(
+    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+  ).toBe(1);
+});

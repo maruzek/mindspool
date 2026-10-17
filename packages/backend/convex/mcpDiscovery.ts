@@ -1,6 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
-import { internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { listLabelItemsPage, searchLabelItemsPage } from "./itemLabels";
@@ -118,16 +123,30 @@ export function snippetOf(text: string | undefined) {
 const summary = v.object({
   ...itemPreview.fields,
   snippet: v.optional(v.string()),
+  linkedItemCount: v.optional(v.number()),
 });
 
-async function withSnippets(
+export async function withSnippets(
   ctx: QueryCtx,
   previews: Infer<typeof itemPreview>[],
+  ownerId: string,
 ) {
   return Promise.all(
     previews.map(async (preview) => {
-      const snippet = snippetOf((await ctx.db.get(preview._id))?.extractedText);
-      return { ...preview, ...(snippet ? { snippet } : {}) };
+      const item = await ctx.db.get(preview._id);
+      if (!item || item.ownerId !== ownerId) throw notFound();
+      const snippet = snippetOf(item.extractedText);
+      const count = item.linkedItemStats?.count;
+      if (count === undefined)
+        throw new ConvexError({
+          code: "UNAVAILABLE",
+          message: "Resource counts are being prepared; retry shortly",
+        });
+      return {
+        ...preview,
+        ...(snippet ? { snippet } : {}),
+        ...(count ? { linkedItemCount: Math.min(20, count) } : {}),
+      };
     }),
   );
 }
@@ -167,7 +186,7 @@ export const browseItems = internalQuery({
     );
     return {
       ...(label ? { label: { _id: label._id, name: label.name } } : {}),
-      items: await withSnippets(ctx, page.page),
+      items: await withSnippets(ctx, page.page, ownerId),
       continueCursor: page.continueCursor,
       isDone: page.isDone,
     };
@@ -203,7 +222,7 @@ export const searchItems = internalQuery({
         : searchItemsPage(ctx, ownerId, options),
     );
     return {
-      items: await withSnippets(ctx, page.page),
+      items: await withSnippets(ctx, page.page, ownerId),
       continueCursor: page.continueCursor,
       isDone: page.isDone,
     };
@@ -216,16 +235,35 @@ const detailLabel = v.object({
   suggested: v.optional(v.literal(true)),
 });
 
+const linkedItem = v.object({
+  itemId: v.id("items"),
+  url: v.string(),
+  title: v.optional(v.string()),
+  snippet: v.optional(v.string()),
+  enrichment: itemDetail.fields.enrichmentStatus,
+});
+async function linkedRows(ctx: QueryCtx, itemId: Id<"items">, ownerId: string) {
+  return ctx.db
+    .query("items")
+    .withIndex("by_owner_from", (q) =>
+      q.eq("ownerId", ownerId).eq("fromItemId", itemId),
+    )
+    .take(21);
+}
+
 export const getItem = internalQuery({
   args: { ownerId: v.string(), itemId: v.string() },
   returns: v.object({
     ...itemDetail.fields,
     labels: v.array(detailLabel),
     labelsTruncated: v.boolean(),
+    linkedItems: v.optional(v.array(linkedItem)),
+    linkedItemsTruncated: v.optional(v.boolean()),
   }),
   handler: async (ctx, { ownerId, itemId }) => {
     const item = await itemDetailFor(ctx, ownerId, itemId);
     if (!item) throw notFound();
+    const children = await linkedRows(ctx, item._id, ownerId);
     const links = await ctx.db
       .query("itemLabels")
       .withIndex("by_owner_item_decision", (q) =>
@@ -248,8 +286,157 @@ export const getItem = internalQuery({
     );
     return {
       ...item,
+      ...(children.length
+        ? {
+            linkedItems: children.slice(0, 20).map((child) => ({
+              itemId: child._id,
+              url: child.originalUrl ?? child.originalInput,
+              ...(child.sourceMetadata?.title
+                ? { title: child.sourceMetadata.title.slice(0, 512) }
+                : {}),
+              ...(snippetOf(child.extractedText)
+                ? { snippet: snippetOf(child.extractedText) }
+                : {}),
+              enrichment: child.enrichmentStatus,
+            })),
+            linkedItemsTruncated: children.length > 20,
+          }
+        : {}),
       labels: labels.filter((label) => label !== null),
       labelsTruncated: links.length > 100,
     };
+  },
+});
+
+// Migration is isolated from normal reads: each query has a byte-bounded page,
+// and a revision check retries if any child was inserted/deleted while counting.
+export const resourceCountState = internalQuery({
+  args: { itemId: v.id("items") },
+  returns: v.union(
+    v.object({
+      ownerId: v.string(),
+      revision: v.number(),
+      count: v.optional(v.number()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, { itemId }) => {
+    const item = await ctx.db.get(itemId);
+    return item
+      ? {
+          ownerId: item.ownerId,
+          revision: item.linkedItemStats?.revision ?? 0,
+          ...(item.linkedItemStats?.count !== undefined
+            ? { count: item.linkedItemStats.count }
+            : {}),
+        }
+      : null;
+  },
+});
+export const resourceCountPage = internalQuery({
+  args: { itemId: v.id("items"), ownerId: v.string(), cursor: cursorArg },
+  returns: v.object({
+    count: v.number(),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, { itemId, ownerId, cursor }) => {
+    const page = await ctx.db
+      .query("items")
+      .withIndex("by_owner_from", (q) =>
+        q.eq("ownerId", ownerId).eq("fromItemId", itemId),
+      )
+      .paginate({ numItems: 20, maximumBytesRead: 512 * 1024, cursor });
+    return {
+      count: page.page.length,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
+  },
+});
+export const saveResourceCount = internalMutation({
+  args: {
+    itemId: v.id("items"),
+    ownerId: v.string(),
+    revision: v.number(),
+    count: v.number(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, { itemId, ownerId, revision, count }) => {
+    const item = await ctx.db.get(itemId);
+    if (!item) return true;
+    if (
+      item.ownerId !== ownerId ||
+      (item.linkedItemStats?.revision ?? 0) !== revision
+    )
+      return false;
+    await ctx.db.patch(itemId, { linkedItemStats: { count, revision } });
+    return true;
+  },
+});
+export const rebuildResourceCount = internalAction({
+  args: { itemId: v.id("items") },
+  returns: v.object({ updated: v.boolean() }),
+  handler: async (ctx, { itemId }): Promise<{ updated: boolean }> => {
+    for (let retry = 0; retry < 3; retry++) {
+      const state = await ctx.runQuery(
+        internal.mcpDiscovery.resourceCountState,
+        { itemId },
+      );
+      if (!state || state.count !== undefined) return { updated: false };
+      let cursor: string | null = null;
+      let count = 0;
+      for (;;) {
+        const page: { count: number; isDone: boolean; continueCursor: string } =
+          await ctx.runQuery(internal.mcpDiscovery.resourceCountPage, {
+            itemId,
+            ownerId: state.ownerId,
+            cursor,
+          });
+        count += page.count;
+        if (page.isDone) break;
+        cursor = page.continueCursor;
+      }
+      if (
+        await ctx.runMutation(internal.mcpDiscovery.saveResourceCount, {
+          itemId,
+          ...state,
+          count,
+        })
+      )
+        return { updated: true };
+    }
+    throw new ConvexError({
+      code: "UNAVAILABLE",
+      message: "Resource count changed during migration; retry",
+    });
+  },
+});
+export const backfillResourceCounts = internalMutation({
+  args: { cursor: v.optional(cursorArg) },
+  returns: v.object({ scheduled: v.number(), isDone: v.boolean() }),
+  handler: async (ctx, { cursor }) => {
+    const page = await ctx.db.query("items").paginate({
+      numItems: 5,
+      maximumBytesRead: 512 * 1024,
+      cursor: cursor ?? null,
+    });
+    let scheduled = 0;
+    for (const item of page.page)
+      if (item.linkedItemStats?.count === undefined) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.mcpDiscovery.rebuildResourceCount,
+          { itemId: item._id },
+        );
+        scheduled++;
+      }
+    if (!page.isDone)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.mcpDiscovery.backfillResourceCounts,
+        { cursor: page.continueCursor },
+      );
+    return { scheduled, isDone: page.isDone };
   },
 });
