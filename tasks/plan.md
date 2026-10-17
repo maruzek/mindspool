@@ -22,6 +22,12 @@ archived access plan; Task 0 must still confirm the dispatcher before discovery
 implementation proceeds. No endpoint was enabled or deployment performed by the
 merge.
 
+## Progress (2026-10-17)
+
+Tasks 0-3 are done on `feature/mcp-discovery`, together with access Tasks 6-8 (admission quotas, the `/mcp`
+handler and registry, diagnostics). Development is deployed and verified with Claude Code. See the handoff in
+[todo.md](todo.md).
+
 ## Prerequisites (gates, not tasks)
 
 1. **Merge tweet-links to main first** (decided). `feat/tweet-multi-link-extraction` provides `fromItemId`,

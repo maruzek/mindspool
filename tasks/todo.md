@@ -3,6 +3,18 @@
 Plan: [plan.md](plan.md). Spec: [SPEC-mcp-discovery.md](../SPEC-mcp-discovery.md).
 Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter @mindspool/backend typecheck` · all: `pnpm check`.
 
+## Handoff (2026-10-17)
+
+Branch `feature/mcp-discovery` (not pushed, not merged). Done: Tasks 0-3, plus access Tasks 6-8 that discovery
+depends on (tracked in [archive/mcp-access-todo.md](archive/mcp-access-todo.md)). Deployed to the **development**
+Convex deployment only (`graceful-stork-346`); never touch production without asking. MCP is enabled there and
+works with Claude Code (evidence: [docs/verification/mcp-discovery.md](../docs/verification/mcp-discovery.md)).
+**Next: Task 4** (search), then Task 5 (get_item), then Task 6, stopping at "reading works". Tasks 4-9 are NOT
+built. After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
+(commit generated `_generated/api.d.ts`; `pnpm typecheck` must pass after codegen). Tools live in
+`convex/mcp/discovery.ts`, are registered in `convex/mcp/registry.ts`, and read through `convex/mcpDiscovery.ts`.
+Also still open: Codex check, access Tasks 9-12.
+
 ## Gate: before Task 1
 
 - [x] tweet-links (`feat/tweet-multi-link-extraction`) merged to `main`; `main` merged into `feature/mcp-spec`; `pnpm check` green.
@@ -49,7 +61,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 ### Checkpoint: browse works
 
 - [x] All backend tests and typecheck pass; browse a seeded 25-item label through the real handler in a test.
-- [ ] Review with user before continuing.
+- [x] Review with user before continuing. (Reviewed 2026-10-17; Claude Code browsed a 33-clip label on development.)
 
 - [ ] **Task 4: `mindspool_search_items`** (S)
   - Acceptance: library or label scope; app query rules (1-200 chars, 16 words); best-match order; always

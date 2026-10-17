@@ -282,7 +282,7 @@ bounded records and deterministic `Retry-After`.
       closed tool dispatch, and a 15-second deadline. Remove the probe route and its
       runtime registration; its guarded helper remains isolated in the existing proof
       tests and is never imported by production HTTP wiring.
-- [ ] Run green and redeploy only to classified development. (Green locally 2026-10-17; development deploy awaits user approval.) Use the actual SDK
+- [x] Run green and redeploy only to classified development. (Done 2026-10-17 on graceful-stork-346.) Use the actual SDK
       client against the route to verify lifecycle and the connection tool. No token
       passthrough, arbitrary Convex executor, sampling, or shell capabilities.
 
@@ -318,7 +318,7 @@ diagnostic failure cannot duplicate a future write.
 
 ### Checkpoint C: Hosted backend flow
 
-- [ ] A development account connects through browser OAuth and calls the real
+- [x] (Claude Code only; Codex and a resource-mismatch check still open) A development account connects through browser OAuth and calls the real
       connection tool. Direct unauthorized calls and deliberate resource mismatch fail.
 - [ ] Backend tests/typecheck and observed response budgets pass. Review safe
       diagnostics and the fixed-window quota limitation before building the settings UI.
