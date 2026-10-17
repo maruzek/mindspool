@@ -70,7 +70,7 @@ needsReview?: boolean, cursor?: string, limit?: 1..10 (default 10) }`.
 At most one of `labelId` / `labelName`. Neither means the whole library.
 Output: `{ label?: { id, name }, items: ItemSummary[], page: Page }`.
 
-Newest-first and **exhaustive when paged to the end**: it never ranks, drops, or
+Ordered most-recently-added first (to the label, or to the library when no label is given; so within a label `savedAt` can be out of order, as in the web app) and **exhaustive when paged to the end**: it never ranks, drops, or
 caps results. This is the operation to use for “every resource in label X”.
 
 ### `mindspool_search_items`

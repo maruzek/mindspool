@@ -72,3 +72,22 @@ handler with convex-test queries underneath. It covers:
 
 Forcing `isDone: true` made three of these tests fail.
 Full backend suite: 39 files, 528 tests passed; typecheck and Prettier clean.
+
+## Real-client check: Claude Code on development (2026-10-17)
+
+Branch `feature/mcp-discovery` deployed to the development deployment only
+(`graceful-stork-346`; production untouched). `claude mcp add --transport http
+mindspool <resource URL>`, then `/mcp` browser sign-in with read-only consent.
+
+- `mindspool_connection`: `readLibrary: true`, `editItemLabels: false`.
+- `mindspool_list_labels`: 9 labels with descriptions and `hasItems`; matches the app.
+- `mindspool_browse_items` on the 33-clip "Dev" label: pages of 10, 10, 10, 3;
+  `isDone: true` only on the last; the agent stated that it reached the end.
+- Diagnostics rows: connection created for the Claude Code client id; browse,
+  list and connection calls `ok` at about 0.45 s; unauthenticated probes `invalid_token`.
+- Finding: a label lists clips by when they were added to it, so `savedAt` can be
+  out of order (7 inversions among the 33 clips; same order as the web app). The
+  tool description and spec now say so.
+
+Not yet verified: Codex, a write-scope token, search and `get_item`
+(not built), result sizes against client token budgets, revocation.
