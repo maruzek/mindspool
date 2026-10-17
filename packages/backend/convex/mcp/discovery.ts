@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
-import type { McpToolContext } from "./tools";
+import type { McpTool, McpToolContext } from "./tools";
 import { defineTool, McpToolError } from "./tools";
 
 // Shapes the internal discovery queries' results into the spec's contract.
@@ -164,7 +164,9 @@ function bothLabels(args: { labelId?: string; labelName?: string }) {
     );
 }
 
-export const listLabelsTool = defineTool({
+// Explicit McpTool types: the generated API includes this module, so inferring
+// them from runQuery(internal...) would be circular.
+export const listLabelsTool: McpTool = defineTool({
   name: "mindspool_list_labels",
   requiredScopes: ["mindspool:read"],
   title: "List MindSpool labels",
@@ -207,7 +209,7 @@ export const listLabelsTool = defineTool({
   },
 });
 
-export const browseItemsTool = defineTool({
+export const browseItemsTool: McpTool = defineTool({
   name: "mindspool_browse_items",
   requiredScopes: ["mindspool:read"],
   title: "Browse MindSpool clips",
@@ -259,4 +261,7 @@ export const browseItemsTool = defineTool({
   },
 });
 
-export const discoveryTools = [listLabelsTool, browseItemsTool];
+export const discoveryTools: readonly McpTool[] = [
+  listLabelsTool,
+  browseItemsTool,
+];
