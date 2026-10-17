@@ -142,3 +142,7 @@ Current evidence, real-client results and unverified cases are recorded in
 [access verification](verification/mcp-access.md). Development verification is
 recorded for both modules, including CLI-agent limitations. Human launch review
 and any production deployment require separate approval.
+
+Proposed future improvements are recorded in the
+[token-efficiency design note](design/mcp-token-efficiency.md). They are not
+implemented API options.
