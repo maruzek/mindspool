@@ -141,30 +141,36 @@ export const get = query({
 export const detail = query({
   args: { id: v.string() },
   returns: v.union(itemDetail, v.null()),
-  handler: async (ctx, { id }) => {
-    const ownerId = await requireOwner(ctx);
-    const itemId = ctx.db.normalizeId("items", id);
-    const item = itemId ? await ctx.db.get(itemId) : null;
-    if (!item || item.ownerId !== ownerId) return null;
-    const images = await imageUrls(ctx, item, DETAIL_IMAGES);
-    return {
-      _id: item._id,
-      _creationTime: item._creationTime,
-      inputType: item.inputType,
-      originalInput: item.originalInput,
-      ...(item.originalUrl ? { originalUrl: item.originalUrl } : {}),
-      ...(item.canonicalUrl ? { canonicalUrl: item.canonicalUrl } : {}),
-      captureSource: item.captureSource,
-      enrichmentStatus: item.enrichmentStatus,
-      ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
-      ...(item.extractedText ? { extractedText: item.extractedText } : {}),
-      ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
-      ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
-      ...(images.length ? { images } : {}),
-      ...(await fromPost(ctx, ownerId, item)),
-    };
-  },
+  handler: async (ctx, { id }) =>
+    itemDetailFor(ctx, await requireOwner(ctx), id),
 });
+
+export async function itemDetailFor(
+  ctx: QueryCtx,
+  ownerId: string,
+  id: string,
+) {
+  const itemId = ctx.db.normalizeId("items", id);
+  const item = itemId ? await ctx.db.get(itemId) : null;
+  if (!item || item.ownerId !== ownerId) return null;
+  const images = await imageUrls(ctx, item, DETAIL_IMAGES);
+  return {
+    _id: item._id,
+    _creationTime: item._creationTime,
+    inputType: item.inputType,
+    originalInput: item.originalInput,
+    ...(item.originalUrl ? { originalUrl: item.originalUrl } : {}),
+    ...(item.canonicalUrl ? { canonicalUrl: item.canonicalUrl } : {}),
+    captureSource: item.captureSource,
+    enrichmentStatus: item.enrichmentStatus,
+    ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
+    ...(item.extractedText ? { extractedText: item.extractedText } : {}),
+    ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
+    ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
+    ...(images.length ? { images } : {}),
+    ...(await fromPost(ctx, ownerId, item)),
+  };
+}
 
 const EXCERPT = 200;
 
@@ -273,48 +279,63 @@ function pageOptions(opts: Infer<typeof paginationOptsValidator>) {
 export const list = query({
   args: { paginationOpts: paginationOptsValidator, ...filterArgs },
   returns: itemPage,
-  handler: async (ctx, { paginationOpts, source, needsReview, inbox }) => {
-    const ownerId = await requireOwner(ctx);
-    validatePagination(paginationOpts);
-    const opts = pageOptions(paginationOpts);
-    const items = ctx.db.query("items");
-    const page = await (
-      needsReview
+  handler: async (ctx, args) =>
+    listItemsPage(ctx, await requireOwner(ctx), args),
+});
+
+type ItemFilters = {
+  source?: Infer<typeof sourceKind>;
+  needsReview?: boolean;
+  inbox?: boolean;
+};
+type ItemPageArgs = ItemFilters & {
+  paginationOpts: Infer<typeof paginationOptsValidator>;
+};
+
+export async function listItemsPage(
+  ctx: QueryCtx,
+  ownerId: string,
+  { paginationOpts, source, needsReview, inbox }: ItemPageArgs,
+) {
+  validatePagination(paginationOpts);
+  const opts = pageOptions(paginationOpts);
+  const items = ctx.db.query("items");
+  const page = await (
+    needsReview
+      ? source
+        ? items.withIndex("by_owner_review_source", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("needsReview", true)
+              .eq("sourceKind", source),
+          )
+        : items.withIndex("by_owner_review", (q) =>
+            q.eq("ownerId", ownerId).eq("needsReview", true),
+          )
+      : inbox
         ? source
-          ? items.withIndex("by_owner_review_source", (q) =>
+          ? items.withIndex("by_owner_inbox_source", (q) =>
               q
                 .eq("ownerId", ownerId)
-                .eq("needsReview", true)
+                .eq("inbox", true)
                 .eq("sourceKind", source),
             )
-          : items.withIndex("by_owner_review", (q) =>
-              q.eq("ownerId", ownerId).eq("needsReview", true),
+          : items.withIndex("by_owner_inbox", (q) =>
+              q.eq("ownerId", ownerId).eq("inbox", true),
             )
-        : inbox
-          ? source
-            ? items.withIndex("by_owner_inbox_source", (q) =>
-                q
-                  .eq("ownerId", ownerId)
-                  .eq("inbox", true)
-                  .eq("sourceKind", source),
-              )
-            : items.withIndex("by_owner_inbox", (q) =>
-                q.eq("ownerId", ownerId).eq("inbox", true),
-              )
-          : source
-            ? items.withIndex("by_owner_source", (q) =>
-                q.eq("ownerId", ownerId).eq("sourceKind", source),
-              )
-            : items.withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
-    )
-      .order("desc")
-      .paginate(opts);
-    return {
-      ...page,
-      page: await previewItems(ctx, ownerId, page.page),
-    };
-  },
-});
+        : source
+          ? items.withIndex("by_owner_source", (q) =>
+              q.eq("ownerId", ownerId).eq("sourceKind", source),
+            )
+          : items.withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+  )
+    .order("desc")
+    .paginate(opts);
+  return {
+    ...page,
+    page: await previewItems(ctx, ownerId, page.page),
+  };
+}
 
 /** Full-text search over the owner's items, best match first (Convex ranks the results). */
 export const search = query({
@@ -324,29 +345,38 @@ export const search = query({
     ...filterArgs,
   },
   returns: itemPage,
-  handler: async (
-    ctx,
-    { query: raw, paginationOpts, source, needsReview, inbox },
-  ) => {
-    const ownerId = await requireOwner(ctx);
-    validatePagination(paginationOpts);
-    const text = validateSearchQuery(raw);
-    const page = await ctx.db
-      .query("items")
-      .withSearchIndex("search_text", (q) => {
-        let found = q.search("searchText", text).eq("ownerId", ownerId);
-        if (source) found = found.eq("sourceKind", source);
-        if (needsReview) found = found.eq("needsReview", true);
-        if (inbox) found = found.eq("inbox", true);
-        return found;
-      })
-      .paginate(pageOptions(paginationOpts));
-    return {
-      ...page,
-      page: await previewItems(ctx, ownerId, page.page),
-    };
-  },
+  handler: async (ctx, args) =>
+    searchItemsPage(ctx, await requireOwner(ctx), args),
 });
+
+export async function searchItemsPage(
+  ctx: QueryCtx,
+  ownerId: string,
+  {
+    query: raw,
+    paginationOpts,
+    source,
+    needsReview,
+    inbox,
+  }: ItemPageArgs & { query: string },
+) {
+  validatePagination(paginationOpts);
+  const text = validateSearchQuery(raw);
+  const page = await ctx.db
+    .query("items")
+    .withSearchIndex("search_text", (q) => {
+      let found = q.search("searchText", text).eq("ownerId", ownerId);
+      if (source) found = found.eq("sourceKind", source);
+      if (needsReview) found = found.eq("needsReview", true);
+      if (inbox) found = found.eq("inbox", true);
+      return found;
+    })
+    .paginate(pageOptions(paginationOpts));
+  return {
+    ...page,
+    page: await previewItems(ctx, ownerId, page.page),
+  };
+}
 
 /** Counters for the sidebar badge and library heading; one document, never a scan. */
 export const stats = query({

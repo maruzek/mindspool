@@ -1,6 +1,7 @@
 import { decideMembership } from "./libraryWriters";
 import { paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -142,53 +143,66 @@ export const listItemsForLabel = query({
     ...labelFilterArgs,
   },
   returns: paginationResultValidator(itemPreview),
-  handler: async (ctx, { labelId, paginationOpts, source, needsReview }) => {
-    const ownerId = await requireOwner(ctx);
-    requireOwned(await ctx.db.get(labelId), ownerId);
-    validatePagination(paginationOpts);
-    const links = ctx.db.query("itemLabels");
-    const page = await (
-      needsReview
-        ? source
-          ? links.withIndex("by_owner_label_unsure_source", (q) =>
-              q
-                .eq("ownerId", ownerId)
-                .eq("labelId", labelId)
-                .eq("manualDecision", "include")
-                .eq("unsure", true)
-                .eq("sourceKind", source),
-            )
-          : links.withIndex("by_owner_label_unsure", (q) =>
-              q
-                .eq("ownerId", ownerId)
-                .eq("labelId", labelId)
-                .eq("manualDecision", "include")
-                .eq("unsure", true),
-            )
-        : source
-          ? links.withIndex("by_owner_label_source", (q) =>
-              q
-                .eq("ownerId", ownerId)
-                .eq("labelId", labelId)
-                .eq("manualDecision", "include")
-                .eq("sourceKind", source),
-            )
-          : links.withIndex("by_owner_label_decision", (q) =>
-              q
-                .eq("ownerId", ownerId)
-                .eq("labelId", labelId)
-                .eq("manualDecision", "include"),
-            )
-    )
-      .order("desc")
-      .paginate({
-        ...paginationOpts,
-        numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
-        maximumRowsRead: PREVIEW_PAGE_SIZE,
-      });
-    return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
-  },
+  handler: async (ctx, args) =>
+    listLabelItemsPage(ctx, await requireOwner(ctx), args),
 });
+
+type LabelPageArgs = {
+  labelId: Id<"labels">;
+  paginationOpts: Infer<typeof paginationOptsValidator>;
+  source?: Infer<typeof sourceKind>;
+  needsReview?: boolean;
+};
+
+export async function listLabelItemsPage(
+  ctx: QueryCtx,
+  ownerId: string,
+  { labelId, paginationOpts, source, needsReview }: LabelPageArgs,
+) {
+  requireOwned(await ctx.db.get(labelId), ownerId);
+  validatePagination(paginationOpts);
+  const links = ctx.db.query("itemLabels");
+  const page = await (
+    needsReview
+      ? source
+        ? links.withIndex("by_owner_label_unsure_source", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("labelId", labelId)
+              .eq("manualDecision", "include")
+              .eq("unsure", true)
+              .eq("sourceKind", source),
+          )
+        : links.withIndex("by_owner_label_unsure", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("labelId", labelId)
+              .eq("manualDecision", "include")
+              .eq("unsure", true),
+          )
+      : source
+        ? links.withIndex("by_owner_label_source", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("labelId", labelId)
+              .eq("manualDecision", "include")
+              .eq("sourceKind", source),
+          )
+        : links.withIndex("by_owner_label_decision", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("labelId", labelId)
+              .eq("manualDecision", "include"),
+          )
+  )
+    .order("desc")
+    .paginate({
+      ...paginationOpts,
+      numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
+      maximumRowsRead: PREVIEW_PAGE_SIZE,
+    });
+  return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
+}
 
 /** Full-text search within one label, best match first; filters are equality-only search filters. */
 export const searchItemsForLabel = query({
@@ -199,34 +213,43 @@ export const searchItemsForLabel = query({
     ...labelFilterArgs,
   },
   returns: paginationResultValidator(itemPreview),
-  handler: async (
-    ctx,
-    { labelId, query: raw, paginationOpts, source, needsReview },
-  ) => {
-    const ownerId = await requireOwner(ctx);
-    requireOwned(await ctx.db.get(labelId), ownerId);
-    validatePagination(paginationOpts);
-    const text = validateSearchQuery(raw);
-    const page = await ctx.db
-      .query("itemLabels")
-      .withSearchIndex("search_link", (q) => {
-        let found = q
-          .search("searchText", text)
-          .eq("ownerId", ownerId)
-          .eq("labelId", labelId)
-          .eq("manualDecision", "include");
-        if (source) found = found.eq("sourceKind", source);
-        if (needsReview) found = found.eq("unsure", true);
-        return found;
-      })
-      .paginate({
-        ...paginationOpts,
-        numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
-        maximumRowsRead: PREVIEW_PAGE_SIZE,
-      });
-    return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
-  },
+  handler: async (ctx, args) =>
+    searchLabelItemsPage(ctx, await requireOwner(ctx), args),
 });
+
+export async function searchLabelItemsPage(
+  ctx: QueryCtx,
+  ownerId: string,
+  {
+    labelId,
+    query: raw,
+    paginationOpts,
+    source,
+    needsReview,
+  }: LabelPageArgs & { query: string },
+) {
+  requireOwned(await ctx.db.get(labelId), ownerId);
+  validatePagination(paginationOpts);
+  const text = validateSearchQuery(raw);
+  const page = await ctx.db
+    .query("itemLabels")
+    .withSearchIndex("search_link", (q) => {
+      let found = q
+        .search("searchText", text)
+        .eq("ownerId", ownerId)
+        .eq("labelId", labelId)
+        .eq("manualDecision", "include");
+      if (source) found = found.eq("sourceKind", source);
+      if (needsReview) found = found.eq("unsure", true);
+      return found;
+    })
+    .paginate({
+      ...paginationOpts,
+      numItems: Math.min(paginationOpts.numItems, PREVIEW_PAGE_SIZE),
+      maximumRowsRead: PREVIEW_PAGE_SIZE,
+    });
+  return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
+}
 
 // Joining only the requested page keeps checkbox state accurate even when an
 // Item's assigned Labels span several pages.

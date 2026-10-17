@@ -9,7 +9,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ## Phase 1: Foundation
 
-- [ ] **Task 0: Confirm the access dispatcher** (XS, no code)
+- [x] **Task 0: Confirm the access dispatcher** (XS, no code)
   - Acceptance: a short note in `docs/verification/mcp-discovery.md` lists what exists in `packages/backend/convex/mcp/`:
     tool registry with required-scope declaration, `VerifiedMcpPrincipal` in the handler, 403 `insufficient_scope`, rate
     limit, error mapping. Anything missing is listed for the user.
@@ -17,7 +17,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
   - Files: `docs/verification/mcp-discovery.md`
   - Dependencies: none
 
-- [ ] **Task 1: Extract `ownerId` helpers from existing queries** (M)
+- [x] **Task 1: Extract `ownerId` helpers from existing queries** (M)
   - Acceptance: `items.list/search/detail`, `itemLabels.listItemsForLabel/searchItemsForLabel`, `labels.list/get` call
     shared helpers taking `ownerId`; public behavior, args and return validators are unchanged; no public function
     gains an `ownerId` argument.

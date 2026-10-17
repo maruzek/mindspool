@@ -1,6 +1,8 @@
 import { paginationResultValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
+import type { Infer } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { requireOwned, requireOwner } from "./auth";
 import {
   LABEL_DESCRIPTION_MAX,
@@ -66,24 +68,31 @@ export const update = mutation({
 export const list = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(labelDoc),
-  handler: async (ctx, { paginationOpts }) => {
-    const ownerId = await requireOwner(ctx);
-    validatePagination(paginationOpts);
-    return ctx.db
-      .query("labels")
-      .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
-      .paginate(paginationOpts);
-  },
+  handler: async (ctx, { paginationOpts }) =>
+    listLabelsPage(ctx, await requireOwner(ctx), paginationOpts),
 });
+
+export async function listLabelsPage(
+  ctx: QueryCtx,
+  ownerId: string,
+  paginationOpts: Infer<typeof paginationOptsValidator>,
+) {
+  validatePagination(paginationOpts);
+  return ctx.db
+    .query("labels")
+    .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+    .paginate(paginationOpts);
+}
 
 /** Foreign, missing, and malformed ids all read as null, so ids reveal nothing. */
 export const get = query({
   args: { id: v.string() },
   returns: v.union(labelDoc, v.null()),
-  handler: async (ctx, { id }) => {
-    const ownerId = await requireOwner(ctx);
-    const labelId = ctx.db.normalizeId("labels", id);
-    const label = labelId ? await ctx.db.get(labelId) : null;
-    return label && label.ownerId === ownerId ? label : null;
-  },
+  handler: async (ctx, { id }) => labelFor(ctx, await requireOwner(ctx), id),
 });
+
+export async function labelFor(ctx: QueryCtx, ownerId: string, id: string) {
+  const labelId = ctx.db.normalizeId("labels", id);
+  const label = labelId ? await ctx.db.get(labelId) : null;
+  return label && label.ownerId === ownerId ? label : null;
+}
