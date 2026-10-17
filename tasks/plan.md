@@ -12,6 +12,16 @@ Add four read-only MCP tools (`mindspool_list_labels`, `mindspool_browse_items`,
 exhaustive and search is explicitly not. Resources and URLs are returned before long content, and posts expose the link
 clips extracted from them.
 
+## Integration status (2026-10-17)
+
+The user authorized consolidating the tweet-link work, MCP access foundation,
+and these discovery documents into local `main`. Both feature histories are
+included, full checks pass, and the source worktree is retained. The tweet-link
+integration gate below is satisfied. Access Tasks 6–12 remain unfinished in the
+archived access plan; Task 0 must still confirm the dispatcher before discovery
+implementation proceeds. No endpoint was enabled or deployment performed by the
+merge.
+
 ## Prerequisites (gates, not tasks)
 
 1. **Merge tweet-links to main first** (decided). `feat/tweet-multi-link-extraction` provides `fromItemId`,

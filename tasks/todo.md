@@ -5,7 +5,7 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ## Gate: before Task 1
 
-- [ ] tweet-links (`feat/tweet-multi-link-extraction`) merged to `main`; `main` merged into `feature/mcp-spec`; `pnpm check` green.
+- [x] tweet-links (`feat/tweet-multi-link-extraction`) merged to `main`; `main` merged into `feature/mcp-spec`; `pnpm check` green.
 
 ## Phase 1: Foundation
 
