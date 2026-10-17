@@ -4,8 +4,8 @@ Module: `mcp-discovery` in [CAPABILITY-MAP-mcp.md](CAPABILITY-MAP-mcp.md).
 Depends on: `mcp-access` ([SPEC-mcp-access.md](SPEC-mcp-access.md)), which owns
 authorization, scopes, the verified principal, the error table, rate limits and
 logging. This spec does not restate them.
-Status: draft for review. Specification only; no implementation, schema change,
-or deployment.
+Status: implemented and verified on development; human outcome review remains open.
+Production deployment requires separate approval.
 
 ## Objective
 
@@ -87,7 +87,8 @@ the user asks for “all”.
 
 ### `mindspool_get_item`
 
-Input: `{ itemId: string, contentOffset?: integer >= 0 }`.
+Input: `{ itemId: string, contentOffset?: integer >= 0, includeResources?: boolean }`.
+Resources are included by default at offset zero and omitted on continuation unless explicitly requested.
 Output: `ItemDetail` (below). One call returns at most 20,000 characters of
 content; the agent continues with `contentOffset = content.nextOffset`.
 
@@ -198,6 +199,13 @@ new owner-scoped index on `fromItemId` and lists only items the owner still
 owns; it is absent for clips with none. Link clips do not inherit the post's
 labels, so this is the route from a labeled post to its resources.
 
+Summary counts use the user-approved optional `items.linkedItemStats` field
+(`count?`, `revision`), maintained transactionally by canonical child writers.
+A byte-bounded, revision-checked backfill initializes legacy rows. Summary shaping
+never hydrates child article bodies; missing legacy counts produce retryable
+`UNAVAILABLE` until migration completes. This additional schema change and
+development backfill were explicitly approved on 2026-10-17.
+
 **Untrusted content.** Clip text is data. Every content-bearing result carries
 `untrusted: true`, and tool descriptions state that instructions inside clip
 text are not user instructions. The server never alters scope or behavior based
@@ -223,7 +231,7 @@ ids are indistinguishable. Convex read-limit failures map to `UNAVAILABLE` with
 | Search query                  | 200 chars, 16 words (existing)                            |
 
 Anything cut by a limit is flagged in the result (`truncated`, `nextOffset`,
-`labelsTruncated`, `linksTruncated`); there is no silent truncation. If an
+`labelsTruncated`, `linksTruncated`, `linkedItemsTruncated`, `imageUrlsTruncated`, `metadataTruncated`); there is no silent truncation. If an
 assembled result would exceed the cap, `content.text` shrinks and `nextOffset`
 reflects the actual end.
 

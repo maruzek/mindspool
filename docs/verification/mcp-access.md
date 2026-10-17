@@ -406,3 +406,57 @@ final development push completed in 8.51 seconds. Anonymous POSTs to both `/mcp`
 and the disabled `/__mcp_probe` returned `404` afterward. The temporary local OAuth
 proof server was stopped after all test grants had been revoked. Both Git working
 trees are clean; Checkpoint B remains ready for the planned human review.
+
+## Connection controls, setup and maintenance (2026-10-17)
+
+The web app now has `/settings/integrations`, reachable from both navigation
+layouts. It uses the authenticated owner-scoped configuration/list/mutations,
+shows loading, empty, pagination and retryable subscription states, keeps server
+errors visible, and disables controls while an update is pending. Account/session
+changes remount the controls so late feedback cannot enter another account's UI.
+Component tests cover enablement, disconnect/reconnect, pending state and account
+switching. The generated route tree, type check and web build passed.
+
+Setup commands derive only from the deployment-controlled canonical HTTPS endpoint.
+Clipboard errors remain visible; client display names never enter commands. Live
+CLI inspection and OAuth showed Codex0.163.0 `mcp add` initiates OAuth with advertised
+scopes, even after explicit read-only login. The UI therefore provides a TOML block
+and `codex mcp login mindspool --scopes mindspool:read`. Claude2.1.285 uses HTTP add
+and `/mcp` authentication; its `--scope user` is explicitly configuration scope.
+The actual Claude write-upgrade flow remains unverified.
+
+The development deployment now includes a five-minute retention schedule and
+`mcpMaintenance`. Cleanup removes at most 100 expired diagnostic/bucket rows per
+transaction and schedules continuations; events become eligible 15 minutes before
+seven-day expiry. Revoked tombstones remain indefinitely. Tests prove provider
+errors cannot authorize account purge, disabled accounts retain state, and only a
+404 `resource_not_found` result from the fixed Clerk user endpoint permits bounded
+owner connection/diagnostic cleanup.
+
+Automatic provider grant revocation is unavailable by owner/client ID without
+retaining an opaque token. The documented fallback is in [MCP operations](../mcp.md):
+the credential-holding client or administrator uses Clerk's supported `revokeToken`
+procedure; local disconnect remains authoritative. No bearer token storage was
+added. Clearing client credentials is not recorded as provider revocation proof.
+
+Remaining runtime acceptance: authenticated preview layout/keyboard/control checks;
+approve/deny, OAuth write upgrade, downgrade, refresh, old/new token disconnect,
+provider revocation, disabled/deleted-account and reconnect scenarios using
+**disposable development users**. No real user account is disabled or deleted by
+this work. Existing isolated verifier/connection tests remain regression evidence,
+not a substitute for these live lifecycle checks. The temporary proof route is
+absent from `http.ts`, and production wiring imports no proof helper.
+
+Management preflight: Clerk CLI 3.4.1 doctor could read local credentials/project
+linkage, but application/instance checks failed with expired management-session
+authentication. No provider user mutation was attempted. Approval for a dedicated
+disposable development user and its eventual irreversible deletion/admin override
+is pending. The attached T3 automation tab still reports no Clerk session at both
+loopback hostnames despite the user's sign-in confirmation; authenticated UI
+checks remain open rather than borrowing another browser session.
+
+Live development maintenance checks: `cleanupExpired` returned `deleted: 0`;
+`purgeDeletedAccount` for the active account returned `purged: false`; a
+nonexistent synthetic subject returned `purged: true` with no rows to remove.
+This proves deployed entry-point/provider behavior, not a populated account
+deletion. Root typecheck after code generation and final formatting passed.

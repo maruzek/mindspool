@@ -145,3 +145,61 @@ check was interrupted during mobile bundling after formatting, all tests and all
 type checks passed; the build stage then completed separately. No runtime code
 changed between those checks. The final backend rerun also retained the original
 authorization regression alongside the new four-tool scope tests.
+
+## Discovery completion work (2026-10-17)
+
+Tasks 7–8 add owner-scoped post/resource navigation, resource-count hints,
+resource-first serialization and optional `includeResources` on continuation.
+The 64 KiB budget counts the complete tool result (text and structured copies),
+including UTF-8 and JSON escaping; content shrinks first and every offset reflects
+the actual window. If metadata/resources alone exceed the budget, explicit
+metadata/array truncation flags identify the reduction. An oversized list page
+returns a bounded retryable error; a smaller limit enumerates every label.
+
+The approved development index `items.by_owner_from` was deployed. Running the
+existing `tweetLinks:backfill` reported zero updates; a 75-row sample had no legacy
+link missing a parent. One sampled post had five owner-scoped index children,
+matching its five stored child references.
+
+Fresh review found that counting by hydrating every child article can exceed the
+page read budget. The tested local correction adds optional
+`linkedItemStats: { count?, revision }` to items, updates it transactionally in
+canonical child insert/delete/backfill paths, and migrates old counts using
+byte-bounded pages plus a revision check. A stale backfill cannot overwrite a
+count after children change. The ten-post/twenty-child test now uses long article
+content and rejects child-query hydration from summary shaping. This additional
+schema change was explicitly approved by the user and deployed to development.
+The bounded backfill completed: all 75 remaining items have initialized counts,
+with zero mismatches against their owner-scoped child relationships.
+
+### Real clients
+
+Codex CLI **0.163.0** and Claude Code **2.1.285**, using their real stored OAuth
+connections to the classified development endpoint, each observed:
+
+- effective read-only permissions (`readLibrary: true`, `editItemLabels: false`);
+- nine labels and the 33-item Dev label over four browse pages, ending at
+  `isDone: true` with unique IDs;
+- successful label-scoped search with `exhaustive: false`;
+- item detail and navigation through saved post/resource relationships.
+
+No existing clip exceeded 20,000 characters. A clearly marked temporary
+34,220-character note was created on development through the normal capture path.
+Both clients then read it in two windows and reported 34,220 reassembled characters,
+with resource fields absent on continuation. These checks used only the hosted
+read-only MCP tools; fixture creation/removal are separate development operations.
+No raw bearer credentials or saved clip text are recorded here.
+
+Both clients enumerated exactly the same 33 IDs in the same order as the public
+app label query. Codex emitted five tool-result representations, the largest
+42,595 UTF-8 bytes; this measures client output, not raw HTTP response bytes.
+Claude did not expose tool-result bytes in its final structured output; the
+complete 64 KiB envelope is covered by handler tests. The temporary note was
+deleted and its absence confirmed.
+
+Final `VITEST_MAX_WORKERS=2 pnpm check` passed: 1,169 tests (42 schema, 563 backend,
+317 web, 128 extension, 119 mobile), all type checks and all builds. The separate
+Firefox extension build also passed.
+Authenticated preview checks remain pending: the T3 browser is signed out;
+the user supplied a screenshot showing the integrations setup page rendered in
+another browser. Signed-out layouts at 390px and 1440px have no horizontal overflow.

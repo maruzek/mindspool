@@ -24,10 +24,10 @@ merge.
 
 ## Progress (2026-10-17)
 
-Tasks 0–6 are done on `feature/mcp-discovery`, together with access Tasks 6–8 (admission quotas, the `/mcp`
-handler and registry, diagnostics). All discovery tools are deployed to development; labels/browse were verified
-with Claude Code, and search/reading have automated real-handler evidence. Stopped at the "reading works"
-checkpoint for user review before Task 7. See the handoff in [todo.md](todo.md).
+Discovery Tasks 0–9 are implemented and verified on development. Both real clients exercised
+the four discovery tools, exact browse membership/order and content continuation. The user-approved
+resource-count field and bounded migration are deployed: all 75 items have counts, with zero mismatches. Access UI/setup/maintenance are also implemented; authenticated preview and full
+disposable-user lifecycle acceptance remain open. See [todo.md](todo.md).
 
 ## Prerequisites (gates, not tasks)
 
@@ -45,9 +45,11 @@ checkpoint for user review before Task 7. See the handoff in [todo.md](todo.md).
   `itemLabels.listItemsForLabel/searchItemsForLabel` and `labels.list` into plain functions taking `ownerId`. Public
   queries become `requireOwner(ctx)` + helper. MCP calls `internalQuery` wrappers (`mcpDiscovery.ts`) whose `ownerId` arg
   is supplied only by the verified handler. A parity test guards the refactor.
-- **No new data model except one index:** `items.by_owner_from` on `["ownerId", "fromItemId"]`. Existing
-  `tweetLinks:backfill` already derives `fromItemId` from old capture keys, so no new backfill is written; the plan
-  runs it on development before relying on `linkedItems`.
+- **Owner-scoped index and approved count cache:** `items.by_owner_from` on `["ownerId", "fromItemId"]`
+  supports resource navigation. `tweetLinks:backfill` derives legacy parent references. Fresh review showed
+  child hydration for summary counts can exceed the read budget; the user approved optional
+  `items.linkedItemStats: { count?, revision }` and a byte-bounded, revision-checked backfill on development.
+  Canonical child writers update counts transactionally; summaries never hydrate child articles.
 - **Response shaping lives at the boundary** (`mcp/tools/discovery.ts`): Convex results are mapped to the spec's
   `ItemSummary`/`ItemDetail` there. Shaping is a pure function, unit-tested without Convex.
 - **Content stream** for `get_item` is one logical string (saved text, then Reddit post and comments) addressed by
@@ -88,7 +90,7 @@ Tasks 4 and 5 are independent of each other once Task 3 lands and can run in par
 | ------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
 | Access module is less complete than the map implies (open archived tasks) | High   | Task 0 inventories it first; stop and report before Task 2 if the registry or scope enforcement is missing.     |
 | Helper extraction changes web behavior                                    | High   | Task 1 runs the full web/backend suites and adds parity tests before any MCP code.                              |
-| `linkedItemCount` adds a read per summary (10 per page)                   | Med    | Bounded `take(21)` on the new index; measure read budget in Task 7 against the 1 MiB page read limit.           |
+| `linkedItemCount` adds a read per summary (10 per page)                   | Med    | Read cached parent counts; byte-bounded migration and transactional child writers maintain accuracy.            |
 | Convex read limits shorten or fail pages                                  | Med    | `isDone` never inferred from length; limit errors map to `UNAVAILABLE` retryable (Task 3 test).                 |
 | Tool results exceed client token budgets                                  | Med    | Page size 10, 120-char snippets, 20,000-char content, 64 KiB cap; measure real sizes in Task 9.                 |
 | Prompt injection via clip text                                            | Med    | No write tools in this module; `untrusted: true` and descriptions; scope enforced by dispatcher not by content. |

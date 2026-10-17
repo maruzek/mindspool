@@ -445,3 +445,24 @@ no production changed; next module can reuse the verified principal/dispatch con
 - [ ] All access success criteria pass with real-client evidence and regression checks.
 - [ ] Human reviews outcome and remaining limitations. Production deployment and
       `mcp-discovery`/`mcp-labels` implementation remain separate authorized work.
+
+## Current handoff (2026-10-17)
+
+Tasks 9–10: connection controls and safe client setup are implemented, with
+component tests and generated routes verified. Authenticated T3 preview checks at
+390px/1440px and keyboard traversal remain open: the attached automation tab
+continues to report no Clerk session despite the user's sign-in confirmation.
+Do not substitute another browser's session as evidence.
+
+Task 11: bounded retention cron and provider-verified account cleanup are
+implemented, tested and deployed to development. Provider revocation uses the
+documented credential-holder procedure; clearing local credentials is not proof.
+
+Task 12: both real clients passed read-only discovery, exact browse membership
+and continuation, but the disposable-account lifecycle matrix remains open.
+Clerk CLI doctor reports expired management authentication; no Clerk write
+scopes are configured. Explicit approval for disposable-user creation, temporary
+disabling and irreversible deletion/admin override has been requested. No real
+user was disabled/deleted. Root check passed 1,169 tests, all types/builds, plus
+the separate Firefox extension build. Generated backend API changes were followed
+by another successful root typecheck.

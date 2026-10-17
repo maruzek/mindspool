@@ -5,18 +5,19 @@ Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter 
 
 ## Handoff (2026-10-17)
 
-Branch `feature/mcp-discovery` (not pushed, not merged). Done: discovery Tasks 0–6, plus access Tasks 6–8
-(tracked in [archive/mcp-access-todo.md](archive/mcp-access-todo.md)). All four discovery tools are deployed to
-**development** only (`graceful-stork-346`); never touch production without asking. Claude Code previously
-verified labels/browse; search and reading have real-handler automated evidence, with real-client verification
-still pending ([evidence](../docs/verification/mcp-discovery.md)).
-**Current checkpoint: "reading works" — user review before Task 7.** Tasks 7–9 are NOT built: post/link navigation,
-whole-result 64 KiB cap and continuation resource omission, then complete docs and real-client verification.
+Branch `feature/mcp-discovery` (not pushed, not merged). Discovery Tasks 0–9 are implemented
+and verified on **development** only (`graceful-stork-346`). The user-approved optional
+`linkedItemStats` field and bounded count backfill are deployed: all 75 items have initialized
+counts, with zero mismatches. Both Codex and Claude Code verified exact 33-item label membership/order,
+search, reading, resources and two-window content continuation. See the
+[evidence](../docs/verification/mcp-discovery.md).
+Access connection UI/setup and maintenance are implemented; authenticated preview and
+disposable-account lifecycle proof remain open. Never touch production without approval.
 After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
 (commit generated `_generated/api.d.ts`; `pnpm typecheck` must pass after codegen). Tools live in
 `convex/mcp/discovery.ts`, pure detail shaping in `convex/mcp/tools/shape.ts`, registration in
 `convex/mcp/registry.ts`, and internal reads in `convex/mcpDiscovery.ts`.
-Also still open: Codex check, access Tasks 9–12.
+Access Tasks 9–12 remain partially open; see the archived checklist.
 
 ## Gate: before Task 1
 
@@ -94,21 +95,21 @@ Also still open: Codex check, access Tasks 9–12.
 ### Checkpoint: reading works
 
 - [x] All backend tests and typecheck pass; every tool callable through the real handler with a read-only principal.
-- [ ] Review with user before continuing.
+- [x] Review with user before continuing. (User authorized continued execution 2026-10-17.)
 
 ## Phase 3: Resources first, hardening, proof
 
-- [ ] **Task 7: Post/link navigation** (M)
+- [x] **Task 7: Post/link navigation** (M)
   - Acceptance: `items.by_owner_from` index on `["ownerId", "fromItemId"]` added; `get_item` returns `fromPost` and
     `linkedItems` (<= 20: id, url, title, snippet, enrichment; only items the owner still owns); summaries carry
-    `linkedItemCount` (bounded `take(21)` read) and omit it when none; `tweetLinks:backfill` run on development, then
+    `linkedItemCount` (transactionally maintained parent count) and omit it when none; `tweetLinks:backfill` run on development, then
     `linkedItems` count equals the `fromItemId` rows for a sample tweet.
   - Verify: `vitest run convex/mcpDiscovery.test.ts convex/tweetLinks.test.ts`; confirm a browse page stays within
     the read budget with 10 posts of 20 links each.
   - Files: `schema.ts`, `mcpDiscovery.ts`, `mcp/tools/shape.ts`, tests
   - Dependencies: Gate, Tasks 3, 5. Ask the user before applying the index to any deployment.
 
-- [ ] **Task 8: Ordering, 64 KiB cap, descriptions** (S)
+- [x] **Task 8: Ordering, 64 KiB cap, descriptions** (S)
   - Acceptance: in `get_item`, `links`, `linkedItems`, `fromPost` are serialized before `content`, and are absent from
     continuation calls unless requested; assembled result never exceeds 64 KiB (content shrinks, `nextOffset` honest);
     every truncation is flagged; tool descriptions state browse-until-`isDone`, search is not exhaustive, content is
@@ -119,11 +120,11 @@ Also still open: Codex check, access Tasks 9–12.
 
 ### Checkpoint: contract complete
 
-- [ ] Every spec success criterion 2-7 has a passing assertion.
-- [ ] `pnpm check` green; no public function exposes `ownerId` (test greps the public API).
-- [ ] Review with user before the real-client run.
+- [x] Every spec success criterion 2-7 has a passing assertion.
+- [x] `pnpm check` green; no public function exposes `ownerId` (test greps the public API).
+- [x] Review with user before the real-client run. (User authorized continued execution.)
 
-- [ ] **Task 9: Docs and real-client verification** (M)
+- [x] **Task 9: Docs and real-client verification** (M)
   - Acceptance: `docs/mcp.md` documents the four tools and agent guidance; with read-only Codex and Claude Code against
     the classified development deployment, each lists labels, enumerates a >10-clip label to `isDone: true` with ids
     matching the web app, searches, reads an item with continuation, follows a post to its `linkedItems`, and states
@@ -134,5 +135,5 @@ Also still open: Codex check, access Tasks 9–12.
 
 ### Checkpoint: complete
 
-- [ ] All spec success criteria met with real-client evidence; remaining limitations listed.
+- [x] All discovery spec success criteria met with real-client evidence; remaining limitations listed.
 - [ ] Human reviews outcome. No production deployment without explicit approval.
