@@ -79,19 +79,19 @@ Inspected on `origin/main` at `53678473a2e81e760a904b8b7b8d42e1fda46819`:
   uses bounded text projections; neither previews nor keyword matching establish
   that every saved resource has been inspected.
 
-This initiative starts from stable main. It does not depend on the unfinished
-tweet multi-link extraction work in the original checkout.
+The access foundation started from stable main. The integration includes the
+tweet-link improvements, whose post/resource associations are used by discovery.
 
 ## Review gate and spec index
 
 Review module boundaries, dependency direction, build order, and assumptions.
 After approval, write the following specs one at a time, with review after each:
 
-| Module          | Future specification                     | Status                                       |
-| --------------- | ---------------------------------------- | -------------------------------------------- |
-| `mcp-access`    | [SPEC-mcp-access.md](SPEC-mcp-access.md) | Approved for planning; [plan](tasks/plan.md) |
-| `mcp-discovery` | `SPEC-mcp-discovery.md`                  | Not started                                  |
-| `mcp-labels`    | `SPEC-mcp-labels.md`                     | Not started                                  |
+| Module          | Future specification                           | Status                                                                           |
+| --------------- | ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| `mcp-access`    | [SPEC-mcp-access.md](SPEC-mcp-access.md)       | Tasks 1–5 implemented; [remaining access plan](tasks/archive/mcp-access-plan.md) |
+| `mcp-discovery` | [SPEC-mcp-discovery.md](SPEC-mcp-discovery.md) | Approved for planning; [plan](tasks/plan.md)                                     |
+| `mcp-labels`    | `SPEC-mcp-labels.md`                           | Not started                                                                      |
 
 The access spec must establish the hosted authorization flow and client
 compatibility from current official documentation. Transport, hosting location,

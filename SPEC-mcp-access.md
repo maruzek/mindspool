@@ -2,8 +2,9 @@
 
 Module: `mcp-access` in [CAPABILITY-MAP-mcp.md](CAPABILITY-MAP-mcp.md).
 Status: approved for planning by the user's “write the plan” instruction.
-Specification only; no implementation or deployment. Technical feasibility
-questions remain gates in [the implementation plan](tasks/plan.md).
+Implementation is in progress: feasibility and Tasks 1–5 are complete; the
+endpoint and remaining controls are tracked in [the access implementation
+plan](tasks/archive/mcp-access-plan.md). There is no usable `/mcp` endpoint yet.
 
 ## Objective
 

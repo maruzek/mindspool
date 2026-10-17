@@ -6,7 +6,7 @@ yet. The current module is account connection and permissions; clip discovery
 and label-editing tools belong to subsequent modules.
 
 The approved contract is in [SPEC-mcp-access.md](../SPEC-mcp-access.md), the
-implementation sequence is in [tasks/plan.md](../tasks/plan.md), and observed
+implementation sequence is in [the access plan](../tasks/archive/mcp-access-plan.md), and observed
 results and blockers are in [the feasibility record](verification/mcp-access.md).
 
 ## Development prerequisites

@@ -1,6 +1,6 @@
 # MCP access feasibility evidence
 
-Date: 2026-10-16. Plan: [tasks/plan.md](../../tasks/plan.md).
+Date: 2026-10-16. Plan: [the access plan](../../tasks/archive/mcp-access-plan.md).
 Worktree: `/home/martin/dev/MindSpool-mcp-spec`, branch `feature/mcp-spec`.
 Baseline: `2dc0f7a`. This records the completed Tasks 1–3; Checkpoint A has **passed**.
 The hosted account-access feature is not ready for use or release.
