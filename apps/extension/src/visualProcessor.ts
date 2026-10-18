@@ -85,22 +85,19 @@ async function processVisual(
       bitmap.width * bitmap.height > VISUAL_LIMITS.pixels
     )
       throw new Error("image_unavailable");
+    const imageFloor = Math.min(1, 1280 / Math.max(width, height));
+    // Below 100% zoom, captured pixels can be fewer than CSS pixels. Keep the
+    // available native resolution rather than rejecting it or upsampling it.
+    const minimumWidth = request.sourceImage
+      ? Math.floor(width * imageFloor)
+      : Math.min(crop.width, request.crop?.width ?? request.cssWidth);
+    const minimumHeight = request.sourceImage
+      ? Math.floor(height * imageFloor)
+      : Math.min(crop.height, request.crop?.height ?? request.cssHeight);
     for (const scale of [1, 0.85, 0.7]) {
       canvas.width = Math.round(crop.width * scale);
       canvas.height = Math.round(crop.height * scale);
-      const floor = request.sourceImage
-        ? Math.min(1, 1280 / Math.max(width, height))
-        : undefined;
-      if (
-        canvas.width <
-          (floor
-            ? Math.floor(width * floor)
-            : (request.crop?.width ?? request.cssWidth)) ||
-        canvas.height <
-          (floor
-            ? Math.floor(height * floor)
-            : (request.crop?.height ?? request.cssHeight))
-      )
+      if (canvas.width < minimumWidth || canvas.height < minimumHeight)
         continue;
       const context = canvas.getContext("2d");
       if (!context) throw new Error("image_unavailable");

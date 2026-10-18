@@ -6,6 +6,45 @@ Date: 2026-10-18. Branch: `feature/visual-web-clipper`.
 Task 0 passed. The Task 0 evidence below proves platform capabilities separately
 from the implemented feature’s checks recorded here.
 
+## Desktop acceptance defect: false size rejection below 100% zoom
+
+At 80% zoom, a captured 1,000 × 700 screenshot corresponds to a
+1,250 × 875 CSS viewport. The processor compared every encoding candidate against
+the larger CSS dimensions, skipped all candidates before encoding, and returned
+`too_large`. The popup incorrectly described this as a file exceeding 2 MiB.
+The built Chrome processor reproduced the rejection for visible-area, selected-area
+and full-page captures. A rounded CSS height could trigger the same issue.
+
+The screenshot quality floor now uses CSS dimensions capped by the actual
+available crop pixels. Native output is accepted without upsampling; subsequent
+reductions still respect that floor. Direct images retain the 1,280-pixel longest
+edge floor, and the planned WebP quality/size ladder and all resource limits remain.
+The popup now describes size limits generally because the same error also covers
+pixel, edge and page limits. This fix requires reloading the rebuilt extension;
+it needs no backend deployment.
+
+Validation:
+
+- Seven processor regression tests pass, including the three previously failing
+  zoom/rounding cases, proportional downscaling to exactly the upload cap, and
+  rejection when fitting would violate the screenshot floor. The full extension
+  suite passes **23 files / 171 tests**, and extension typecheck passes.
+- Actual built development Chrome processor, headless Chromium **153.0.8010.12**:
+  real `tabs.setZoom` at 80%, 100%, 125%, 200%; viewport, region and scroll/stitch
+  all encode successfully. Decoded dimensions, green full-page bottom edge and
+  source scroll restoration pass.
+- Actual processor source bundled with a test runtime listener, headless Firefox
+  **144.0.2**: the same pixel/CSS ratios pass for viewport, region and stitched
+  output; transparent source alpha is preserved. This checks Firefox's native
+  decoder/canvas encoder, rather than loading its extension or driving browser zoom.
+- In both real browser encoders, a **12,984,828-byte** dense 2,400 × 1,800 PNG
+  resizes proportionally to **2,040 × 1,530 WebP**, below 2 MiB (Chrome
+  **1,888,274 bytes**, Firefox **1,888,842 bytes**). Both screenshot and direct-image
+  requests pass, with every returned file fully decoded independently.
+- Chrome and Firefox development builds pass; both manifests retain only the
+  intended development Convex origins. Desktop acceptance in the user's browser
+  versions remains open, including rerunning manual check A after reload.
+
 ## Desktop acceptance defect: Node MIME normalization
 
 The user’s Firefox 147.0.1 product captures reached the authenticated upload route

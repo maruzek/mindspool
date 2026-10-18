@@ -20,7 +20,7 @@ const failures: Record<CaptureFailure, string> = {
     "Capture permission was denied. Try again from the website.",
   image_unavailable:
     "That image is unavailable. Try capturing an area instead.",
-  too_large: "This image exceeds 2 MiB. Try a smaller area.",
+  too_large: "This capture exceeds the image size limits. Try a smaller area.",
   page_changed:
     "The page changed during capture. Keep the target tab selected and try again.",
   capture_interrupted: "Capture was interrupted. Please try again.",

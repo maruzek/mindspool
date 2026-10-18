@@ -14,7 +14,18 @@ node scripts/probe-visual-clipper.mjs --fixture-only --port=36668
 ```
 
 Leave the web app and fixture terminals running. Sign in at
-http://localhost:5173. No extension rebuild or backend deployment is needed.
+http://localhost:5173. After pulling the 80% zoom fix, rebuild the development
+extensions (or use the freshly rebuilt folders from the coding session):
+
+```sh
+pnpm --filter @mindspool/extension exec wxt build --mode development
+pnpm --filter @mindspool/extension exec wxt build -b firefox --mv3 --mode development
+```
+
+Reload MindSpool in `chrome://extensions` and Firefox’s
+`about:debugging#/runtime/this-firefox`. Keep the existing loaded folders:
+`apps/extension/.output/chrome-mv3-dev` and
+`apps/extension/.output/firefox-mv3-dev/manifest.json`. No backend deployment is needed.
 
 Use these exact hosts: `localhost` and `127.0.0.1` intentionally create different
 origins for the permission test. The normal page is

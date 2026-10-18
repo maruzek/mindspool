@@ -236,6 +236,10 @@ Proposed implementation constants, validated at the Task 0 gate:
 | Encoding              | Try original dimensions, WebP qualities 0.9, 0.82, 0.74; preserve alpha. Then at most two proportional reductions to 0.85 and 0.7 of original dimensions, repeating qualities. Never crop to fit bytes.            |
 | Quality floor         | Do not downscale a screenshot below its captured CSS dimensions; do not shrink a direct image's longest edge below 1,280 pixels unless it started smaller. If still too large, explain and offer a smaller region. |
 
+The screenshot floor is capped by the actual captured pixels when browser zoom
+or rounding supplies fewer pixels than the CSS dimensions. Keep those native
+pixels without upsampling to meet a larger CSS size.
+
 Unsupported codec output must fail or use a proven PNG/JPEG fallback within the
 same limits. Encoding/decoding confirms actual output type and dimensions.
 These are bounded engineering defaults, not claims of browser capability already
