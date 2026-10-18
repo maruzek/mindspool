@@ -9,7 +9,19 @@ import {
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { listLabelItemsPage, searchLabelItemsPage } from "./itemLabels";
-import { itemDetailFor, listItemsPage, searchItemsPage } from "./items";
+import {
+  fromPost,
+  itemDetailFor,
+  listItemsPage,
+  searchItemsPage,
+} from "./items";
+import {
+  clipTitle,
+  leadingExcerpt,
+  matchExcerpt,
+  queryTerms,
+} from "./mcp/tools/excerpt";
+import { contentOf, userInputRelation } from "./mcp/tools/streams";
 import { listLabelsPage } from "./labels";
 import { itemDetail, itemPreview, sourceKind } from "./validators";
 
@@ -156,37 +168,81 @@ const filterArgs = {
   needsReview: v.optional(v.boolean()),
 };
 
+type PageArgs = {
+  ownerId: string;
+  labelId?: string;
+  labelName?: string;
+  source?: Infer<typeof sourceKind>;
+  needsReview?: boolean;
+  cursor: string | null;
+  limit: number;
+};
+
+// Selection is shared by the standard and compact shapes, so both enumerate
+// exactly the same owned items in the same order.
+async function browsePage(
+  ctx: QueryCtx,
+  { ownerId, cursor, limit, ...args }: PageArgs,
+) {
+  const label = await resolveLabel(ctx, ownerId, args);
+  const paginationOpts = { cursor, numItems: limit };
+  const filters = { source: args.source, needsReview: args.needsReview };
+  const page = await paginated(cursor, () =>
+    label
+      ? listLabelItemsPage(ctx, ownerId, {
+          labelId: label._id as Id<"labels">,
+          paginationOpts,
+          ...filters,
+        })
+      : listItemsPage(ctx, ownerId, { paginationOpts, ...filters }),
+  );
+  return { label, page };
+}
+
+async function searchPage(
+  ctx: QueryCtx,
+  { ownerId, cursor, limit, query, ...args }: PageArgs & { query: string },
+) {
+  const label = await resolveLabel(ctx, ownerId, args);
+  const options = {
+    query,
+    paginationOpts: { cursor, numItems: limit },
+    source: args.source,
+    needsReview: args.needsReview,
+  };
+  const page = await paginated(cursor, () =>
+    label
+      ? searchLabelItemsPage(ctx, ownerId, { ...options, labelId: label._id })
+      : searchItemsPage(ctx, ownerId, options),
+  );
+  return { label, page };
+}
+
+const pageArgs = {
+  ownerId: v.string(),
+  labelId: v.optional(v.string()),
+  labelName: v.optional(v.string()),
+  ...filterArgs,
+  cursor: cursorArg,
+  limit: v.number(),
+};
+const labelResult = v.optional(
+  v.object({ _id: v.id("labels"), name: v.string() }),
+);
+
 export const browseItems = internalQuery({
-  args: {
-    ownerId: v.string(),
-    labelId: v.optional(v.string()),
-    labelName: v.optional(v.string()),
-    ...filterArgs,
-    cursor: cursorArg,
-    limit: v.number(),
-  },
+  args: pageArgs,
   returns: v.object({
-    label: v.optional(v.object({ _id: v.id("labels"), name: v.string() })),
+    label: labelResult,
     items: v.array(summary),
     continueCursor: v.string(),
     isDone: v.boolean(),
   }),
-  handler: async (ctx, { ownerId, cursor, limit, ...args }) => {
-    const label = await resolveLabel(ctx, ownerId, args);
-    const paginationOpts = { cursor, numItems: limit };
-    const filters = { source: args.source, needsReview: args.needsReview };
-    const page = await paginated(cursor, () =>
-      label
-        ? listLabelItemsPage(ctx, ownerId, {
-            labelId: label._id as Id<"labels">,
-            paginationOpts,
-            ...filters,
-          })
-        : listItemsPage(ctx, ownerId, { paginationOpts, ...filters }),
-    );
+  handler: async (ctx, args) => {
+    const { label, page } = await browsePage(ctx, args);
     return {
       ...(label ? { label: { _id: label._id, name: label.name } } : {}),
-      items: await withSnippets(ctx, page.page, ownerId),
+      items: await withSnippets(ctx, page.page, args.ownerId),
       continueCursor: page.continueCursor,
       isDone: page.isDone,
     };
@@ -194,35 +250,216 @@ export const browseItems = internalQuery({
 });
 
 export const searchItems = internalQuery({
-  args: {
-    ownerId: v.string(),
-    query: v.string(),
-    labelId: v.optional(v.string()),
-    labelName: v.optional(v.string()),
-    ...filterArgs,
-    cursor: cursorArg,
-    limit: v.number(),
-  },
+  args: { ...pageArgs, query: v.string() },
   returns: v.object({
     items: v.array(summary),
     continueCursor: v.string(),
     isDone: v.boolean(),
   }),
-  handler: async (ctx, { ownerId, cursor, limit, query, ...args }) => {
-    const label = await resolveLabel(ctx, ownerId, args);
-    const options = {
-      query,
-      paginationOpts: { cursor, numItems: limit },
-      source: args.source,
-      needsReview: args.needsReview,
-    };
-    const page = await paginated(cursor, () =>
-      label
-        ? searchLabelItemsPage(ctx, ownerId, { ...options, labelId: label._id })
-        : searchItemsPage(ctx, ownerId, options),
-    );
+  handler: async (ctx, args) => {
+    const { page } = await searchPage(ctx, args);
     return {
-      items: await withSnippets(ctx, page.page, ownerId),
+      items: await withSnippets(ctx, page.page, args.ownerId),
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+    };
+  },
+});
+
+const TITLE_UNITS = 512;
+const ROW_LABELS = 3;
+
+const compactRow = v.object({
+  _id: v.id("items"),
+  title: v.optional(v.string()),
+  titleTruncated: v.optional(v.literal(true)),
+  url: v.optional(v.string()),
+  excerpt: v.optional(
+    v.object({
+      text: v.string(),
+      source: v.union(v.literal("content"), v.literal("userInput")),
+      truncated: v.boolean(),
+    }),
+  ),
+  enrichment: itemDetail.fields.enrichmentStatus,
+  hasDistinctUserInput: v.optional(v.literal(true)),
+  linkedItemCount: v.optional(v.number()),
+  suggested: v.optional(v.literal(true)),
+  needsReview: v.optional(v.literal(true)),
+  labels: v.optional(
+    v.array(
+      v.object({
+        _id: v.id("labels"),
+        name: v.string(),
+        unsure: v.optional(v.boolean()),
+      }),
+    ),
+  ),
+  labelsTruncated: v.optional(v.boolean()),
+});
+const compactPage = v.object({
+  label: labelResult,
+  items: v.array(compactRow),
+  continueCursor: v.string(),
+  isDone: v.boolean(),
+});
+
+/**
+ * One owned page row reduced to what choosing needs. Reads the item body (one
+ * document, as the standard shape does) and, only when asked, its labels.
+ */
+async function compactRows(
+  ctx: QueryCtx,
+  ownerId: string,
+  previews: Infer<typeof itemPreview>[],
+  options: {
+    label: Doc<"labels"> | null;
+    includeLabels: boolean;
+    terms?: readonly string[];
+  },
+) {
+  return Promise.all(
+    previews.map(async (preview) => {
+      const item = await ctx.db.get(preview._id);
+      if (!item || item.ownerId !== ownerId) throw notFound();
+      const count = item.linkedItemStats?.count;
+      if (count === undefined)
+        throw new ConvexError({
+          code: "UNAVAILABLE",
+          message: "Resource counts are being prepared; retry shortly",
+        });
+      const content = contentOf(item);
+      const relation = userInputRelation(item, content);
+      const found =
+        (options.terms &&
+          (() => {
+            const hit = matchExcerpt(content, options.terms);
+            if (hit) return { ...hit, source: "content" as const };
+            const input =
+              relation === "distinct"
+                ? matchExcerpt(item.originalInput, options.terms)
+                : undefined;
+            return input && { ...input, source: "userInput" as const };
+          })()) ||
+        undefined;
+      const lead = leadingExcerpt(content);
+      const fallback = lead
+        ? { ...lead, source: "content" as const }
+        : relation === "distinct"
+          ? (() => {
+              const input = leadingExcerpt(item.originalInput);
+              return input && { ...input, source: "userInput" as const };
+            })()
+          : undefined;
+      const excerpt = found ?? fallback;
+      const title = item.sourceMetadata?.title
+        ? clipTitle(item.sourceMetadata.title, TITLE_UNITS)
+        : undefined;
+      // Suggestion state is the membership of the requested label itself, never
+      // inferred from a preview's label sample; the library scope has the
+      // item-level review flag instead.
+      const membership = options.label
+        ? await ctx.db
+            .query("itemLabels")
+            .withIndex("by_owner_pair", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("itemId", item._id)
+                .eq("labelId", options.label!._id),
+            )
+            .unique()
+        : null;
+      const others = options.includeLabels
+        ? await otherLabels(ctx, ownerId, item._id, options.label?._id)
+        : undefined;
+      return {
+        _id: item._id,
+        ...(title?.text ? { title: title.text } : {}),
+        ...(title?.truncated ? { titleTruncated: true as const } : {}),
+        ...(item.originalUrl ? { url: item.originalUrl } : {}),
+        ...(excerpt ? { excerpt } : {}),
+        enrichment: item.enrichmentStatus,
+        ...(relation === "distinct" && excerpt?.source !== "userInput"
+          ? { hasDistinctUserInput: true as const }
+          : {}),
+        ...(count ? { linkedItemCount: Math.min(20, count) } : {}),
+        ...(membership?.unsure ? { suggested: true as const } : {}),
+        ...(!options.label && item.needsReview
+          ? { needsReview: true as const }
+          : {}),
+        ...(others ?? {}),
+      };
+    }),
+  );
+}
+
+/** At most three other owned included labels; a fourth proves truncation. */
+async function otherLabels(
+  ctx: QueryCtx,
+  ownerId: string,
+  itemId: Id<"items">,
+  exclude: Id<"labels"> | undefined,
+) {
+  const links = await ctx.db
+    .query("itemLabels")
+    .withIndex("by_owner_item_decision", (q) =>
+      q
+        .eq("ownerId", ownerId)
+        .eq("itemId", itemId)
+        .eq("manualDecision", "include"),
+    )
+    .take(ROW_LABELS + 2);
+  const named = (
+    await Promise.all(
+      links
+        .filter((link) => link.labelId !== exclude)
+        .map(async (link) => {
+          const label = await ctx.db.get(link.labelId);
+          return label && label.ownerId === ownerId
+            ? {
+                _id: label._id,
+                name: label.name,
+                ...(link.unsure ? { unsure: true } : {}),
+              }
+            : null;
+        }),
+    )
+  ).filter((label) => label !== null);
+  return {
+    labels: named.slice(0, ROW_LABELS),
+    labelsTruncated: named.length > ROW_LABELS,
+  };
+}
+
+export const browseItemsCompact = internalQuery({
+  args: { ...pageArgs, includeLabels: v.boolean() },
+  returns: compactPage,
+  handler: async (ctx, { includeLabels, ...args }) => {
+    const { label, page } = await browsePage(ctx, args);
+    return {
+      ...(label ? { label: { _id: label._id, name: label.name } } : {}),
+      items: await compactRows(ctx, args.ownerId, page.page, {
+        label,
+        includeLabels,
+      }),
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+    };
+  },
+});
+
+export const searchItemsCompact = internalQuery({
+  args: { ...pageArgs, query: v.string(), includeLabels: v.boolean() },
+  returns: compactPage,
+  handler: async (ctx, { includeLabels, ...args }) => {
+    const { label, page } = await searchPage(ctx, args);
+    return {
+      ...(label ? { label: { _id: label._id, name: label.name } } : {}),
+      items: await compactRows(ctx, args.ownerId, page.page, {
+        label,
+        includeLabels,
+        terms: queryTerms(args.query),
+      }),
       continueCursor: page.continueCursor,
       isDone: page.isDone,
     };
@@ -304,6 +541,97 @@ export const getItem = internalQuery({
         : {}),
       labels: labels.filter((label) => label !== null),
       labelsTruncated: links.length > 100,
+    };
+  },
+});
+
+const {
+  images: _images,
+  imageAssets: _assets,
+  ...readFields
+} = itemDetail.fields;
+
+/**
+ * Lean read for efficient modes: the owned item itself, plus labels only for
+ * context and the parent post / children only for resources. A continuation
+ * with both off reads one document. Images and storage URLs are never read.
+ */
+export const readItem = internalQuery({
+  args: {
+    ownerId: v.string(),
+    itemId: v.string(),
+    context: v.boolean(),
+    resources: v.boolean(),
+  },
+  returns: v.object({
+    ...readFields,
+    labels: v.optional(v.array(detailLabel)),
+    labelsTruncated: v.optional(v.boolean()),
+    linkedItems: v.optional(v.array(linkedItem)),
+    linkedItemsTruncated: v.optional(v.boolean()),
+  }),
+  handler: async (ctx, { ownerId, itemId, context, resources }) => {
+    const id = ctx.db.normalizeId("items", itemId);
+    const item = id ? await ctx.db.get(id) : null;
+    if (!item || item.ownerId !== ownerId) throw notFound();
+    const children = resources ? await linkedRows(ctx, item._id, ownerId) : [];
+    const links = context
+      ? await ctx.db
+          .query("itemLabels")
+          .withIndex("by_owner_item_decision", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("itemId", item._id)
+              .eq("manualDecision", "include"),
+          )
+          .take(101)
+      : [];
+    const labels = await Promise.all(
+      links.slice(0, 100).map(async (link) => {
+        const label = await ctx.db.get(link.labelId);
+        if (!label || label.ownerId !== ownerId) return null;
+        return {
+          id: label._id,
+          name: label.name,
+          ...(link.unsure ? { suggested: true as const } : {}),
+        };
+      }),
+    );
+    return {
+      _id: item._id,
+      _creationTime: item._creationTime,
+      inputType: item.inputType,
+      originalInput: item.originalInput,
+      ...(item.originalUrl ? { originalUrl: item.originalUrl } : {}),
+      ...(item.canonicalUrl ? { canonicalUrl: item.canonicalUrl } : {}),
+      captureSource: item.captureSource,
+      enrichmentStatus: item.enrichmentStatus,
+      ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
+      ...(item.extractedText ? { extractedText: item.extractedText } : {}),
+      ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
+      ...(resources ? await fromPost(ctx, ownerId, item) : {}),
+      ...(children.length
+        ? {
+            linkedItems: children.slice(0, 20).map((child) => ({
+              itemId: child._id,
+              url: child.originalUrl ?? child.originalInput,
+              ...(child.sourceMetadata?.title
+                ? { title: child.sourceMetadata.title.slice(0, 512) }
+                : {}),
+              ...(snippetOf(child.extractedText)
+                ? { snippet: snippetOf(child.extractedText) }
+                : {}),
+              enrichment: child.enrichmentStatus,
+            })),
+            linkedItemsTruncated: children.length > 20,
+          }
+        : {}),
+      ...(context
+        ? {
+            labels: labels.filter((label) => label !== null),
+            labelsTruncated: links.length > 100,
+          }
+        : {}),
     };
   },
 });

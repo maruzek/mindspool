@@ -45,13 +45,13 @@ be true and `editItemLabels` false for the default app-side permission.
 Every tool requires `mindspool:read`. Discovery tools are read-only, idempotent,
 and operate on the authenticated owner's data. No label-editing tools exist yet.
 
-| Tool                     | Purpose                                       | Inputs and limits                                                                                                              |
-| ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `mindspool_connection`   | Verify effective permissions                  | No arguments; returns no account identity                                                                                      |
-| `mindspool_list_labels`  | Discover exact names and IDs                  | `cursor?`, `limit?` (1–50, default 50); alphabetical, includes `hasItems`                                                      |
-| `mindspool_browse_items` | Exhaustively enumerate the library or a label | `labelId?` or exact case-insensitive `labelName?`, `source?`, `needsReview?`, `cursor?`, `limit?` (1–10)                       |
-| `mindspool_search_items` | Find best keyword matches                     | Same scope/filters/page limit as browse, plus `query` (1–200 trimmed characters, at most 16 words); always `exhaustive: false` |
-| `mindspool_get_item`     | Read saved context and resources              | `itemId`, `contentOffset?` (nonnegative integer), `includeResources?`                                                          |
+| Tool                     | Purpose                                       | Inputs and limits                                                                                                                                                 |
+| ------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mindspool_connection`   | Verify effective permissions                  | No arguments; returns no account identity                                                                                                                         |
+| `mindspool_list_labels`  | Discover exact names and IDs                  | `cursor?`, `limit?` (1–50, default 50); alphabetical, includes `hasItems`                                                                                         |
+| `mindspool_browse_items` | Exhaustively enumerate the library or a label | `labelId?` or exact case-insensitive `labelName?`, `source?`, `needsReview?`, `format?`, `includeLabels?`, `cursor?`, `limit?` (1–10)                             |
+| `mindspool_search_items` | Find best keyword matches                     | Same scope/filters/page limit as browse, plus `query` (1–200 trimmed characters, at most 16 words); always `exhaustive: false`                                    |
+| `mindspool_get_item`     | Read saved context and resources              | `itemId`, `mode?` (`metadata`, `excerpt`, `full`), `stream?`, `offset?`, `maxChars?`, `version?`, `includeContext?`, `includeResources?`; legacy `contentOffset?` |
 
 Use browse for “all.” Continue until `page.isDone` is true, including after short
 or empty pages. If stopped early, report partial coverage. A label is ordered by
@@ -63,6 +63,35 @@ does not establish complete coverage: its indexed text is bounded.
 Summaries contain short snippets, three labels plus the true count, enrichment
 status, and a bounded `linkedItemCount` hint for posts with extracted resources.
 Unconfirmed labels are marked `suggested`. Excluded label memberships are hidden.
+
+### Efficient reads
+
+Prefer the compact, progressive path; the legacy shapes below stay unchanged
+when `format` and `mode` are omitted.
+
+1. **Choose:** browse or search with `format: "compact"`. Each clip has an `itemId`,
+   `title`, `url`, `enrichment` and one excerpt of at most 160 characters
+   (`excerpt.truncated` says whether text was omitted). Search excerpts surround the
+   first literal match in saved content, then in the user's own input; when the
+   index matched something with no literal match, the excerpt is the start of the
+   text. `suggested` states whether the requested label's membership is an
+   unconfirmed suggestion; `needsReview` appears for whole-library results.
+   `hasDistinctUserInput` means the user's own input differs from the saved content
+   and can be read with `stream: "userInput"`. `includeLabels: true` adds up to
+   three other labels. Compact cursors only work with the compact request.
+2. **Inspect:** `mindspool_get_item` with `mode: "metadata"` returns details and the
+   size and `version` of both text streams, without any text.
+3. **Read:** `mode: "excerpt"` returns up to 2,000 characters (1–4,000 with
+   `maxChars`); `mode: "full"` up to 20,000 per call. To continue, pass the returned
+   `content.nextOffset` as `offset` and `content.version` as `version`. Continuations
+   return only the text window. A changed text returns `CONFLICT`; restart at
+   offset 0. Offsets count UTF-16 characters (not bytes or model tokens) and never
+   split a surrogate pair.
+
+`stream: "content"` is the saved page or post text (a Reddit capture's post and
+selected comments); `stream: "userInput"` is the complete original input. Metadata
+and labels come with the first read (`includeContext`); resources only with
+`includeResources: true`.
 
 Item detail returns original input (up to 4,000 characters), saved metadata, safe
 image URLs (up to ten), up to 100 labels, and deduplicated HTTP(S) links (up to 50).

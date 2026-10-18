@@ -7,6 +7,7 @@ import type { EnabledMcpConfig } from "./mcp/config";
 import type { McpServices } from "./mcp/handler";
 import { handleMcpRequest } from "./mcp/handler";
 import { productionTools } from "./mcp/registry";
+import { toolBytes } from "./mcp/tools";
 import schema from "./schema";
 import { withSnippets } from "./mcpDiscovery";
 import { modules } from "./test.setup";
@@ -1073,4 +1074,671 @@ it("keeps owner selection out of every public function's argument schema", async
       }
     }
   expect(inspected).toBeGreaterThan(20);
+});
+
+type SummaryRow = { itemId: string } & Record<string, any>;
+const ids = (page: { items: SummaryRow[] }) => page.items.map((i) => i.itemId);
+const failure = (result: { structuredContent: any }) =>
+  result.structuredContent.error;
+
+describe("compact browse and search", () => {
+  it("enumerates exactly the standard selection and order in a smaller shape", async () => {
+    const s = await setup();
+    const labelId = await s.label(s.alice, "Reading");
+    for (let i = 0; i < 25; i++)
+      await s.attach(s.alice, await s.save(s.alice, `Clip ${i}`), labelId);
+    for (const scope of [{ labelId }, {}]) {
+      const standard = await allPages(
+        s,
+        s.alice,
+        "mindspool_browse_items",
+        scope,
+      );
+      const compact = await allPages(s, s.alice, "mindspool_browse_items", {
+        ...scope,
+        format: "compact",
+      });
+      expect(compact.map(ids)).toEqual(standard.map(ids));
+      expect(compact.map((p) => p.page.returned)).toEqual(
+        standard.map((p) => p.page.returned),
+      );
+      for (const page of compact) {
+        expect(page.format).toBe("compact");
+        expect(page.untrusted).toBe(true);
+        for (const item of page.items)
+          for (const absent of [
+            "preview",
+            "snippet",
+            "savedAt",
+            "inputType",
+            "labels",
+            "labelCount",
+          ])
+            expect(item).not.toHaveProperty(absent);
+      }
+    }
+  });
+
+  it("keeps standard output unchanged for omitted or explicit standard format", async () => {
+    const s = await setup();
+    await s.save(s.alice, "A note");
+    const omitted = await s.callTool(s.alice, "mindspool_browse_items");
+    const explicit = await s.callTool(s.alice, "mindspool_browse_items", {
+      format: "standard",
+    });
+    expect(explicit.structuredContent).toEqual(omitted.structuredContent);
+    expect(omitted.structuredContent).not.toHaveProperty("format");
+    expect(omitted.structuredContent.items[0]).toHaveProperty("savedAt");
+  });
+
+  it("rejects includeLabels with standard format, even when false", async () => {
+    const s = await setup();
+    for (const args of [
+      { includeLabels: false },
+      { includeLabels: true, format: "standard" },
+    ]) {
+      const result = await s.callTool(s.alice, "mindspool_browse_items", args);
+      expect(result.isError).toBe(true);
+      expect(failure(result).code).toBe("INVALID_INPUT");
+    }
+  });
+
+  it("binds cursors to the representation", async () => {
+    const s = await setup();
+    for (let i = 0; i < 12; i++) await s.save(s.alice, `Clip ${i}`);
+    const standard = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+    });
+    const compact = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+      format: "compact",
+    });
+    const withLabels = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+      format: "compact",
+      includeLabels: true,
+    });
+    const cursors = [standard, compact, withLabels].map(
+      (r) => r.structuredContent.page.nextCursor,
+    );
+    expect(new Set(cursors).size).toBe(3);
+    const crossed = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+      format: "compact",
+      cursor: cursors[0],
+    });
+    expect(failure(crossed).code).toBe("INVALID_INPUT");
+    const reused = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+      format: "compact",
+      includeLabels: true,
+      cursor: cursors[1],
+    });
+    expect(failure(reused).code).toBe("INVALID_INPUT");
+    const ok = await s.callTool(s.alice, "mindspool_browse_items", {
+      limit: 5,
+      format: "compact",
+      cursor: cursors[1],
+    });
+    expect(ok.isError).toBeFalsy();
+  });
+
+  it("reports suggestion for the requested label itself, beyond a three-label sample", async () => {
+    const s = await setup();
+    const target = await s.label(s.alice, "Target");
+    const itemId = await s.save(s.alice, "Suggested here");
+    // Four other labels first, so a sample of three never reaches the target.
+    for (const name of ["a", "b", "c", "d"])
+      await s.attach(s.alice, itemId, await s.label(s.alice, name));
+    const runId = await s.t.mutation(internal.processingRuns.start, {
+      itemId,
+      kind: "decision",
+      provider: "clef-flash",
+      model: "clef-flash",
+      modality: "text",
+      questionVersion: "v1",
+    });
+    await s.t.mutation(internal.decisions.complete, {
+      runId,
+      itemId,
+      suggestions: [{ labelId: target, confidence: 0.55 }],
+      model: "clef-flash",
+    });
+    const scoped = await s.callTool(s.alice, "mindspool_browse_items", {
+      labelId: target,
+      format: "compact",
+      includeLabels: true,
+    });
+    const [row] = scoped.structuredContent.items;
+    expect(scoped.structuredContent.label).toEqual({
+      id: target,
+      name: "Target",
+    });
+    expect(row.suggested).toBe(true);
+    expect(row).not.toHaveProperty("needsReview");
+    // The requested label is page-level; four others overflow the three allowed.
+    expect(row.labels).toHaveLength(3);
+    expect(row.labels.map((l: { id: string }) => l.id)).not.toContain(target);
+    expect(row.labelsTruncated).toBe(true);
+
+    const library = await s.callTool(s.alice, "mindspool_browse_items", {
+      format: "compact",
+    });
+    const [whole] = library.structuredContent.items;
+    expect(whole.needsReview).toBe(true);
+    expect(whole).not.toHaveProperty("suggested");
+    expect(whole).not.toHaveProperty("labels");
+  });
+
+  it("shows a browse excerpt, flags truncation, and keeps unique input discoverable", async () => {
+    const s = await setup();
+    const longId = await s.save(s.alice, "My commentary on this");
+    const urlOnly = await s.save(s.alice, "https://example.com/a", "url");
+    await s.t.run(async (ctx) => {
+      await ctx.db.patch(longId, {
+        extractedText: `  ${"word ".repeat(80)}`,
+      });
+      await ctx.db.patch(urlOnly, { originalUrl: "https://example.com/a" });
+    });
+    const page = (
+      await s.callTool(s.alice, "mindspool_browse_items", {
+        format: "compact",
+      })
+    ).structuredContent;
+    const byId = Object.fromEntries(
+      page.items.map((i: SummaryRow) => [i.itemId, i]),
+    );
+    expect(byId[longId].excerpt.source).toBe("content");
+    expect(byId[longId].excerpt.text).toHaveLength(159);
+    expect(byId[longId].excerpt.truncated).toBe(true);
+    expect(byId[longId].hasDistinctUserInput).toBe(true);
+    expect(byId[urlOnly].url).toBe("https://example.com/a");
+    expect(byId[urlOnly]).not.toHaveProperty("excerpt");
+  });
+
+  it("centres search excerpts on a deep match without changing ranking", async () => {
+    const s = await setup();
+    const deep = await s.save(s.alice, "Plain needle note");
+    const other = await s.save(s.alice, "needle appears in the note itself");
+    await s.t.run((ctx) =>
+      ctx.db.patch(deep, {
+        extractedText: `${"lorem ipsum ".repeat(30)}needle in the haystack ${"dolor ".repeat(30)}`,
+      }),
+    );
+    const standard = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "needle",
+    });
+    const compact = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "needle",
+      format: "compact",
+    });
+    expect(ids(compact.structuredContent)).toEqual(
+      ids(standard.structuredContent),
+    );
+    expect(compact.structuredContent.exhaustive).toBe(false);
+    const byId = Object.fromEntries(
+      compact.structuredContent.items.map((i: SummaryRow) => [i.itemId, i]),
+    );
+    expect(byId[deep].excerpt.text).toContain("needle");
+    expect(byId[deep].excerpt.source).toBe("content");
+    expect(byId[deep].excerpt.truncated).toBe(true);
+    // No saved content: the matching passage is in the user's own input.
+    expect(byId[other].excerpt).toMatchObject({
+      source: "userInput",
+      text: "needle appears in the note itself",
+    });
+  });
+
+  it("falls back to the browse excerpt when the index matches but no literal text does", async () => {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "Running notes");
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, { extractedText: "Alphabet soup recipe" }),
+    );
+    // Stemming matches "runs" to "Running" in the index only.
+    const result = await s.callTool(s.alice, "mindspool_search_items", {
+      query: "runs",
+      format: "compact",
+    });
+    expect(result.isError).toBeFalsy();
+    for (const item of result.structuredContent.items)
+      if (item.excerpt) expect(item.excerpt.text).not.toMatch(/…/);
+  });
+});
+
+describe("efficient mindspool_get_item", () => {
+  const long = "abc\n😀".repeat(9000);
+
+  async function fixture() {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "u".repeat(6000));
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        extractedText: long,
+        enrichmentStatus: "succeeded",
+        canonicalUrl: "https://example.com/a",
+        originalUrl: "https://example.com/a",
+        sourceMetadata: { title: "Title", description: "d".repeat(500) },
+      }),
+    );
+    const labelId = await s.label(s.alice, "Reading");
+    await s.attach(s.alice, itemId, labelId);
+    const read = (args: Record<string, unknown>) =>
+      s.callTool(s.alice, "mindspool_get_item", { itemId, ...args });
+    return { s, itemId, labelId, read };
+  }
+
+  async function readAll(
+    read: ReturnType<typeof fixture> extends Promise<infer F>
+      ? F extends { read: infer R }
+        ? R
+        : never
+      : never,
+    stream: "content" | "userInput",
+    mode: "excerpt" | "full",
+    maxChars?: number,
+  ) {
+    let offset = 0;
+    let version: string | undefined;
+    let text = "";
+    const keys: string[][] = [];
+    for (let guard = 0; guard < 200; guard++) {
+      const result = await read({
+        mode,
+        stream,
+        offset,
+        ...(maxChars ? { maxChars } : {}),
+        ...(version ? { version } : {}),
+      });
+      expect(result.isError).toBeFalsy();
+      const body = result.structuredContent;
+      keys.push(Object.keys(body).sort());
+      expect(body.content.offset).toBe(offset);
+      version = body.content.version;
+      text += body.content.text;
+      if (!body.content.truncated) return { text, keys };
+      expect(body.content.nextOffset).toBe(offset + body.content.text.length);
+      offset = body.content.nextOffset;
+    }
+    throw new Error("did not finish");
+  }
+
+  it("returns metadata and stream sizes without any text", async () => {
+    const { itemId, labelId, read } = await fixture();
+    const result = await read({ mode: "metadata" });
+    expect(result.isError).toBeFalsy();
+    const body = result.structuredContent;
+    expect(body).not.toHaveProperty("content");
+    expect(body).not.toHaveProperty("resources");
+    expect(body.itemId).toBe(itemId);
+    expect(body.context).toMatchObject({
+      enrichment: "succeeded",
+      linkedPageRead: true,
+      url: "https://example.com/a",
+      metadata: { title: "Title" },
+      labels: [{ id: labelId, name: "Reading" }],
+      labelsTruncated: false,
+    });
+    // Equal canonical URL is not repeated.
+    expect(body.context).not.toHaveProperty("canonicalUrl");
+    expect(body.streams.content.totalChars).toBe(long.length);
+    expect(body.streams.userInput.totalChars).toBe(6000);
+    expect(body.streams.userInput.relation).toBe("distinct");
+    expect(JSON.stringify(body)).not.toContain("uuuu");
+  });
+
+  it("limits excerpts to 2,000 by default and 4,000 at most", async () => {
+    const { read } = await fixture();
+    const excerpt = await read({ mode: "excerpt" });
+    expect(excerpt.structuredContent.content.text).toHaveLength(2000);
+    expect(excerpt.structuredContent.content.truncated).toBe(true);
+    const wide = await read({ mode: "excerpt", maxChars: 4000 });
+    expect(wide.structuredContent.content.text).toHaveLength(4000);
+    const tooWide = await read({ mode: "excerpt", maxChars: 4001 });
+    expect(failure(tooWide).code).toBe("INVALID_INPUT");
+  });
+
+  it("reassembles both streams exactly, with bare continuations", async () => {
+    const { read } = await fixture();
+    const content = await readAll(read, "content", "full");
+    expect(content.text).toBe(long);
+    for (const keys of content.keys.slice(1))
+      expect(keys).toEqual([
+        "content",
+        "itemId",
+        "mode",
+        "stream",
+        "untrusted",
+      ]);
+    expect(content.keys[0]).toEqual(
+      expect.arrayContaining(["context", "streams"]),
+    );
+    // Whole original input, beyond the legacy 4,000-character cap.
+    expect((await readAll(read, "userInput", "excerpt", 4000)).text).toBe(
+      "u".repeat(6000),
+    );
+  });
+
+  it("switches from an excerpt to full at nextOffset with the same version", async () => {
+    const { read } = await fixture();
+    const first = (await read({ mode: "excerpt" })).structuredContent.content;
+    const rest = await read({
+      mode: "full",
+      offset: first.nextOffset,
+      version: first.version,
+    });
+    expect(first.text + rest.structuredContent.content.text).toBe(
+      long.slice(
+        0,
+        first.text.length + rest.structuredContent.content.text.length,
+      ),
+    );
+    expect(rest.structuredContent.content.offset).toBe(first.nextOffset);
+  });
+
+  it("detects changed text and wrong-stream or malformed versions", async () => {
+    const { s, itemId, read } = await fixture();
+    const first = (await read({ mode: "excerpt" })).structuredContent;
+    const version = first.content.version;
+    const userVersion = first.streams.userInput.version;
+    const wrong = await read({
+      mode: "excerpt",
+      stream: "userInput",
+      offset: 5,
+      version,
+    });
+    expect(failure(wrong)).toMatchObject({
+      code: "CONFLICT",
+      retryable: false,
+    });
+    expect(
+      (
+        await read({
+          mode: "excerpt",
+          stream: "userInput",
+          offset: 5,
+          version: userVersion,
+        })
+      ).isError,
+    ).toBeFalsy();
+    expect(
+      failure(await read({ mode: "excerpt", offset: 5, version: "nope" })).code,
+    ).toBe("INVALID_INPUT");
+    // Unrelated label changes do not invalidate; a text change does.
+    await s.attach(s.alice, itemId, await s.label(s.alice, "Other"));
+    expect(
+      (await read({ mode: "excerpt", offset: 4, version })).isError,
+    ).toBeFalsy();
+    await s.t.run((ctx) => ctx.db.patch(itemId, { extractedText: `${long}!` }));
+    expect(
+      failure(await read({ mode: "excerpt", offset: 4, version })).code,
+    ).toBe("CONFLICT");
+    // Version at offset zero is optional but validated when given.
+    expect(failure(await read({ mode: "excerpt", version })).code).toBe(
+      "CONFLICT",
+    );
+  });
+
+  it("enforces offsets, pairs and invalid parameter combinations", async () => {
+    const { s, itemId, read } = await fixture();
+    const version = (await read({ mode: "metadata" })).structuredContent.streams
+      .content.version;
+    const bad = async (args: Record<string, unknown>) =>
+      failure(await read(args)).code;
+    expect(await bad({ mode: "excerpt", offset: 5 })).toBe("INVALID_INPUT");
+    expect(
+      await bad({ mode: "excerpt", offset: long.length + 1, version }),
+    ).toBe("INVALID_INPUT");
+    // "abc\n😀": index 5 is the low half of the first pair.
+    expect(await bad({ mode: "excerpt", offset: 5, version })).toBe(
+      "INVALID_INPUT",
+    );
+    expect(
+      await bad({ mode: "excerpt", offset: 4, maxChars: 1, version }),
+    ).toBe("INVALID_INPUT");
+    expect(await bad({ stream: "content" })).toBe("INVALID_INPUT");
+    expect(await bad({ offset: 0 })).toBe("INVALID_INPUT");
+    expect(await bad({ mode: "full", contentOffset: 0 })).toBe("INVALID_INPUT");
+    expect(await bad({ mode: "metadata", offset: 0 })).toBe("INVALID_INPUT");
+    expect(await bad({ mode: "metadata", includeContext: false })).toBe(
+      "INVALID_INPUT",
+    );
+    expect((await read({ mode: "full", maxChars: 20001 })).isError).toBe(true);
+    const end = await read({ mode: "full", offset: long.length, version });
+    expect(end.structuredContent.content).toMatchObject({
+      text: "",
+      truncated: false,
+      offset: long.length,
+    });
+    expect(end.structuredContent.content).not.toHaveProperty("nextOffset");
+    // Windows never split a pair: a 2-unit limit at a pair returns the pair.
+    const pair = await read({ mode: "full", offset: 4, maxChars: 2, version });
+    expect(pair.structuredContent.content.text).toBe("😀");
+    void s;
+    void itemId;
+  });
+
+  it("returns resources only on request and keeps them independent of stream", async () => {
+    const { s, itemId, read } = await fixture();
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        extractedText: "See https://example.com/resource for more",
+      }),
+    );
+    const plain = (await read({ mode: "excerpt" })).structuredContent;
+    expect(plain).not.toHaveProperty("resources");
+    const withResources = (
+      await read({
+        mode: "excerpt",
+        stream: "userInput",
+        includeResources: true,
+      })
+    ).structuredContent;
+    expect(withResources.resources.links).toContainEqual({
+      url: "https://example.com/resource",
+      role: "in-content",
+    });
+  });
+
+  it("asks the backend for nothing beyond the item on bare continuations", async () => {
+    const { s, itemId } = await fixture();
+    const calls: Record<string, unknown>[] = [];
+    const overrides = {
+      runQuery: ((query: unknown, args: Record<string, unknown>) => {
+        calls.push(args);
+        return s.t.query(query as never, ...([args] as never));
+      }) as McpServices["runQuery"],
+    };
+    const first = await s.callTool(
+      s.alice,
+      "mindspool_get_item",
+      { itemId, mode: "excerpt" },
+      overrides,
+    );
+    const { nextOffset, version } = first.structuredContent.content;
+    await s.callTool(
+      s.alice,
+      "mindspool_get_item",
+      { itemId, mode: "excerpt", offset: nextOffset, version },
+      overrides,
+    );
+    expect(calls[0]).toMatchObject({ context: true, resources: false });
+    expect(calls[1]).toMatchObject({ context: false, resources: false });
+  });
+
+  it("makes foreign and malformed ids indistinguishable and keeps legacy reads working", async () => {
+    const { s, itemId } = await fixture();
+    const foreign = await s.save(s.bob, "Private");
+    for (const id of [foreign, "garbage"]) {
+      const result = await s.callTool(s.alice, "mindspool_get_item", {
+        itemId: id,
+        mode: "metadata",
+      });
+      expect(failure(result)).toMatchObject({ code: "NOT_FOUND" });
+    }
+    const legacy = await s.callTool(s.alice, "mindspool_get_item", { itemId });
+    expect(legacy.structuredContent.userInput.truncated).toBe(true);
+    expect(legacy.structuredContent).not.toHaveProperty("mode");
+  });
+
+  it("fits oversized context within the budget and flags the clipping", async () => {
+    const { s, itemId, read } = await fixture();
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        sourceMetadata: { title: "T", description: "\u0001".repeat(20000) },
+      }),
+    );
+    const result = await read({ mode: "metadata" });
+    expect(result.isError).toBeFalsy();
+    expect(
+      new TextEncoder().encode(JSON.stringify(result.structuredContent)).length,
+    ).toBeLessThan(64 * 1024);
+  });
+});
+
+// Synthetic fixtures only: no private clips. Numbers are printed so the
+// verification record can quote them; the assertions are the spec's gates.
+describe("efficiency gates (synthetic fixtures)", () => {
+  const bytes = (result: { structuredContent: unknown }) =>
+    toolBytes(result.structuredContent);
+
+  async function ordinaryPage() {
+    const s = await setup();
+    const labels = await Promise.all(
+      ["Design", "Reading", "Later"].map((name) => s.label(s.alice, name)),
+    );
+    for (let i = 0; i < 10; i++) {
+      const itemId = await s.save(
+        s.alice,
+        `https://example.com/articles/synthetic-article-number-${i}?ref=fixture-${i}`,
+        "url",
+      );
+      await s.t.run((ctx) =>
+        ctx.db.patch(itemId, {
+          originalUrl: `https://example.com/articles/synthetic-article-number-${i}`,
+          enrichmentStatus: "succeeded",
+          sourceMetadata: { title: `Synthetic article number ${i}` },
+          extractedText: `Article ${i}. ${"Synthetic body sentence about design systems. ".repeat(8)}`,
+        }),
+      );
+      for (const labelId of labels) await s.attach(s.alice, itemId, labelId);
+    }
+    return s;
+  }
+
+  it("compact browse and search cut ten-row pages by at least 25% with the same items", async () => {
+    const s = await ordinaryPage();
+    for (const [tool, extra] of [
+      ["mindspool_browse_items", {}],
+      ["mindspool_search_items", { query: "design" }],
+    ] as const) {
+      const standard = await s.callTool(s.alice, tool, extra);
+      const compact = await s.callTool(s.alice, tool, {
+        ...extra,
+        format: "compact",
+      });
+      expect(ids(compact.structuredContent)).toEqual(
+        ids(standard.structuredContent),
+      );
+      expect(compact.structuredContent.items).toHaveLength(10);
+      const saved = 1 - bytes(compact) / bytes(standard);
+      console.log(
+        `${tool}: standard ${bytes(standard)} B, compact ${bytes(compact)} B, saved ${(saved * 100).toFixed(1)}%`,
+      );
+      expect(saved).toBeGreaterThanOrEqual(0.25);
+    }
+  });
+
+  async function heavyItem() {
+    const s = await setup();
+    const itemId = await s.save(s.alice, "c".repeat(4000));
+    await s.t.run((ctx) =>
+      ctx.db.patch(itemId, {
+        originalUrl: "https://example.com/long-form",
+        canonicalUrl: "https://example.com/long-form",
+        enrichmentStatus: "succeeded",
+        sourceMetadata: {
+          title: "Synthetic long form",
+          description: "Synthetic description. ".repeat(40),
+          author: "Synthetic Author",
+          siteName: "Synthetic Site",
+        },
+        extractedText: "Long synthetic paragraph about systems. ".repeat(2000),
+        imageAssets: [1, 2, 3, 4, 5].map((n) => ({
+          kind: "external" as const,
+          purpose: "image" as const,
+          url: `https://example.com/images/synthetic-${n}.png`,
+        })),
+      }),
+    );
+    for (const name of ["Design", "Reading", "Later", "Systems"])
+      await s.attach(s.alice, itemId, await s.label(s.alice, name));
+    return { s, itemId };
+  }
+
+  it("continuations carry at least 75% less overhead than legacy", async () => {
+    const { s, itemId } = await heavyItem();
+    const overhead = (result: { structuredContent: any }) => {
+      const body = structuredClone(result.structuredContent);
+      body.content.text = "";
+      return toolBytes(body);
+    };
+    const legacy = await s.callTool(s.alice, "mindspool_get_item", {
+      itemId,
+      contentOffset: 20000,
+    });
+    const first = await s.callTool(s.alice, "mindspool_get_item", {
+      itemId,
+      mode: "full",
+    });
+    const next = await s.callTool(s.alice, "mindspool_get_item", {
+      itemId,
+      mode: "full",
+      offset: first.structuredContent.content.nextOffset,
+      version: first.structuredContent.content.version,
+    });
+    const saved = 1 - overhead(next) / overhead(legacy);
+    console.log(
+      `continuation overhead: legacy ${overhead(legacy)} B, efficient ${overhead(next)} B, saved ${(saved * 100).toFixed(1)}%`,
+    );
+    expect(saved).toBeGreaterThanOrEqual(0.75);
+  });
+
+  it("a complete full read uses no more calls or bytes than legacy and rebuilds identical text", async () => {
+    const { s, itemId } = await heavyItem();
+    const text = "Long synthetic paragraph about systems. ".repeat(2000);
+    const run = async (efficient: boolean) => {
+      let total = 0;
+      let calls = 0;
+      let offset = 0;
+      let version: string | undefined;
+      let assembled = "";
+      for (let guard = 0; guard < 20; guard++) {
+        const result = await s.callTool(s.alice, "mindspool_get_item", {
+          itemId,
+          ...(efficient
+            ? { mode: "full", offset, ...(version ? { version } : {}) }
+            : { contentOffset: offset }),
+        });
+        expect(result.isError).toBeFalsy();
+        calls++;
+        total += bytes(result);
+        const content = result.structuredContent.content;
+        version = content.version;
+        assembled += content.text;
+        if (!content.truncated) break;
+        offset = content.nextOffset;
+      }
+      return { calls, total, assembled };
+    };
+    const legacy = await run(false);
+    const efficient = await run(true);
+    console.log(
+      `full read: legacy ${legacy.calls} calls ${legacy.total} B, efficient ${efficient.calls} calls ${efficient.total} B`,
+    );
+    expect(efficient.assembled).toBe(text);
+    expect(legacy.assembled).toBe(text);
+    expect(efficient.calls).toBeLessThanOrEqual(legacy.calls);
+    expect(efficient.total).toBeLessThanOrEqual(legacy.total);
+  });
 });

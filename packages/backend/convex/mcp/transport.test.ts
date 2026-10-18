@@ -4,7 +4,7 @@ import {
 } from "@modelcontextprotocol/client";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createMcpTransportHandler } from "./transport";
+import { createMcpTransportHandler, SERVER_INSTRUCTIONS } from "./transport";
 
 const endpoint = "https://example.convex.site/mcp";
 const protocolVersion = "2025-11-25";
@@ -51,6 +51,13 @@ describe("stateless MCP transport", () => {
         serverInfo: { name: "MindSpool" },
       },
     });
+  });
+
+  it("tells agents at initialize to prefer compact listings and excerpt reads", async () => {
+    const { result } = await (await handle(initializeRequest())).json();
+    expect(result.instructions).toBe(SERVER_INSTRUCTIONS);
+    expect(result.instructions).toContain('format \"compact\"');
+    expect(result.instructions).toContain('mode \"excerpt\"');
   });
 
   it("accepts initialized notifications without a response body", async () => {

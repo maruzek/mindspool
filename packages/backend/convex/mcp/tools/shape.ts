@@ -80,7 +80,10 @@ type DetailRow = Infer<typeof itemDetail> & {
 };
 
 /** URLs as saved, with original/canonical taking precedence over text links. */
-function linksOf(row: DetailRow, text: string) {
+export function linksOf(
+  row: Pick<DetailRow, "originalUrl" | "canonicalUrl">,
+  text: string,
+) {
   const links: NonNullable<z.infer<typeof detailSchema>["links"]> = [];
   const seen = new Set<string>();
   let truncated = false;

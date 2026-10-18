@@ -176,7 +176,11 @@ export async function itemDetailFor(
 const EXCERPT = 200;
 
 /** A short summary of the post a link was found in, if it is still the owner's. */
-async function fromPost(ctx: QueryCtx, ownerId: string, item: Doc<"items">) {
+export async function fromPost(
+  ctx: QueryCtx,
+  ownerId: string,
+  item: Doc<"items">,
+) {
   const post = item.fromItemId ? await ctx.db.get(item.fromItemId) : null;
   if (!post || post.ownerId !== ownerId) return {};
   const excerpt = post.extractedText?.trim();
