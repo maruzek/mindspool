@@ -73,6 +73,7 @@ export function selectRegion(): Promise<CaptureRect | null> {
       window.removeEventListener("resize", changed);
       window.removeEventListener("scroll", changed);
       document.removeEventListener("visibilitychange", hidden);
+      window.removeEventListener("mindspool-cancel-capture", cancel);
       if (focus instanceof HTMLElement && focus.isConnected)
         focus.focus({ preventScroll: true });
       if (error) {
@@ -95,6 +96,11 @@ export function selectRegion(): Promise<CaptureRect | null> {
     function hidden() {
       if (document.hidden) changed();
     }
+    function cancel(event: Event) {
+      event.stopImmediatePropagation();
+      void finish(null);
+    }
+    window.addEventListener("mindspool-cancel-capture", cancel);
     function key(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
