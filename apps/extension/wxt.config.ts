@@ -12,6 +12,15 @@ const originPermission = (name: string) => {
     );
   }
 };
+const captureHttpPermission = () => {
+  const url =
+    process.env.WXT_PUBLIC_CONVEX_HTTP_URL ??
+    process.env.WXT_PUBLIC_CONVEX_URL?.replace(
+      /\.convex\.cloud\/?$/,
+      ".convex.site",
+    );
+  return url ? [`${new URL(url).origin}/*`] : [];
+};
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
@@ -24,6 +33,10 @@ export default defineConfig({
     permissions: [
       "storage",
       "cookies",
+      "activeTab",
+      "scripting",
+      "contextMenus",
+      ...(browser === "chrome" ? ["offscreen"] : []),
       ...(browser === "firefox" ? ["webRequest", "webRequestBlocking"] : []),
     ],
     // Firefox needs a fixed id for MV3 and for the Clerk origin allow-list.
@@ -45,6 +58,7 @@ export default defineConfig({
       "*://www.reddit.com/*",
       ...originPermission("WXT_PUBLIC_CLERK_FRONTEND_API"),
       ...originPermission("WXT_PUBLIC_CONVEX_URL"),
+      ...captureHttpPermission(),
       ...originPermission("WXT_PUBLIC_CLERK_SYNC_HOST"),
     ],
     // `key` pins the Chrome extension ID; Firefox rejects the property.

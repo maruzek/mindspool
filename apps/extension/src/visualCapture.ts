@@ -72,6 +72,20 @@ export type CaptureDependencies = {
   finalize(captureId: string, token: string): Promise<string>;
   changed(status: CaptureStatus): Promise<void>;
 };
+export type VisualCaptureRequest =
+  | { type: "start-visual-capture"; kind: "viewport" | "region" | "full-page" }
+  | { type: "get-visual-capture-status" };
+export function isVisualCaptureRequest(
+  value: unknown,
+): value is VisualCaptureRequest {
+  if (!value || typeof value !== "object" || !("type" in value)) return false;
+  return (
+    value.type === "get-visual-capture-status" ||
+    (value.type === "start-visual-capture" &&
+      "kind" in value &&
+      ["viewport", "region", "full-page"].includes(String(value.kind)))
+  );
+}
 export function captureFailure(error: unknown): CaptureFailure {
   const message = error instanceof Error ? error.message : "unknown";
   return (

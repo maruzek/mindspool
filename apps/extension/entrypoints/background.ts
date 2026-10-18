@@ -6,6 +6,8 @@ import { createClipHandler } from "../src/clipHandler";
 import { isClipRequest } from "../src/messages";
 import { createTokenProvider } from "../src/tokenProvider";
 import { clerkRequestHeaders } from "../src/clerkRequestHeaders";
+import { browserVisualCapture } from "../src/browserVisualCapture";
+import { isVisualCaptureRequest } from "../src/visualCapture";
 
 // ESM output: Clerk's client uses dynamic imports, which WXT's default IIFE background cannot bundle.
 // All runtime setup lives in `main`: WXT imports this file in Node at build time.
@@ -37,6 +39,7 @@ export default defineBackground({
       return createClerkClient({ publishableKey, syncHost, background: true });
     });
 
+    const visualCapture = browserVisualCapture(getToken);
     const handleClip = createClipHandler({
       getToken,
       client: {
@@ -53,6 +56,15 @@ export default defineBackground({
     });
 
     browser.runtime.onMessage.addListener((message: unknown, sender) => {
+      if (
+        sender.id === browser.runtime.id &&
+        sender.url?.startsWith(browser.runtime.getURL("/")) &&
+        isVisualCaptureRequest(message)
+      ) {
+        if (message.type === "start-visual-capture")
+          return Promise.resolve(visualCapture.start(message.kind));
+        return Promise.resolve(visualCapture.status());
+      }
       // Only this extension's own scripts may clip.
       if (sender.id !== browser.runtime.id || !isClipRequest(message))
         return undefined;
