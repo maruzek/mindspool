@@ -1,6 +1,12 @@
 # Implementation Plan: Visual Web Clipper
 
-Status: **Ready for review; implementation has not started.**
+Status: **Task 0 in progress; product implementation has not started.**
+
+Branch: `feature/visual-web-clipper`. Automated decoder/storage and Chrome
+test-build probes passed on 2026-10-18. Desktop Firefox and native image-menu
+checks remain pending; the Task 0 gate still applies. Run
+`node scripts/probe-visual-clipper.mjs` and follow the
+[verification guide](../docs/verification/visual-web-clipper.md).
 
 Spec: [SPEC-visual-web-clipper.md](../SPEC-visual-web-clipper.md).
 Task list: [todo.md](todo.md), the sole execution checklist for this feature.
@@ -85,8 +91,11 @@ Use the existing Clerk Convex JWT and `ctx.auth.getUserIdentity()`, not a second
 authentication scheme. The backend never downloads an arbitrary image URL.
 
 Actual server-side raster decoding is required, beyond trusting headers or a
-client's width/height. Proposed additional dependency: **`sharp` in the backend
-Node action**, version pinned after the compatibility check in Task 0. Fully
+client's width/height. Pinned dependency: **`sharp` 0.35.5 in the backend Node action**, proven on the
+personal development deployment in Task 0. Configure
+`node.externalPackages: ["sharp"]` in `packages/backend/convex.json` when the
+production decoder is added; the disposable probe used this in its temporary
+configuration. Fully
 decode with strict pixel/frame limits; accept static PNG/JPEG/WebP only. The
 browser canonicalizes other decodable sources into that set. Invoke Node
 decoding using a private staged storage ID, not public file URLs. The server overwrites

@@ -1,6 +1,6 @@
 # Tasks: Visual Web Clipper
 
-Status: **Planned; no implementation started.**
+Status: **Task 0 in progress; product implementation has not started.**
 Spec: [SPEC-visual-web-clipper.md](../SPEC-visual-web-clipper.md).
 Plan and shared interfaces: [plan.md](plan.md). Read both before execution.
 The previous completed MCP task list is [archived](archive/mcp-discovery-todo.md).
@@ -16,6 +16,14 @@ before expanding it. Worktree/branch setup occurs at execution, not during plann
 ### Task 0: Resolve browser and upload feasibility
 
 - [ ] Complete Task 0.
+
+Progress (2026-10-18): Sharp 0.35.5 is pinned and the real development-runtime
+decode/marker/recovery probe passed, including a two-page storage scan. The
+Chrome test build passed viewport and scroll/stitch capture after popup closure.
+Desktop Firefox and native image-menu checks remain pending. Run
+`node scripts/probe-visual-clipper.mjs`; exact steps and limitations are in
+[the verification report](../docs/verification/visual-web-clipper.md).
+The task and downstream gate remain unchecked until the missing evidence exists.
 
 **Description:** Produce disposable probes and evidence for the risky decisions
 before committing to implementation; review the capture-first popup brief.
