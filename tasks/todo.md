@@ -1,6 +1,6 @@
 # Tasks: Visual Web Clipper
 
-Status: **Task 0 in progress; product implementation has not started.**
+Status: **Implementation in progress; Task 0 passed.**
 Spec: [SPEC-visual-web-clipper.md](../SPEC-visual-web-clipper.md).
 Plan and shared interfaces: [plan.md](plan.md). Read both before execution.
 The previous completed MCP task list is [archived](archive/mcp-discovery-todo.md).
@@ -15,29 +15,30 @@ before expanding it. Worktree/branch setup occurs at execution, not during plann
 
 ### Task 0: Resolve browser and upload feasibility
 
-- [ ] Complete Task 0.
+- [x] Complete Task 0.
 
 Progress (2026-10-18): Sharp 0.35.5 is pinned and the real development-runtime
 decode/marker/recovery probe passed, including a two-page storage scan. The
 Chrome test build passed viewport and scroll/stitch capture after popup closure.
 User-run desktop viewport, full-page, and native image menus passed in both
-browsers. Exact versions and source-page restoration confirmation remain pending. Run
+browsers: Chrome 155.0.8059.79 and Firefox 147.0.1. The user confirmed source-page
+restoration in both. Reproduce with
 `node scripts/probe-visual-clipper.mjs`; exact steps and limitations are in
 [the verification report](../docs/verification/visual-web-clipper.md).
-The task and downstream gate remain unchecked until the missing evidence exists.
+The feasibility gate is satisfied; production behavior is verified in later tasks.
 
 **Description:** Produce disposable probes and evidence for the risky decisions
 before committing to implementation; review the capture-first popup brief.
 
 **Acceptance criteria:**
 
-- [ ] Prove viewport capture, canvas processing after popup close, context-menu
+- [x] Prove viewport capture, canvas processing after popup close, context-menu
       invocation, and a sticky-header scroll/stitch fixture in both real browsers;
       record versions and supported processing adapters. Verify the proposed limits.
-- [ ] Prove the private Convex upload/Node decoder can fully decode a small raster,
+- [x] Prove the private Convex upload/Node decoder can fully decode a small raster,
       reject a disguised/truncated raster, preserve/recover the attempt marker after
       an injected post-store crash, and safely retain attached assets during cleanup.
-- [ ] Record the pinned Sharp version/build requirements, precise additional
+- [x] Record the pinned Sharp version/build requirements, precise additional
       permissions, and popup layout review. Any failed architecture assumption is
       corrected in the plan before downstream tasks; do not silently drop guarantees.
 

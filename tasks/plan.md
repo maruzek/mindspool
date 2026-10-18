@@ -1,11 +1,12 @@
 # Implementation Plan: Visual Web Clipper
 
-Status: **Task 0 in progress; product implementation has not started.**
+Status: **Implementation in progress; Task 0 passed.**
 
 Branch: `feature/visual-web-clipper`. Automated decoder/storage and Chrome
 test-build probes passed on 2026-10-18. User-run desktop viewport, full-page,
-and native image menus passed in both browsers. Exact desktop versions and
-source-page restoration confirmation remain pending; the Task 0 gate still applies. Run
+and native image menus passed in Chrome 155.0.8059.79 and Firefox 147.0.1.
+The user confirmed source-page restoration in both browsers. The Task 0 gate
+is satisfied. Reproduce the probes with
 `node scripts/probe-visual-clipper.mjs` and follow the
 [verification guide](../docs/verification/visual-web-clipper.md).
 

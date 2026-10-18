@@ -2,8 +2,7 @@
 
 Date: 2026-10-18. Branch: `feature/visual-web-clipper`.
 
-**Task 0 is partially proven. The browser gate remains open; product implementation
-has not started.** The disposable probes below exercise platform capabilities,
+**Task 0 passed. Product implementation may proceed.** The disposable probes below exercise platform capabilities,
 not the eventual upload/session/cleanup implementation.
 
 ## Run the missing desktop browser checks
@@ -60,7 +59,9 @@ checks below, including processing after the popup closed.
 ## User-run desktop evidence
 
 The user supplied popup JSON and inspected-image screenshots on 2026-10-18.
-Exact desktop browser versions and source-page restoration are still pending.
+Tested desktop versions: **Chrome 155.0.8059.79 (Official Build, 64-bit)** and
+**Firefox 147.0.1**. The user confirmed that both browsers restored the original
+fixture tab to the top with its red header visible after full-page capture.
 The first two supplied captures used different modes; the user subsequently
 supplied the opposite mode in each browser. All four capture results passed.
 
@@ -81,10 +82,8 @@ The second Firefox screenshot likewise shows one red header, a continuous
 gradient, and the bottom-edge text. Its last offset of 793 is another expected
 clamped final tile. The second Chrome screenshot is the expected viewport crop.
 
-Still needed: both exact browser versions and confirmation that scroll/stitch
-restores the source fixture to the top with its red header visible. Both capture
-modes and native image-menu invocation are now evidenced in both desktop browsers;
-no additional capture result is requested.
+Both capture modes, native image-menu invocation, and source-page restoration
+are now evidenced in both desktop browsers. The Task 0 browser gate is satisfied.
 
 ## Automated Chrome capability evidence
 
@@ -190,5 +189,5 @@ rendered popup acceptance remains pending Tasks 6–7.
   resolved the contention without changing any tests or timeout settings.
 - Manual launcher: Node syntax check passed; generated Chrome viewport and
   scroll/stitch flows passed as recorded above. User-run viewport, scroll/stitch,
-  and native-menu checks passed in both browsers. Version recording and source-page
-  restoration confirmation remain pending as listed above.
+  and native-menu checks passed in both browsers. Exact desktop versions and source-page
+  restoration are recorded above.
