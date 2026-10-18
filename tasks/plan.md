@@ -1,6 +1,6 @@
 # Implementation Plan: Visual Web Clipper
 
-Status: **Feature implemented; authenticated desktop acceptance pending.**
+Status: **Feature implemented; core desktop workflows passed; edge-case acceptance pending.**
 
 Branch: `feature/visual-web-clipper`. Automated decoder/storage and Chrome
 test-build probes passed on 2026-10-18. User-run desktop viewport, full-page,
@@ -391,3 +391,9 @@ The implemented native decoder was exercised in the development Node runtime.
 Automated regression suites and built Chrome processor checks pass. The remaining
 signed-in product matrix in Firefox and Chrome is a required acceptance gate;
 Task 0 capability probes do not satisfy it. See the verification report.
+
+Desktop outcome update: the user confirmed all four capture modes, source-tab
+restoration, live-image saving, manual board placement/resizing and 100% image
+inspection in both Firefox and Chrome. Stored fixture assets were independently
+retrieved and decoded. The remaining edge-case/recovery rows in Task 18 are still
+open; basic workflow confirmation does not waive them.

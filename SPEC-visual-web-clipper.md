@@ -1,6 +1,6 @@
 # Spec: Visual Web Clipper
 
-Status: **Implemented on feature branch; final Firefox/Chrome acceptance pending.**
+Status: **Implemented; core capture/board workflows passed in Firefox and Chrome; edge-case acceptance pending.**
 
 The user requested planning on 2026-10-18. See [the implementation plan](tasks/plan.md)
 and [task list](tasks/todo.md). The user authorized implementation on a new branch;

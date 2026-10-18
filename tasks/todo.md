@@ -1,6 +1,6 @@
 # Tasks: Visual Web Clipper
 
-Status: **All feature slices implemented; final authenticated desktop acceptance pending.**
+Status: **Feature implemented; core desktop workflows passed; remaining edge-case acceptance pending.**
 
 Implementation is committed on `feature/visual-web-clipper`. Automated suites,
 typechecks, development/production extension bundles, and actual processor/page
@@ -599,6 +599,10 @@ web/UI typechecks; inspect a tall stored capture and keyboard navigation in a re
 
 ### Checkpoint F: The inspiration-board workflow works
 
+The user confirmed the core manual placement, resizing and 100% inspection flow
+in both browsers. Remaining column/keyboard and failure scenarios are tracked in
+Task 18 rather than inferred from that successful workflow.
+
 - [ ] Tasks 14–16 pass; captures appear in eligible trays, manual placement is
       required, and complete visuals can be arranged, resized and inspected.
 
@@ -644,9 +648,11 @@ Progress: after fixing Node MIME-parameter whitespace rejection, the user
 confirmed viewport, region, full-page and native fixture-image saves in both
 Firefox and Chrome. Read-only runtime checks verified eight completed captures
 and fully decoded stored assets, including two complete full-page outputs and
-two natural-size images. The remaining matrix (restoration, zoom/DPI, live
-aggregator/X images, retry/worker interruption, permissions and board inspection)
-is still open; see the verification report. The library’s failed-enrichment
+two natural-size images. The user then confirmed source-page scroll restoration,
+live X/aggregator image capture, manual board placement/resizing and 100% image
+inspection in both browsers. The remaining zoom/DPI, keyboard, per-site/browser,
+retry/worker interruption, failure/permission and deletion checks are still open;
+see the verification report. The library’s failed-enrichment
 status now clearly distinguishes saved content from unavailable page details.
 
 **Description:** Load the built extension in each actual browser and exercise

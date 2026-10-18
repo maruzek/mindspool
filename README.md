@@ -154,8 +154,9 @@ Set `WXT_PUBLIC_CONVEX_URL` to the intended backend. Uploads use its correspondi
 hosting. The manifest grants that HTTP origin separately. Production builds use
 production environment settings, so verify the target before loading a build.
 
-Implementation and automated checks are complete; signed-in product acceptance
-in both desktop browsers remains open. Follow the
+Implementation and automated checks are complete. Core signed-in capture,
+restoration, live-image saving, board placement/resizing and 100% inspection have
+passed in both browsers; remaining edge-case/recovery acceptance is open. Follow the
 [acceptance guide and evidence](docs/verification/visual-web-clipper.md).
 Existing AI membership uses text/metadata; image-aware classification is outside
 this feature’s verified scope.
