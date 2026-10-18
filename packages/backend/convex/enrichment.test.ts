@@ -81,6 +81,39 @@ describe("isBlockedUrl", () => {
   ])("allows %s", (url) => expect(isBlockedUrl(url)).toBe(false));
 });
 
+it("preserves stored capture pixels and immutable browsing context during enrichment", async () => {
+  const { t, itemId, runEnrichment, item } = await fixture();
+  const storageId = await t.run((ctx) =>
+    ctx.storage.store(new Blob(["captured pixels"])),
+  );
+  const visualCapture = {
+    captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
+    kind: "viewport" as const,
+    pageUrl: "https://example.com/soup#details",
+    capturedAt: 1000,
+    width: 1200,
+    height: 800,
+    contentType: "image/png" as const,
+  };
+  await t.run((ctx) =>
+    ctx.db.patch(itemId, {
+      visualCapture,
+      imageAssets: [{ kind: "stored", storageId, purpose: "screenshot" }],
+      sourceMetadata: { title: "Captured section" },
+    }),
+  );
+  mockFetch(() => html(page));
+  await runEnrichment();
+  const saved = await item();
+  expect(saved.visualCapture).toEqual(visualCapture);
+  expect(saved.imageAssets[0]).toEqual({
+    kind: "stored",
+    storageId,
+    purpose: "screenshot",
+  });
+  expect(saved.sourceMetadata?.title).toBe("Captured section");
+});
+
 describe("starting enrichment", () => {
   it("saving a link starts enrichment and defers labeling", async () => {
     const { runs, item } = await fixture();

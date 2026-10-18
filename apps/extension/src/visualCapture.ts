@@ -3,6 +3,7 @@ import {
   type CaptureContext,
   type VisualCaptureKind,
 } from "@mindspool/schema";
+import { pageContext } from "./pageContext";
 export type CaptureFailure =
   | "unsupported_page"
   | "permission_denied"
@@ -32,6 +33,7 @@ export type CaptureStatus = {
   retryable?: boolean;
 };
 export type PinnedPage = {
+  head?: string;
   tabId: number;
   windowId: number;
   documentId: string;
@@ -126,6 +128,7 @@ export function createVisualCapture(deps: CaptureDependencies) {
         sourceMetadata: {
           title: page.title.slice(0, VISUAL_LIMITS.metadata.title),
         },
+        ...pageContext(page.pageUrl, page.head ?? ""),
       };
       const dataUrl = await deps.screenshot(page);
       update({ state: "encoding" });

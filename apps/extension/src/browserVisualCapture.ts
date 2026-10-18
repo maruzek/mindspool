@@ -9,6 +9,7 @@ import {
   type ProcessorRequest,
   type EncodedCapture,
 } from "./visualCapture";
+import { readRenderedPage } from "./pageContext";
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -29,20 +30,8 @@ async function readPage(tabId: number, windowId: number): Promise<PinnedPage> {
   try {
     const [injection] = await browser.scripting.executeScript({
       target: { tabId, frameIds: [0] },
-      func: () => {
-        const scope = globalThis as typeof globalThis & {
-          __mindspoolDocumentId?: string;
-        };
-        scope.__mindspoolDocumentId ??= crypto.randomUUID();
-        return {
-          documentId: scope.__mindspoolDocumentId,
-          pageUrl: location.href,
-          title: document.title.slice(0, 300),
-          width: innerWidth,
-          height: innerHeight,
-          dpr: devicePixelRatio,
-        };
-      },
+      func: readRenderedPage,
+      args: [crypto.randomUUID()],
     });
     if (!injection?.result) throw new Error("unsupported_page");
     return { ...injection.result, tabId, windowId };
