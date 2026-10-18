@@ -3,6 +3,7 @@
 @source "./*.tsx";
 
 body {
+  font-family: inherit;
   margin: 0;
   width: 380px;
   min-height: 280px;
