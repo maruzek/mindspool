@@ -3,8 +3,10 @@
 Status: **Task 0 in progress; product implementation has not started.**
 
 Branch: `feature/visual-web-clipper`. Automated decoder/storage and Chrome
-test-build probes passed on 2026-10-18. Desktop Firefox and native image-menu
-checks remain pending; the Task 0 gate still applies. Run
+test-build probes passed on 2026-10-18. User-run desktop Firefox viewport,
+Chrome full-page, and native image menus in both browsers also passed. Firefox
+scroll/stitch, Chrome desktop viewport, exact desktop versions, and page
+restoration confirmation remain pending; the Task 0 gate still applies. Run
 `node scripts/probe-visual-clipper.mjs` and follow the
 [verification guide](../docs/verification/visual-web-clipper.md).
 

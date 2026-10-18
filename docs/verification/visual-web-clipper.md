@@ -54,8 +54,31 @@ The probe stores its encoded fixture output in its own local extension storage
 so you can inspect it after reopening. Removing the probe removes that data.
 This is disposable test behavior, not the product's IndexedDB retry design.
 It has no tokens, uploads, social-site permissions, or all-sites permission.
-The Firefox hidden-frame adapter is deliberately provided for desktop verification;
-its runtime behavior is **unverified** until the checks above pass.
+The Firefox hidden-frame adapter passed the desktop viewport check below.
+Its scroll/stitch behavior still needs the corresponding desktop check.
+
+## User-run desktop evidence
+
+The user supplied popup JSON and inspected-image screenshots on 2026-10-18.
+Exact desktop browser versions and source-page restoration are still pending.
+The two supplied captures used different modes; the difference in output height
+is expected and does not indicate an incorrect test.
+
+| Browser | Capture result                                                                                                            | Native image-menu result                           |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Firefox | Viewport, 2560 × 1258, one tile at 0, WebP, 30,846 bytes, `popupClosed: true`, `moz-extension://…` processor              | Correct `http://127.0.0.1:36668/target.png` target |
+| Chrome  | Full page, 2560 × 2100, two tiles at 0 and 795, WebP, 48,340 bytes, `popupClosed: true`, `chrome-extension://…` processor | Correct `http://127.0.0.1:36668/target.png` target |
+
+The Firefox screenshot contains the visible portion with its red header and
+purple image. The Chrome screenshot contains one red header, the continuous
+blue-to-green page, and the bottom-edge text. Its final offset of 795 is the
+actual clamped scroll position of the overlapping last tile, which is expected.
+The Firefox viewport is not expected to include the page's bottom-edge text.
+
+Still needed: Firefox scroll/stitch output, Chrome desktop viewport output,
+both exact browser versions, and confirmation that scroll/stitch restores the
+fixture to the top with the red header visible. Native image-menu invocation is
+now evidenced in both desktop browsers and does not need repeating.
 
 ## Automated Chrome capability evidence
 
@@ -83,9 +106,10 @@ The image was visually inspected: one red header and a continuous gradient.
 
 Firefox **144.0.2** launches headlessly, but loading its extension-debugging page
 via Playwright timed out. Both the available Playwright version and a version
-matching that Firefox generation were tried. No Firefox extension/canvas/menu
-success is claimed. The T3 collaborative browser reports no attached automation
-host for both status and open.
+matching that Firefox generation were tried. No automated Firefox
+extension/canvas/menu success is claimed; the user-run desktop result above
+supplies separate Firefox viewport and native-menu evidence. The T3 collaborative
+browser reports no attached automation host for both status and open.
 
 ## Convex native decoder and storage recovery evidence
 
@@ -159,5 +183,5 @@ rendered popup acceptance remains pending Tasks 6–7.
   (597/598 passed). All 58 tests in that file also passed alone. Serial execution
   resolved the contention without changing any tests or timeout settings.
 - Manual launcher: Node syntax check passed; generated Chrome viewport and
-  scroll/stitch flows passed as recorded above. Firefox and native-menu checks
-  remain pending human execution.
+  scroll/stitch flows passed as recorded above. User-run Firefox viewport and
+  both native-menu checks passed; the remaining desktop checks are listed above.
