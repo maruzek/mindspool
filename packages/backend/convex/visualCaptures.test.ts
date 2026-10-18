@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
+import type { GenericDatabaseWriter, SystemDataModel } from "convex/server";
 
 const context = {
   captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
@@ -19,6 +20,67 @@ function setup() {
   };
 }
 describe("owned visual sessions", () => {
+  it("finalizes only a verified owned file, replays once, and never places a board card", async () => {
+    const { t, alice, bob } = setup();
+    const { captureId } = await alice.mutation(api.visualCaptures.begin, {
+      context,
+    });
+    await expect(
+      alice.mutation(api.visualCaptures.finalize, { captureId }),
+    ).rejects.toThrow("Image not verified");
+    const attempt = await alice.mutation(
+      internal.visualCaptureState.claimUpload,
+      { captureId, digest: "a".repeat(64) },
+    );
+    const type = `image/png; mindspool-attempt=${attempt.nonce}`;
+    const storageId = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["verified fixture"], { type })),
+    );
+    await t.run((ctx) =>
+      (ctx.db as unknown as GenericDatabaseWriter<SystemDataModel>).patch(
+        storageId,
+        { contentType: type },
+      ),
+    );
+    await alice.mutation(internal.visualCaptureState.registerStaged, {
+      captureId,
+      attemptId: attempt.attemptId,
+      storageId,
+    });
+    await alice.mutation(internal.visualCaptureState.recordVerified, {
+      captureId,
+      attemptId: attempt.attemptId,
+      digest: "a".repeat(64),
+      width: 1200,
+      height: 800,
+      bytes: 16,
+      contentType: "image/png",
+    });
+    await expect(
+      bob.mutation(api.visualCaptures.finalize, { captureId }),
+    ).rejects.toThrow("Not found");
+    const saved = await alice.mutation(api.visualCaptures.finalize, {
+      captureId,
+    });
+    expect(
+      await alice.mutation(api.visualCaptures.finalize, { captureId }),
+    ).toEqual(saved);
+    const item = await t.run((ctx) => ctx.db.get(saved.itemId));
+    expect(item).toMatchObject({
+      originalUrl: context.pageUrl,
+      visualCapture: { kind: "viewport", width: 1200, height: 800 },
+      imageAssets: [{ kind: "stored", storageId, purpose: "screenshot" }],
+    });
+    expect(await t.run((ctx) => ctx.db.query("boardElements").take(1))).toEqual(
+      [],
+    );
+    await alice.mutation(api.items.remove, { id: saved.itemId });
+    expect(
+      await alice.mutation(api.visualCaptures.finalize, { captureId }),
+    ).toEqual(saved);
+    expect(await t.run((ctx) => ctx.db.get(saved.itemId))).toBeNull();
+    expect(await t.run((ctx) => ctx.storage.get(storageId))).toBeNull();
+  });
   it("replays an intent, rejects changed context, and separates owners", async () => {
     const { alice, bob } = setup();
     const first = await alice.mutation(api.visualCaptures.begin, { context });

@@ -25,6 +25,51 @@ function streamed(bytes: number, claimedLength?: string) {
   });
 }
 describe("bounded raster ingestion", () => {
+  it("authenticates the HTTP boundary and bounds bytes before decode", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: "alice" });
+    const { captureId } = await alice.mutation(api.visualCaptures.begin, {
+      context: {
+        captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
+        kind: "viewport",
+        pageUrl: "https://example.com",
+        capturedAt: 1000,
+      },
+    });
+    const path = `/visual-captures/upload?captureId=${captureId}`;
+    expect((await t.fetch(path, { method: "POST", body: "x" })).status).toBe(
+      401,
+    );
+    expect(
+      (
+        await t
+          .withIdentity({ subject: "bob" })
+          .fetch(path, { method: "POST", body: "x" })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await alice.fetch(path, {
+          method: "POST",
+          body: new Uint8Array(VISUAL_LIMITS.bytes + 1),
+        })
+      ).status,
+    ).toBe(413);
+    const png = await sharp({
+      create: { width: 1, height: 1, channels: 3, background: "red" },
+    })
+      .png()
+      .toBuffer();
+    expect(
+      (
+        await alice.fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "image/jpeg" },
+          body: new Uint8Array(png),
+        })
+      ).status,
+    ).toBe(415);
+  });
   it("verifies only the owned server-registered attempt and refuses a cancelled attempt", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });

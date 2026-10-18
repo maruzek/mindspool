@@ -8,8 +8,14 @@ import { readMcpConfig } from "./mcp/config";
 import type { McpServices } from "./mcp/handler";
 import { handleMcpMetadata, handleMcpRequest } from "./mcp/handler";
 import { productionTools } from "./mcp/registry";
+import { uploadVisual } from "./visualCaptureUpload";
 
 const http = httpRouter();
+http.route({
+  path: "/visual-captures/upload",
+  method: "POST",
+  handler: uploadVisual,
+});
 
 function mcpServices(ctx: ActionCtx): McpServices {
   return {

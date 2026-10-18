@@ -197,6 +197,7 @@ export const recordVerified = internalMutation({
       storageId: attempt.storageId,
       state: "verified",
     });
+    await ctx.db.patch(attemptId, { expiresAt: capture.expiresAt });
     return null;
   },
 });
