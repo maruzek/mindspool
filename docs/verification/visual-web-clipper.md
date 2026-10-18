@@ -6,6 +6,37 @@ Date: 2026-10-18. Branch: `feature/visual-web-clipper`.
 Task 0 passed. The Task 0 evidence below proves platform capabilities separately
 from the implemented feature’s checks recorded here.
 
+## Desktop acceptance defect: Node MIME normalization
+
+The user’s Firefox 147.0.1 product captures reached the authenticated upload route
+but failed with HTTP 422 (`invalid_image`). Development logs localized the failure
+to the post-decode marker comparison in `visualImageDecode.verify`; registration,
+ownership and full native decode had succeeded.
+
+A retained fixture upload reproduced the mismatch: `_storage.contentType` and
+the served HTTP header contained `image/webp; mindspool-attempt=<nonce>`, while
+Node’s fetched `Blob.type` contained `image/webp;mindspool-attempt=<nonce>`.
+The uploaded and retrieved payload digests matched. Comparing raw MIME strings
+incorrectly rejected the equivalent header after Node removed optional whitespace.
+
+The decoder now normalizes whitespace after semicolons before comparing the
+expected format and exact server nonce. Digest matching, owned-attempt checks,
+static decoding and all limits remain enforced. The regression uses real Node
+`Response.blob()` normalization for PNG/JPEG/WebP and rejects mismatched nonces
+and digests. All three positive cases failed before the fix and pass afterward.
+
+Fix validation: backend typecheck and formatting passed; the focused ingestion
+suite passed **12 tests**, and the full backend suite passed **46 files / 621
+tests** with `vitest run --maxWorkers 1 --pool threads`. The first default-pool
+serial run passed 620 tests and hit the known five-second public-schema audit
+timeout; all 58 audit-file tests passed alone, and the complete single-thread
+run passed without changing timeouts or skipping tests.
+
+This is a backend-only fix; existing development extension builds can be reused.
+The failed attempts created no library items; their staged files are reclaimed by
+the existing cleanup job. Signed-in desktop capture must be rerun after deploying
+the fix; the product matrix below remains open until that result is supplied.
+
 ## Product implementation verification
 
 Branch `feature/visual-web-clipper` contains the capture session/upload lifecycle,
@@ -99,21 +130,21 @@ Run the following in **both Chrome and Firefox**; report failures verbatim and
 record each actual browser version. The recorded Task 0 versions were Chrome
 155.0.8059.79 and Firefox 147.0.1.
 
-| Product scenario                                     | Expected result                                                                               | Chrome  | Firefox |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- | ------- |
-| Sign-in and popup keyboard order                     | Capture visible area primary, region/full-page next; account compact; no font/CSP errors      | Pending | Pending |
-| Visible capture at top, then scrolled                | Saved pixels match each current viewport; two independent items with source metadata          | Pending | Pending |
-| Region at 80%, 125%, and high DPI                    | Exact rectangle, no overlay; Escape creates no item                                           | Pending | Pending |
-| Native menu on fixture image                         | Only the purple image saved, independently of page screenshot/preview                         | Pending | Pending |
-| Native menu on a design aggregator and X attachment  | Correct selected image; unambiguous entry/post context; no hover UI                           | Pending | Pending |
-| Finite full page with red fixed header               | Complete bottom edge, one header, source tab restored; compare original scroll                | Pending | Pending |
-| Popup close/reopen and worker restart                | Background finishes or reports interruption; cached retry never recaptures a changed page     | Pending | Pending |
-| Offline during save, reconnect, Retry save           | Same intent saves once; repeat intentional capture creates a new item                         | Pending | Pending |
-| Denied image-origin permission / unavailable source  | Clear failure or explicit origin grant; selected-area alternative; no preview substitution    | Pending | Pending |
-| Unsupported browser page, oversized/infinite page    | Clear failure, no partial success, source styles/scroll restored                              | Pending | Pending |
-| Library → label tray → manual board placement        | Current membership decisions respected; no automatic canvas card                              | Pending | Pending |
-| Resize/column/full reference and tall inspection     | Complete image, useful 100% scrolling, Escape/focus preserved                                 | Pending | Pending |
-| Block original image requests, then delete reference | Stored copy still renders; deletion releases stored asset; stale retry does not recreate item | Pending | Pending |
+| Product scenario                                     | Expected result                                                                               | Chrome  | Firefox                          |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- | -------------------------------- |
+| Sign-in and popup keyboard order                     | Capture visible area primary, region/full-page next; account compact; no font/CSP errors      | Pending | Pending                          |
+| Visible capture at top, then scrolled                | Saved pixels match each current viewport; two independent items with source metadata          | Pending | Initial 422; fix awaiting retest |
+| Region at 80%, 125%, and high DPI                    | Exact rectangle, no overlay; Escape creates no item                                           | Pending | Initial 422; fix awaiting retest |
+| Native menu on fixture image                         | Only the purple image saved, independently of page screenshot/preview                         | Pending | Pending                          |
+| Native menu on a design aggregator and X attachment  | Correct selected image; unambiguous entry/post context; no hover UI                           | Pending | Pending                          |
+| Finite full page with red fixed header               | Complete bottom edge, one header, source tab restored; compare original scroll                | Pending | Initial 422; fix awaiting retest |
+| Popup close/reopen and worker restart                | Background finishes or reports interruption; cached retry never recaptures a changed page     | Pending | Pending                          |
+| Offline during save, reconnect, Retry save           | Same intent saves once; repeat intentional capture creates a new item                         | Pending | Pending                          |
+| Denied image-origin permission / unavailable source  | Clear failure or explicit origin grant; selected-area alternative; no preview substitution    | Pending | Pending                          |
+| Unsupported browser page, oversized/infinite page    | Clear failure, no partial success, source styles/scroll restored                              | Pending | Pending                          |
+| Library → label tray → manual board placement        | Current membership decisions respected; no automatic canvas card                              | Pending | Pending                          |
+| Resize/column/full reference and tall inspection     | Complete image, useful 100% scrolling, Escape/focus preserved                                 | Pending | Pending                          |
+| Block original image requests, then delete reference | Stored copy still renders; deletion releases stored asset; stale retry does not recreate item | Pending | Pending                          |
 
 Use an existing suitable label description for current text/metadata membership;
 image-aware classification is outside this feature. Named live-site samples and
@@ -325,7 +356,7 @@ rendered popup acceptance remains pending Tasks 6–7.
   and native-menu checks passed in both browsers. Exact desktop versions and source-page
   restoration are recorded above.
 
-## Final repository gate
+## Repository gate before the desktop MIME fix
 
 `VITEST_MAX_WORKERS=1 pnpm check` runs the normal repository gate with serial
 Vitest workers to avoid the previously observed schema-audit timeout under

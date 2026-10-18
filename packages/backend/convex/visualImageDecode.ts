@@ -84,7 +84,9 @@ export const verify = internalAction({
     });
     if (
       decoded.digest !== staged.digest ||
-      blob.type !== `${decoded.contentType}; mindspool-attempt=${staged.nonce}`
+      // Node fetch normalizes optional whitespace in MIME parameters.
+      blob.type.replace(/;\s*/g, ";") !==
+        `${decoded.contentType};mindspool-attempt=${staged.nonce}`
     )
       throw new ConvexError({
         code: "INVALID_IMAGE",

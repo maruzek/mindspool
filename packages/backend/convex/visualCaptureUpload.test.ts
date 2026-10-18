@@ -93,71 +93,100 @@ describe("bounded raster ingestion", () => {
       ).status,
     ).toBe(415);
   });
-  it("verifies only the owned server-registered attempt and refuses a cancelled attempt", async () => {
-    const t = convexTest(schema, modules);
-    const alice = t.withIdentity({ subject: "alice" });
-    const { captureId } = await alice.mutation(api.visualCaptures.begin, {
-      context: {
-        captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
-        kind: "viewport",
-        pageUrl: "https://example.com",
-        capturedAt: 1000,
-      },
-    });
-    const bytes = await sharp({
-      create: { width: 31, height: 23, channels: 3, background: "red" },
-    })
-      .png()
-      .toBuffer();
-    const decoded = await decodeRaster(bytes);
-    const attempt = await alice.mutation(
-      internal.visualCaptureState.claimUpload,
-      { captureId, digest: decoded.digest },
-    );
-    const storageId = await t.run((ctx) =>
-      ctx.storage.store(
-        new Blob([new Uint8Array(bytes)], {
-          type: `image/png; mindspool-attempt=${attempt.nonce}`,
-        }),
-      ),
-    );
-    // convex-test 0.0.60 omits Blob.type in storeBlob's metadata. Match the real
-    // platform behavior already proven by Task 0 without relaxing production checks.
-    await t.run((ctx) =>
-      (ctx.db as unknown as GenericDatabaseWriter<SystemDataModel>).patch(
-        storageId,
-        { contentType: `image/png; mindspool-attempt=${attempt.nonce}` },
-      ),
-    );
-    await expect(
-      t
-        .withIdentity({ subject: "bob" })
-        .mutation(internal.visualCaptureState.registerStaged, {
+  it.each([
+    ["png", "none"],
+    ["jpeg", "none"],
+    ["webp", "none"],
+    ["webp", "nonce"],
+    ["webp", "digest"],
+  ] as const)(
+    "verifies %s with Node-normalized MIME parameters, mismatch: %s",
+    async (format, mismatch) => {
+      const t = convexTest(schema, modules);
+      const alice = t.withIdentity({ subject: "alice" });
+      const { captureId } = await alice.mutation(api.visualCaptures.begin, {
+        context: {
+          captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
+          kind: "viewport",
+          pageUrl: "https://example.com",
+          capturedAt: 1000,
+        },
+      });
+      const bytes = await sharp({
+        create: { width: 31, height: 23, channels: 3, background: "red" },
+      })
+        .toFormat(format)
+        .toBuffer();
+      const decoded = await decodeRaster(bytes);
+      const attempt = await alice.mutation(
+        internal.visualCaptureState.claimUpload,
+        {
           captureId,
-          attemptId: attempt.attemptId,
+          digest: mismatch === "digest" ? "a".repeat(64) : decoded.digest,
+        },
+      );
+      const contentType = `image/${format}; mindspool-attempt=${attempt.nonce}`;
+      // Node's fetch/Response.blob() removes optional MIME whitespace. Convex's
+      // system metadata still retains the original header from storage.store().
+      const header =
+        mismatch === "nonce"
+          ? contentType.replace(attempt.nonce, crypto.randomUUID())
+          : contentType;
+      const nodeBlob = await new Response(new Uint8Array(bytes), {
+        headers: { "Content-Type": header },
+      }).blob();
+      expect(nodeBlob.type).toBe(header.replace("; ", ";"));
+      const storageId = await t.run((ctx) => ctx.storage.store(nodeBlob));
+      // convex-test 0.0.60 omits Blob.type in storeBlob's metadata. Match the real
+      // platform behavior already proven by Task 0 without relaxing production checks.
+      await t.run((ctx) =>
+        (ctx.db as unknown as GenericDatabaseWriter<SystemDataModel>).patch(
           storageId,
-        }),
-    ).rejects.toThrow("Not found");
-    await alice.mutation(internal.visualCaptureState.registerStaged, {
-      captureId,
-      attemptId: attempt.attemptId,
-      storageId,
-    });
-    await alice.action(internal.visualImageDecode.verify, {
-      captureId,
-      attemptId: attempt.attemptId,
-    });
-    expect(
-      (await alice.query(api.visualCaptures.status, { captureId })).state,
-    ).toBe("verified");
-    await alice.mutation(api.visualCaptures.cancel, { captureId });
-    await expect(
-      alice.action(internal.visualImageDecode.verify, {
+          { contentType },
+        ),
+      );
+      await expect(
+        t
+          .withIdentity({ subject: "bob" })
+          .mutation(internal.visualCaptureState.registerStaged, {
+            captureId,
+            attemptId: attempt.attemptId,
+            storageId,
+          }),
+      ).rejects.toThrow("Not found");
+      await alice.mutation(internal.visualCaptureState.registerStaged, {
         captureId,
         attemptId: attempt.attemptId,
-      }),
-    ).rejects.toThrow("Capture is closed");
-  });
+        storageId,
+      });
+      if (mismatch !== "none") {
+        await expect(
+          alice.action(internal.visualImageDecode.verify, {
+            captureId,
+            attemptId: attempt.attemptId,
+          }),
+        ).rejects.toThrow("Invalid image");
+        expect(
+          (await alice.query(api.visualCaptures.status, { captureId })).state,
+        ).toBe("uploading");
+        return;
+      }
+      await alice.action(internal.visualImageDecode.verify, {
+        captureId,
+        attemptId: attempt.attemptId,
+      });
+      expect(
+        (await alice.query(api.visualCaptures.status, { captureId })).state,
+      ).toBe("verified");
+      await alice.mutation(api.visualCaptures.cancel, { captureId });
+      await expect(
+        alice.action(internal.visualImageDecode.verify, {
+          captureId,
+          attemptId: attempt.attemptId,
+        }),
+      ).rejects.toThrow("Capture is closed");
+    },
+  );
   it("accepts exactly 2 MiB and refuses one extra byte regardless of Content-Length", async () => {
     expect(
       (await readVisualBody(streamed(VISUAL_LIMITS.bytes))).byteLength,
