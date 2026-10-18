@@ -10,6 +10,7 @@ import {
   type EncodedCapture,
 } from "./visualCapture";
 import { readRenderedPage } from "./pageContext";
+import { selectRegion } from "./regionCapture";
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -137,6 +138,15 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
       return readPage(tab.id, tab.windowId);
     },
     screenshot,
+    select: async (page) => {
+      await assertPinned(page);
+      const [selection] = await browser.scripting.executeScript({
+        target: { tabId: page.tabId, frameIds: [0] },
+        func: selectRegion,
+      });
+      await assertPinned(page);
+      return selection?.result ?? null;
+    },
     process,
     begin: (context, token) =>
       client(token).mutation(api.visualCaptures.begin, { context }),

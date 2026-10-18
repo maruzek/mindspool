@@ -145,7 +145,8 @@ export function CapturePopup({
               <Button
                 variant="outline"
                 className="h-10 justify-center gap-2"
-                disabled
+                disabled={busy || !page.supported}
+                onClick={() => void start("region")}
               >
                 <CropIcon aria-hidden="true" />
                 Select an area
