@@ -36,10 +36,13 @@ export function AppShell() {
           className="min-h-0 min-w-0 outline-none"
         >
           {/* Below 768px the sidebar is a sheet opened from this bar. */}
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b-2 px-3 md:hidden">
-            <SidebarTrigger aria-label="Open menu" />
+          <header className="flex h-14 min-h-14 shrink-0 items-center gap-2 border-b-2 px-3 md:hidden">
+            <SidebarTrigger
+              aria-label="Open menu"
+              className="size-11 [&_svg:not([class*='size-'])]:size-5"
+            />
             <BrandMark />
-            <span className="font-heading font-extrabold tracking-tight">
+            <span className="font-heading text-base font-extrabold tracking-tight">
               mindspool
             </span>
           </header>

@@ -7,6 +7,7 @@ import { UNSURE_THRESHOLD } from "@mindspool/schema";
 import { Button } from "@mindspool/ui/components/button";
 import { LabelTag } from "@mindspool/ui/components/mindspool/label-tag";
 import { AddLabelPopover } from "./AddLabelPopover";
+import { SectionHeading } from "./Facts";
 import { errorMessage } from "../errors";
 import { PAGE_SIZE } from "../library/types";
 import type { ItemLabel } from "./types";
@@ -66,9 +67,7 @@ export function InspectorLabels({ itemId }: { itemId: Id<"items"> }) {
 
   return (
     <section aria-labelledby="inspector-labels" className="flex flex-col gap-2">
-      <h3 id="inspector-labels" className="text-sm">
-        Labels
-      </h3>
+      <SectionHeading id="inspector-labels">Labels</SectionHeading>
       {status === "LoadingFirstPage" ? null : results.length === 0 ? (
         <p className="text-sm text-muted-foreground">No labels yet.</p>
       ) : (

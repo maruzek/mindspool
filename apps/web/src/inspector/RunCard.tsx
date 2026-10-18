@@ -2,6 +2,7 @@ import { usePaginatedQuery } from "convex/react";
 import { api } from "@mindspool/backend/api";
 import type { Id } from "@mindspool/backend/data-model";
 import { ClassifyControl } from "./ClassifyControl";
+import { Fact, FactList, SectionHeading } from "./Facts";
 import {
   ProcessingStatus,
   type ProcessingState,
@@ -60,22 +61,19 @@ export function RunCard({
       aria-labelledby="inspector-processing"
       className="flex flex-col gap-2"
     >
-      <h3 id="inspector-processing" className="text-sm">
-        Processing
-      </h3>
+      <SectionHeading id="inspector-processing">Processing</SectionHeading>
       {status === "LoadingFirstPage" ? null : run ? (
-        <dl className="flex flex-col gap-2">
+        <FactList>
           {rows.flatMap(([label, value]) =>
             value === undefined || value === ""
               ? []
               : [
-                  <div key={label}>
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="text-sm break-words">{value}</dd>
-                  </div>,
+                  <Fact key={label} label={label}>
+                    {value}
+                  </Fact>,
                 ],
           )}
-        </dl>
+        </FactList>
       ) : (
         <ProcessingStatus status={enrichmentStatus} />
       )}

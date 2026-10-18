@@ -394,7 +394,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
     <ScrollArea
       data-slot="sidebar-content"
       data-sidebar="content"
-      viewportClassName="flex flex-col [&>*]:shrink-0 group-data-[collapsible=icon]:overflow-hidden"
+      viewportClassName="flex flex-col overscroll-contain [&>*]:shrink-0 group-data-[collapsible=icon]:overflow-hidden"
       className={cn("min-h-0 flex-1", className)}
       {...props}
     />

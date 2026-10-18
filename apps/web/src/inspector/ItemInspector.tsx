@@ -99,7 +99,15 @@ function Detail({
       <InspectorHeader item={item ?? undefined} onClose={onClose} />
       <SidebarContent className="p-4">
         {item === undefined ? (
-          <Skeleton aria-label="Loading item" className="h-6 w-2/3" />
+          <div
+            aria-label="Loading item"
+            role="status"
+            className="flex flex-col gap-4"
+          >
+            <Skeleton className="aspect-video w-full" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
         ) : item === null ? (
           deleting ? null : (
             <div role="status" className="flex flex-col gap-1">
@@ -110,7 +118,7 @@ function Detail({
             </div>
           )
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 [&>section]:border-t [&>section]:pt-6">
             <InspectorPreview item={item} />
             {item.fromPost && <SourcePost post={item.fromPost} />}
             <InspectorLabels itemId={item._id} />
@@ -118,11 +126,13 @@ function Detail({
               itemId={item._id}
               enrichmentStatus={item.enrichmentStatus}
             />
-            <DeleteItemDialog
-              itemId={item._id}
-              onDeleting={setDeleting}
-              onDeleted={onDeleted}
-            />
+            <div className="border-t pt-6">
+              <DeleteItemDialog
+                itemId={item._id}
+                onDeleting={setDeleting}
+                onDeleted={onDeleted}
+              />
+            </div>
           </div>
         )}
       </SidebarContent>

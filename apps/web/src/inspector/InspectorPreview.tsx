@@ -6,15 +6,7 @@ import { BrandIcon } from "../library/BrandIcon";
 import type { ItemDetail } from "./types";
 import { savedLine } from "./savedLine";
 import { RedditCapturePreview } from "./RedditCapturePreview";
-
-function Fact({ label, children }: { label: string; children: string }) {
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-sm break-words">{children}</dd>
-    </div>
-  );
-}
+import { Fact, FactList, UrlValue } from "./Facts";
 
 /**
  * The first image as a 16:9 header (the brand tile when there is none or it
@@ -38,7 +30,7 @@ function Media({
         <button
           type="button"
           onClick={() => onOpen(0)}
-          className="block aspect-video w-full overflow-hidden border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="block aspect-video w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {/* Referenced from its source, never fetched or stored by us. */}
           <img
@@ -46,7 +38,7 @@ function Media({
             alt=""
             referrerPolicy="no-referrer"
             onError={() => setFailed(hero)}
-            className="size-full object-cover"
+            className="size-full object-cover outline -outline-offset-1 outline-black/10 dark:outline-white/10"
           />
           <span className="sr-only">Open image 1 of {images.length}</span>
         </button>
@@ -56,20 +48,20 @@ function Media({
         </ItemThumb>
       )}
       {images.length > 1 && (
-        <ul className="flex gap-2 overflow-x-auto pb-1">
+        <ul className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
           {images.slice(1).map((src, offset) => (
             <li key={src} className="shrink-0">
               <button
                 type="button"
                 onClick={() => onOpen(offset + 1)}
-                className="block size-16 overflow-hidden border outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="block size-16 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <img
                   src={src}
                   alt=""
                   loading="lazy"
                   referrerPolicy="no-referrer"
-                  className="size-full object-cover"
+                  className="size-full object-cover outline -outline-offset-1 outline-black/10 dark:outline-white/10"
                 />
                 <span className="sr-only">
                   Open image {offset + 2} of {images.length}
@@ -101,7 +93,9 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
         onOpenChange={(open) => !open && setViewer(null)}
       />
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg break-words">{displayTitle(item)}</h2>
+        <h2 className="text-lg leading-snug font-medium break-words text-balance">
+          {displayTitle(item)}
+        </h2>
         <p className="text-sm text-muted-foreground">{savedLine(item)}</p>
       </div>
       {kind === "note" ? (
@@ -114,17 +108,21 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
           {item.originalInput}
         </div>
       ) : (
-        <dl className="flex flex-col gap-3">
-          <Fact label="URL">{url}</Fact>
+        <FactList>
+          <Fact label="URL">
+            <UrlValue value={url} />
+          </Fact>
           {item.canonicalUrl && item.canonicalUrl !== url && (
-            <Fact label="Canonical URL">{item.canonicalUrl}</Fact>
+            <Fact label="Canonical URL">
+              <UrlValue value={item.canonicalUrl} />
+            </Fact>
           )}
           {meta?.description && (
             <Fact label="Description">{meta.description}</Fact>
           )}
           {meta?.author && <Fact label="Author">{meta.author}</Fact>}
           {meta?.siteName && <Fact label="Site">{meta.siteName}</Fact>}
-        </dl>
+        </FactList>
       )}
       {kind === "link" && item.redditCapture && (
         <RedditCapturePreview capture={item.redditCapture} />

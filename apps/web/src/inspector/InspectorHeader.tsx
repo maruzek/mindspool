@@ -1,4 +1,4 @@
-import { XIcon } from "lucide-react";
+import { ExternalLinkIcon, XIcon } from "lucide-react";
 import { Button, buttonVariants } from "@mindspool/ui/components/button";
 import { SidebarHeader } from "@mindspool/ui/components/sidebar";
 import { BrandIcon } from "../library/BrandIcon";
@@ -45,6 +45,7 @@ export function InspectorHeader({
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           Open original
+          <ExternalLinkIcon aria-hidden="true" />
         </a>
       )}
       <Button
