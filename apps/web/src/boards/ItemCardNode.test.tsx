@@ -2,6 +2,45 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { ItemCardContent } from "./ItemCardNode";
 afterEach(cleanup);
+it.each(["free", "column", "resized"])(
+  "contains the complete visual reference in a %s card",
+  (placement) => {
+    render(
+      <ItemCardContent
+        card={{
+          type: "item",
+          itemId: "visual" as never,
+          membership: "one",
+          x: 0,
+          y: 0,
+          width: placement === "resized" ? 500 : 300,
+          imageHeight: placement === "resized" ? 100 : 630,
+          textHeight: 120,
+          mode: "image",
+          ...(placement === "column" ? { columnKey: "column", order: 0 } : {}),
+        }}
+        preview={{
+          itemId: "visual" as never,
+          title: "Long design",
+          body: "",
+          imageUrl: "https://stored.example/visual",
+          source: "web",
+          originalUrl: "https://source.example",
+          hasText: false,
+          labels: [],
+          visualCapture: { kind: "full-page", width: 1000, height: 2100 },
+        }}
+        open={vi.fn()}
+      />,
+    );
+    expect(
+      document.querySelector("img")?.classList.contains("object-contain"),
+    ).toBe(true);
+    expect(
+      document.querySelector("img")?.classList.contains("object-cover"),
+    ).toBe(false);
+  },
+);
 it("renders bounded text at saved height without a blank image and exposes details", () => {
   render(
     <ItemCardContent

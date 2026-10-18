@@ -212,7 +212,18 @@ export const apply = mutation({
       } else if (op.type === "place") {
         finite(op.x, -1e6, 1e6);
         finite(op.y, -1e6, 1e6);
-        requireOwned(await ctx.db.get(op.itemId), board.ownerId);
+        const item = requireOwned(await ctx.db.get(op.itemId), board.ownerId);
+        const imageHeight = item.visualCapture
+          ? Math.max(
+              80,
+              Math.min(
+                10000,
+                Math.round(
+                  (300 * item.visualCapture.height) / item.visualCapture.width,
+                ),
+              ),
+            )
+          : 200;
         if (await elementByKey(ctx, board, op.key))
           invalid("Element key already exists");
         const existing = await ctx.db
@@ -260,7 +271,7 @@ export const apply = mutation({
                   columnKey: op.columnKey,
                   order: op.order!,
                   freeWidth: 300,
-                  freeImageHeight: 200,
+                  freeImageHeight: imageHeight,
                   freeTextHeight: 120,
                 }
               : {}),
@@ -268,9 +279,9 @@ export const apply = mutation({
             x: op.x,
             y: op.y,
             width: 300,
-            imageHeight: 200,
+            imageHeight,
             textHeight: 120,
-            mode: "combined",
+            mode: item.visualCapture ? "image" : "combined",
             itemId: op.itemId,
             membership: (await membershipToken(ctx, board, op.itemId))!,
           },

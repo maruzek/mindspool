@@ -49,8 +49,8 @@ export function ItemCardContent({
           ) : (
             <img
               src={preview!.imageUrl!}
-              alt=""
-              className="h-full w-full object-cover"
+              alt={preview?.visualCapture ? preview.title : ""}
+              className={`h-full w-full ${preview?.visualCapture ? "object-contain" : "object-cover"}`}
               loading="lazy"
               onError={() => setFailed(true)}
             />
