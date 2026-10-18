@@ -12,6 +12,7 @@ import {
 import { readRenderedPage } from "./pageContext";
 import { selectRegion } from "./regionCapture";
 import { downloadImage, selectedImageContext } from "./imageCapture";
+import { captureFullPage, fullPageControl } from "./fullPageCapture";
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -109,6 +110,13 @@ async function ensureProcessor() {
   return processor;
 }
 async function process(request: ProcessorRequest): Promise<EncodedCapture> {
+  if (
+    request.dataUrl.length +
+      (request.tiles?.reduce((size, tile) => size + tile.dataUrl.length, 0) ??
+        0) >
+    48 * 1024 * 1024
+  )
+    throw new Error("too_large");
   await ensureProcessor();
   const response = (await browser.runtime.sendMessage(request)) as
     { ok: boolean; visual?: EncodedCapture; reason?: string } | undefined;
@@ -173,6 +181,19 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
       };
     },
     screenshot,
+    fullPage: (page, token) =>
+      captureFullPage(page, token, {
+        screenshot,
+        control: async (command) => {
+          const [result] = await browser.scripting.executeScript({
+            target: { tabId: page.tabId, frameIds: [0] },
+            func: fullPageControl,
+            args: [command],
+          });
+          if (!result?.result) throw new Error("page_changed");
+          return result.result;
+        },
+      }),
     select: async (page) => {
       await assertPinned(page);
       const [selection] = await browser.scripting.executeScript({

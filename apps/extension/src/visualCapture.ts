@@ -67,6 +67,7 @@ export type ProcessorRequest = {
   cssHeight: number;
 };
 export type CaptureDependencies = {
+  fullPage?(page: PinnedPage, captureKey: string): Promise<FullPageVisual>;
   image?(page: PinnedPage, target: ImageTarget): Promise<ImageSource>;
   select?(page: PinnedPage): Promise<CaptureRect | null>;
   getToken(): Promise<string | null>;
@@ -133,7 +134,12 @@ export function createVisualCapture(deps: CaptureDependencies) {
     target?: ImageTarget,
   ) {
     try {
-      if (kind !== "viewport" && kind !== "region" && kind !== "image")
+      if (
+        kind !== "viewport" &&
+        kind !== "region" &&
+        kind !== "image" &&
+        kind !== "full-page"
+      )
         throw new Error("unsupported_page");
       const token = await deps.getToken();
       if (!token) throw new Error("signed_out");
@@ -172,25 +178,40 @@ export function createVisualCapture(deps: CaptureDependencies) {
         if (source.entryUrl) context.entryUrl = source.entryUrl;
         if (source.designSiteUrl) context.designSiteUrl = source.designSiteUrl;
       }
-      const dataUrl = source?.dataUrl ?? (await deps.screenshot(page));
+      const fullPage =
+        kind === "full-page" && deps.fullPage
+          ? await deps.fullPage(page, captureKey)
+          : undefined;
+      if (kind === "full-page" && !fullPage)
+        throw new Error("unsupported_page");
+      const dataUrl =
+        source?.dataUrl ??
+        fullPage?.tiles[0]?.dataUrl ??
+        (await deps.screenshot(page));
       update({ state: "encoding" });
       const visual = await deps.process({
         target: "visual-processor",
         captureKey,
         dataUrl,
         cssWidth: page.width,
-        cssHeight: page.height,
+        cssHeight: fullPage?.cssHeight ?? page.height,
         ...(crop ? { crop } : {}),
         ...(source ? { sourceImage: true } : {}),
+        ...(fullPage
+          ? { tiles: fullPage.tiles, viewportHeight: page.height }
+          : {}),
       });
+      if (fullPage) fullPage.tiles.length = 0;
       if (visual.bytes > VISUAL_LIMITS.bytes) throw new Error("too_large");
       update({ state: "uploading" });
-      const session = await deps.begin(context, token);
+      const saveToken = await deps.getToken();
+      if (!saveToken) throw new Error("signed_out");
+      const session = await deps.begin(context, saveToken);
       if (session.state === "complete" && session.itemId) {
         update({ state: "saved", itemId: session.itemId });
         return;
       }
-      await deps.upload(session.captureId, visual, token);
+      await deps.upload(session.captureId, visual, saveToken);
       const currentToken = await deps.getToken();
       if (!currentToken) throw new Error("signed_out");
       const itemId = await deps.finalize(session.captureId, currentToken);

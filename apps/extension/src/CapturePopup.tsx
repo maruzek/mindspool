@@ -154,7 +154,8 @@ export function CapturePopup({
               <Button
                 variant="outline"
                 className="h-10 justify-center gap-2"
-                disabled
+                disabled={busy || !page.supported}
+                onClick={() => void start("full-page")}
               >
                 <ScanLineIcon aria-hidden="true" />
                 Capture full page
