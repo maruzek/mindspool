@@ -28,7 +28,7 @@ function ItemCard({
     "data-selected": selected || undefined,
     "aria-current": selected ? ("true" as const) : undefined,
     className: cn(
-      "flex flex-col border-2 border-border bg-card outline-none hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring",
+      "relative flex flex-col border-2 border-border bg-card outline-none hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring",
       selected && "border-primary bg-primary/10",
       className,
     ),

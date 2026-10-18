@@ -6,6 +6,7 @@ import { api } from "@mindspool/backend/api";
 import { Columns3Icon, LayoutGridIcon, ListIcon, XIcon } from "lucide-react";
 import { toast } from "@mindspool/ui/components/sonner";
 import { Button } from "@mindspool/ui/components/button";
+import { ScrollArea } from "@mindspool/ui/components/scroll-area";
 import { SegmentedControl } from "@mindspool/ui/components/mindspool/segmented-control";
 import { ItemInspector } from "../inspector/ItemInspector";
 import { CaptureBar } from "./CaptureBar";
@@ -68,8 +69,12 @@ export function LibraryView({
   const stats = useQuery(api.items.stats, wholeLibrary ? {} : "skip");
   const more = status === "CanLoadMore" || status === "LoadingMore";
   return (
-    <div className="flex min-h-full">
-      <section className="flex min-w-0 flex-1 flex-col gap-4 p-6">
+    <div className="flex h-full min-h-0">
+      <ScrollArea
+        render={<section />}
+        className="min-w-0 flex-1"
+        viewportClassName="flex flex-col gap-4 p-6 [&>*]:shrink-0"
+      >
         <header className="flex items-baseline gap-3">
           <h1 className="text-2xl">{q ? `Results for “${q}”` : heading}</h1>
           {q && (
@@ -93,8 +98,24 @@ export function LibraryView({
           {stats && stats.total > 0 ? (
             <p className="text-sm text-muted-foreground">
               {count(stats.total)}
-              {stats.needsReview > 0 &&
-                ` · ${stats.needsReview} awaiting review`}
+              {stats.needsReview > 0 && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="underline underline-offset-4 hover:text-foreground"
+                    onClick={() =>
+                      void navigate({
+                        to: ".",
+                        search: (prev) => changeFilters(prev, { review: 1 }),
+                        resetScroll: false,
+                      })
+                    }
+                  >
+                    {stats.needsReview} awaiting review
+                  </button>
+                </>
+              )}
             </p>
           ) : (
             results.length > 0 && (
@@ -146,6 +167,12 @@ export function LibraryView({
           />
         </div>
         <FilterBar />
+        {layout === "list" && results.some((r) => (r.unsureCount ?? 0) > 0) && (
+          <p className="text-xs text-muted-foreground">
+            Unsure labels: <Kbd>J</Kbd>/<Kbd>K</Kbd> move · <Kbd>Y</Kbd> keep ·{" "}
+            <Kbd>N</Kbd> remove
+          </p>
+        )}
         {status === "LoadingFirstPage" ? (
           <ItemSkeleton />
         ) : results.length === 0 ? (
@@ -167,12 +194,20 @@ export function LibraryView({
             </p>
           </div>
         )}
-      </section>
+      </ScrollArea>
       <ItemInspector
         itemId={selectedId}
         onDeleted={() => toast("Item deleted")}
       />
     </div>
+  );
+}
+
+function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="border border-border px-1 font-sans text-[11px] text-foreground">
+      {children}
+    </kbd>
   );
 }
 

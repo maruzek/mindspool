@@ -441,7 +441,7 @@ export async function previewItems(
 ) {
   return Promise.all(
     items.map(async (item) => {
-      const links = await ctx.db
+      const included = await ctx.db
         .query("itemLabels")
         .withIndex("by_owner_item_decision", (q) =>
           q
@@ -450,6 +450,22 @@ export async function previewItems(
             .eq("manualDecision", "include"),
         )
         .take(PREVIEW_LABELS + 1);
+      // Unsure labels come first so a row never hides the ones that need a decision.
+      const unsureLinks = await ctx.db
+        .query("itemLabels")
+        .withIndex("by_owner_item_unsure", (q) =>
+          q
+            .eq("ownerId", ownerId)
+            .eq("itemId", item._id)
+            .eq("manualDecision", "include")
+            .eq("unsure", true),
+        )
+        .take(PREVIEW_LABELS + 1);
+      const unsureIds = new Set(unsureLinks.map((link) => link._id));
+      const links = [
+        ...unsureLinks,
+        ...included.filter((link) => !unsureIds.has(link._id)),
+      ];
       const found = await Promise.all(
         links.slice(0, PREVIEW_LABELS).map(async (link) => ({
           link,
@@ -462,12 +478,19 @@ export async function previewItems(
               {
                 _id: label._id,
                 name: label.name,
-                ...(isUnsureLink(link) && { unsure: true }),
+                ...(isUnsureLink(link) && {
+                  unsure: true,
+                  ...(link.confidence !== undefined && {
+                    confidence: link.confidence,
+                  }),
+                  ...(link.provider && { provider: link.provider }),
+                  ...(link.model !== undefined && { model: link.model }),
+                }),
               },
             ]
           : [],
       );
-      const unsureCount = links.filter(isUnsureLink).length;
+      const unsureCount = unsureLinks.filter(isUnsureLink).length;
       const images = await imageUrls(ctx, item, DETAIL_IMAGES);
       // A few recent runs are enough to tell whether labeling is in flight.
       const runs = await ctx.db

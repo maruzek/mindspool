@@ -75,6 +75,49 @@ export const confirm = mutation({
   },
 });
 
+/**
+ * Undo of Keep or Remove on a model suggestion: puts the label back as an
+ * unconfirmed suggestion with its original attribution. Does nothing unless the
+ * link is currently excluded or confirmed, so a stale undo cannot clobber newer edits.
+ */
+export const restoreSuggestion = mutation({
+  args: {
+    ...pair,
+    confidence: v.number(),
+    provider: itemLabelFields.provider,
+    model: itemLabelFields.model,
+  },
+  returns: v.null(),
+  handler: async (ctx, { itemId, labelId, confidence, provider, model }) => {
+    const ownerId = await requireOwner(ctx);
+    const item = requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(await ctx.db.get(labelId), ownerId);
+    const link = await ctx.db
+      .query("itemLabels")
+      .withIndex("by_owner_pair", (q) =>
+        q.eq("ownerId", ownerId).eq("itemId", itemId).eq("labelId", labelId),
+      )
+      .unique();
+    if (link?.manualDecision === "exclude")
+      await ctx.db.patch(link._id, {
+        manualDecision: "include",
+        updatedAt: Date.now(),
+        origin: "model",
+        provider,
+        model,
+        confidence,
+        confirmedAt: undefined,
+        ...linkSearchFields(item),
+        unsure: true,
+      });
+    else if (link?.origin === "model" && link.confirmedAt !== undefined)
+      await ctx.db.patch(link._id, { confirmedAt: undefined, unsure: true });
+    else return null;
+    await refreshItemState(ctx, itemId);
+    return null;
+  },
+});
+
 export const listForItem = query({
   args: { itemId: v.id("items"), paginationOpts: paginationOptsValidator },
   returns: paginationResultValidator(

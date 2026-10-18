@@ -17,7 +17,9 @@ type ItemRowProps = Omit<useRender.ComponentProps<"div">, "title"> & {
 
 /**
  * Library list row: thumb · title/source · labels · date. Pass `render` (for
- * example a router `<Link />`) to make the whole row the interactive element.
+ * example a router `<Link />`) to make the whole row the interactive element, or
+ * put a link in `title` with `after:absolute after:inset-0` to stretch it over
+ * the row while `labels` hold their own buttons (`relative z-10`).
  */
 function ItemRow({
   thumb,
@@ -36,7 +38,7 @@ function ItemRow({
     "data-selected": selected || undefined,
     "aria-current": selected ? ("true" as const) : undefined,
     className: cn(
-      "relative grid grid-cols-[72px_minmax(0,1fr)_64px] items-center gap-4 border-b-2 border-border px-3 py-2.5 outline-none hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:grid-cols-[72px_minmax(0,1fr)_auto_64px]",
+      "relative grid grid-cols-[72px_minmax(0,1fr)_64px] items-center gap-4 border-b-2 border-border px-3 py-2.5 outline-none hover:bg-foreground/5 md:grid-cols-[72px_minmax(0,1fr)_auto_64px]",
       selected &&
         "bg-primary/10 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-primary",
       className,
@@ -53,7 +55,7 @@ function ItemRow({
           )}
           {status}
         </div>
-        <div className="hidden flex-wrap justify-end gap-1.5 md:flex">
+        <div className="hidden flex-wrap items-center justify-end gap-1.5 md:flex">
           {labels}
         </div>
         <div className="text-right text-xs text-muted-foreground">{date}</div>

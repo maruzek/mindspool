@@ -202,6 +202,9 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 30%, transparent)
+      transparent;
   }
   body {
     @apply bg-background font-sans text-[15px] leading-[1.55] text-foreground;

@@ -52,6 +52,7 @@ export const backend = {
   loadMoreItemLabels: vi.fn(),
   removeItemLabel: vi.fn(),
   confirmItemLabel: vi.fn(),
+  restoreItemLabel: vi.fn(),
   classify: vi.fn(),
   removeItem: vi.fn(),
   runs: [] as unknown[],
@@ -106,6 +107,7 @@ export function resetBackend() {
     backend.loadMoreItemLabels,
     backend.removeItemLabel,
     backend.confirmItemLabel,
+    backend.restoreItemLabel,
     backend.classify,
     backend.removeItem,
     backend.attachItemLabel,
@@ -152,6 +154,8 @@ export const convexMock = {
     if (name === "items:create") return backend.createItem;
     if (name === "itemLabels:remove") return backend.removeItemLabel;
     if (name === "itemLabels:confirm") return backend.confirmItemLabel;
+    if (name === "itemLabels:restoreSuggestion")
+      return backend.restoreItemLabel;
     if (name === "decisions:classify") return backend.classify;
     if (name === "items:remove") return backend.removeItem;
     if (name === "itemLabels:attach") return backend.attachItemLabel;

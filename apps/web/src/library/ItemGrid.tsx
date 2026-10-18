@@ -22,7 +22,11 @@ export function ItemGrid({
           <li key={item._id} className="flex">
             <ItemCard
               thumb={<MediaThumb item={item} className="h-32 w-full" />}
-              title={displayTitle(item)}
+              title={
+                <ItemLink itemId={item._id} selected={item._id === selectedId}>
+                  {displayTitle(item)}
+                </ItemLink>
+              }
               source={<SourceLine item={item} />}
               status={<ProcessingStatus status={item.enrichmentStatus} />}
               labels={
@@ -34,12 +38,6 @@ export function ItemGrid({
               data-new={item._id === highlightedId || undefined}
               className={
                 item._id === highlightedId ? "w-full bg-accent" : "w-full"
-              }
-              render={
-                <ItemLink
-                  itemId={item._id}
-                  selected={item._id === selectedId}
-                />
               }
             />
           </li>

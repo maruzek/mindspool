@@ -353,9 +353,15 @@ describe("selection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await vi.waitFor(() => expect(rowLink("new")).toBeTruthy());
     await vi.waitFor(() =>
-      expect(rowLink("new").hasAttribute("data-new")).toBe(true),
+      expect(
+        rowLink("new")
+          .closest("[data-slot=item-row]")!
+          .hasAttribute("data-new"),
+      ).toBe(true),
     );
-    expect(rowLink("old").hasAttribute("data-new")).toBe(false);
+    expect(
+      rowLink("old").closest("[data-slot=item-row]")!.hasAttribute("data-new"),
+    ).toBe(false);
     expect(router.state.location.search).toEqual({});
     expect(rowLink("new").getAttribute("aria-current")).toBeNull();
   });
@@ -368,6 +374,111 @@ describe("selection", () => {
     expect(grid.className).toContain("@min-[560px]:grid-cols-2");
     expect(grid.className).toContain("@min-[960px]:grid-cols-3");
     expect(grid.className).not.toMatch(/(^| )(md|xl):grid-cols/);
+  });
+});
+
+describe("unsure labels in the list", () => {
+  const unsureItem = () =>
+    item("a", {
+      labels: [{ _id: "l1", name: "Food", unsure: true }],
+      labelCount: 1,
+      unsureCount: 1,
+    });
+  it("keeps an unsure label from the row without opening the item", async () => {
+    backend.items = [unsureItem()];
+    backend.confirmItemLabel.mockResolvedValue(null);
+    const router = await renderAt("/library");
+    fireEvent.click(main().getByRole("button", { name: "Keep Food" }));
+    await vi.waitFor(() =>
+      expect(backend.confirmItemLabel).toHaveBeenCalledWith({
+        itemId: "a",
+        labelId: "l1",
+      }),
+    );
+    expect(router.state.location.search).toEqual({});
+  });
+  it("removes an unsure label from the row", async () => {
+    backend.items = [unsureItem()];
+    backend.removeItemLabel.mockResolvedValue(null);
+    await renderAt("/library");
+    fireEvent.click(main().getByRole("button", { name: "Remove Food" }));
+    await vi.waitFor(() =>
+      expect(backend.removeItemLabel).toHaveBeenCalledWith({
+        itemId: "a",
+        labelId: "l1",
+      }),
+    );
+  });
+});
+
+describe("unsure triage shortcuts", () => {
+  const rowLink = (id: string) =>
+    main()
+      .getAllByRole("link")
+      .find((l) => l.getAttribute("href")?.includes(`item=${id}`))!;
+  const two = () =>
+    item("a", {
+      labels: [
+        {
+          _id: "l1",
+          name: "Food",
+          unsure: true,
+          confidence: 0.5,
+          provider: "clef",
+        },
+        {
+          _id: "l2",
+          name: "Dev",
+          unsure: true,
+          confidence: 0.6,
+          provider: "clef",
+        },
+      ],
+      labelCount: 2,
+      unsureCount: 2,
+    });
+  it("Keep all confirms every unsure label on the row", async () => {
+    backend.items = [two()];
+    backend.confirmItemLabel.mockResolvedValue(null);
+    await renderAt("/library");
+    fireEvent.click(main().getByRole("button", { name: "Keep all" }));
+    await vi.waitFor(() =>
+      expect(backend.confirmItemLabel).toHaveBeenCalledTimes(2),
+    );
+  });
+  it("Y/N act on the hovered row, or the row J/K moved to, without focus", async () => {
+    backend.items = [
+      two(),
+      item("b", {
+        labels: [{ _id: "l3", name: "X", unsure: true }],
+        labelCount: 1,
+        unsureCount: 1,
+      }),
+    ];
+    backend.confirmItemLabel.mockResolvedValue(null);
+    backend.removeItemLabel.mockResolvedValue(null);
+    await renderAt("/library");
+    // Nothing active yet: a bare Y does nothing.
+    fireEvent.keyDown(document.body, { key: "y" });
+    expect(backend.confirmItemLabel).not.toHaveBeenCalled();
+    fireEvent.pointerMove(rowLink("b").closest("li")!);
+    fireEvent.keyDown(document.body, { key: "y" });
+    await vi.waitFor(() =>
+      expect(backend.confirmItemLabel).toHaveBeenCalledTimes(1),
+    );
+    expect(backend.confirmItemLabel).toHaveBeenCalledWith({
+      itemId: "b",
+      labelId: "l3",
+    });
+    fireEvent.keyDown(document.body, { key: "k" });
+    fireEvent.keyDown(document.body, { key: "n" });
+    await vi.waitFor(() =>
+      expect(backend.removeItemLabel).toHaveBeenCalledTimes(2),
+    );
+    expect(backend.removeItemLabel).toHaveBeenCalledWith({
+      itemId: "a",
+      labelId: "l1",
+    });
   });
 });
 

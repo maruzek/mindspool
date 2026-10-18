@@ -16,7 +16,7 @@ export function SourcePost({
       <ItemLink
         itemId={post._id}
         selected={false}
-        className="flex flex-col gap-1 border p-3 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative flex flex-col gap-1 border p-3 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex items-center gap-2">
           <BrandIcon host="x.com" kind="link" />

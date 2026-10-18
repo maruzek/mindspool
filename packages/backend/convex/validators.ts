@@ -119,6 +119,12 @@ export const itemDoc = v.object({
   _creationTime: v.number(),
   ...itemFields,
 });
+export const decisionProvider = v.union(
+  v.literal("jev"),
+  v.literal("clef"),
+  v.literal("clef-flash"),
+  v.literal("openai-decisions"),
+);
 export const itemPreview = v.object({
   _id: v.id("items"),
   _creationTime: v.number(),
@@ -134,6 +140,10 @@ export const itemPreview = v.object({
       name: v.string(),
       /** A model label the owner has not confirmed, below the confident threshold. */
       unsure: v.optional(v.boolean()),
+      /** The model's attribution, kept for unsure labels so a decision can be undone. */
+      confidence: v.optional(v.number()),
+      provider: v.optional(decisionProvider),
+      model: v.optional(v.string()),
     }),
   ),
   labelCount: v.number(),
@@ -196,12 +206,6 @@ export const suggestion = v.object({
   labelId: v.id("labels"),
   confidence: v.optional(v.number()),
 });
-export const decisionProvider = v.union(
-  v.literal("jev"),
-  v.literal("clef"),
-  v.literal("clef-flash"),
-  v.literal("openai-decisions"),
-);
 export const itemLabelFields = {
   boardGeneration: v.optional(v.number()),
   ownerId: v.string(),

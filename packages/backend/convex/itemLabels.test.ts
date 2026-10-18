@@ -381,6 +381,57 @@ describe("Keep (confirm) and attribution", () => {
     });
   });
 
+  it("previews unsure labels before confirmed ones, however many there are", async () => {
+    const { t, alice, itemId, labelId } = await modelLabel();
+    for (const name of ["A", "B", "C"]) {
+      const id = await alice.mutation(api.labels.create, { name });
+      await alice.mutation(api.itemLabels.attach, { itemId, labelId: id });
+    }
+    const row = (
+      await alice.query(api.items.list, { paginationOpts })
+    ).page.find((r) => r._id === itemId)!;
+    expect(row.labels).toHaveLength(3);
+    expect(row.labels[0]).toMatchObject({ _id: labelId, unsure: true });
+    expect(row.unsureCount).toBe(1);
+    expect(row.labelCount).toBe(4);
+    void t;
+  });
+
+  it("restoreSuggestion undoes Keep and Remove back to an unsure suggestion", async () => {
+    const { alice, itemId, labelId } = await modelLabel();
+    const preview = async () =>
+      (await alice.query(api.items.list, { paginationOpts })).page.find(
+        (row) => row._id === itemId,
+      )!;
+    const before = (await preview()).labels[0]!;
+    expect(before).toMatchObject({ unsure: true, confidence: 0.55 });
+    const undo = () =>
+      alice.mutation(api.itemLabels.restoreSuggestion, {
+        itemId,
+        labelId,
+        confidence: before.confidence!,
+        provider: before.provider,
+        model: before.model,
+      });
+    await alice.mutation(api.itemLabels.confirm, { itemId, labelId });
+    expect((await preview()).labels[0]?.unsure).toBeUndefined();
+    await undo();
+    expect((await preview()).labels[0]).toMatchObject({ unsure: true });
+    await alice.mutation(api.itemLabels.remove, { itemId, labelId });
+    expect((await preview()).labels).toEqual([]);
+    await undo();
+    expect((await preview()).labels[0]).toMatchObject({
+      unsure: true,
+      confidence: 0.55,
+      provider: "clef",
+    });
+    // A stale undo leaves a plain manual label alone.
+    await alice.mutation(api.itemLabels.remove, { itemId, labelId });
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    await undo();
+    expect((await preview()).labels[0]?.unsure).toBeUndefined();
+  });
+
   it("Keep is a no-op for manual rows and Not found for foreign ids", async () => {
     const { alice, bob, itemId, secondLabelId, labelId, foreignItemId, list } =
       await modelLabel();

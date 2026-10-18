@@ -7,6 +7,7 @@ import {
   SidebarTrigger,
 } from "@mindspool/ui/components/sidebar";
 import { TooltipProvider } from "@mindspool/ui/components/tooltip";
+import { ScrollArea } from "@mindspool/ui/components/scroll-area";
 import { AppSidebar } from "./AppSidebar";
 import { BrandMark } from "./BrandMark";
 import { SkipLink } from "./SkipLink";
@@ -23,19 +24,28 @@ export function AppShell() {
   if (isBoard) return <RailShell />;
   return (
     <TooltipProvider>
-      <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>
+      <SidebarProvider
+        style={{ "--sidebar-width": "15rem" } as CSSProperties}
+        className="h-dvh min-h-0 overflow-hidden"
+      >
         <SkipLink />
         <AppSidebar />
-        <SidebarInset id="main" tabIndex={-1} className="outline-none">
+        <SidebarInset
+          id="main"
+          tabIndex={-1}
+          className="min-h-0 min-w-0 outline-none"
+        >
           {/* Below 768px the sidebar is a sheet opened from this bar. */}
-          <header className="flex h-12 items-center gap-2 border-b-2 px-3 md:hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b-2 px-3 md:hidden">
             <SidebarTrigger aria-label="Open menu" />
             <BrandMark />
             <span className="font-heading font-extrabold tracking-tight">
               mindspool
             </span>
           </header>
-          <Outlet />
+          <ScrollArea className="min-h-0 flex-1">
+            <Outlet />
+          </ScrollArea>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
