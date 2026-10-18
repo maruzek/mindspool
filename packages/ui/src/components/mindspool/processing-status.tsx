@@ -17,7 +17,7 @@ type ProcessingStatusProps = React.ComponentProps<"div"> & {
 const copy: Record<Exclude<ProcessingState, "succeeded">, string> = {
   not_started: "Saved — original stored",
   pending: "Processing…",
-  failed: "Extraction failed — link kept",
+  failed: "Saved — page details unavailable",
 };
 
 /** One quiet line under a row or card; nothing once processing has succeeded. */

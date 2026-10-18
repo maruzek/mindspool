@@ -60,7 +60,7 @@ describe("ProcessingStatus", () => {
   it.each([
     ["not_started", "Saved — original stored"],
     ["pending", "Processing…"],
-    ["failed", "Extraction failed — link kept"],
+    ["failed", "Saved — page details unavailable"],
   ] as const)("%s reads %s", (status, text) => {
     render(<ProcessingStatus status={status} />);
     expect(screen.getByText(text)).toBeTruthy();

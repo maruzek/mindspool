@@ -96,9 +96,30 @@ describe("library list", () => {
     expect(second).toContain("note");
     expect(second).toContain("Saved — original stored");
     expect(second).toContain("3d");
-    expect(third).toContain("Extraction failed — link kept");
+    expect(third).toContain("Saved — page details unavailable");
     expect(screen.getByRole("textbox", { name: /capture/i })).toBeTruthy();
   });
+
+  it.each(["list", "grid"])(
+    "keeps the saved visual visible when page enrichment fails in %s view",
+    async (layout) => {
+      backend.items = [
+        item("capture", {
+          enrichmentStatus: "failed",
+          thumbnailUrl: "https://storage.example/saved-capture.webp",
+          visualCapture: { kind: "viewport", width: 800, height: 600 },
+        }),
+      ];
+      await renderAt(`/library?layout=${layout}`);
+      expect(main().getByText("Saved — page details unavailable")).toBeTruthy();
+      expect(
+        document.querySelector(
+          'img[src="https://storage.example/saved-capture.webp"]',
+        ),
+      ).toBeTruthy();
+      expect(main().queryByText(/link kept/)).toBeNull();
+    },
+  );
 
   it("shows no count when empty and the count once items load", async () => {
     await renderAt("/library");
