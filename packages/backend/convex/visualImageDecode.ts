@@ -2,6 +2,9 @@
 import sharp from "sharp";
 import { createHash } from "node:crypto";
 import { VISUAL_LIMITS } from "../../schema/src/visualCapture";
+import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { ConvexError, v } from "convex/values";
 
 /** Full raster decode, not merely a client claim or header/metadata read. */
 export async function decodeRaster(bytes: Uint8Array) {
@@ -36,3 +39,41 @@ export async function decodeRaster(bytes: Uint8Array) {
     digest: createHash("sha256").update(bytes).digest("hex"),
   };
 }
+
+export const verify = internalAction({
+  args: {
+    captureId: v.id("visualCaptures"),
+    attemptId: v.id("visualCaptureAttempts"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const staged = await ctx.runQuery(internal.visualCaptureState.staged, args);
+    const blob = await ctx.storage.get(staged.storageId);
+    if (!blob || blob.size > VISUAL_LIMITS.bytes)
+      throw new ConvexError({
+        code: "INVALID_IMAGE",
+        message: "Invalid image",
+      });
+    const decoded = await decodeRaster(
+      new Uint8Array(await blob.arrayBuffer()),
+    ).catch(() => {
+      throw new ConvexError({
+        code: "INVALID_IMAGE",
+        message: "Invalid image",
+      });
+    });
+    if (
+      decoded.digest !== staged.digest ||
+      blob.type !== `${decoded.contentType}; mindspool-attempt=${staged.nonce}`
+    )
+      throw new ConvexError({
+        code: "INVALID_IMAGE",
+        message: "Invalid image",
+      });
+    await ctx.runMutation(internal.visualCaptureState.recordVerified, {
+      ...args,
+      ...decoded,
+    });
+    return null;
+  },
+});

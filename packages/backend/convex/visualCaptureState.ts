@@ -3,7 +3,12 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireOwner, requireOwned } from "./auth";
-import { visualCaptureFields, visualCaptureState } from "./validators";
+import {
+  visualCaptureFields,
+  visualCaptureState,
+  visualContentType,
+} from "./validators";
+import { VISUAL_LIMITS } from "../../schema/src/visualCapture";
 
 export const captureResult = v.object({
   captureId: v.id("visualCaptures"),
@@ -96,5 +101,117 @@ export const claimUpload = internalMutation({
     });
     await ctx.db.patch(captureId, { state: "uploading", digest, attemptId });
     return { attemptId, nonce };
+  },
+});
+
+async function activeAttempt(
+  ctx: Pick<QueryCtx, "auth" | "db">,
+  captureId: Id<"visualCaptures">,
+  attemptId: Id<"visualCaptureAttempts">,
+) {
+  const capture = await ownedCapture(ctx, captureId);
+  requireLive(capture);
+  const attempt = await ctx.db.get(attemptId);
+  if (
+    !attempt ||
+    attempt.captureId !== captureId ||
+    capture.attemptId !== attemptId ||
+    attempt.state !== "open" ||
+    attempt.expiresAt <= Date.now() ||
+    capture.state !== "uploading"
+  )
+    throw new ConvexError({
+      code: "CONFLICT",
+      message: "Upload attempt is closed",
+    });
+  return { capture, attempt };
+}
+export const registerStaged = internalMutation({
+  args: {
+    captureId: v.id("visualCaptures"),
+    attemptId: v.id("visualCaptureAttempts"),
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { captureId, attemptId, storageId }) => {
+    const { attempt } = await activeAttempt(ctx, captureId, attemptId);
+    const blob = await ctx.db.system.get(storageId);
+    if (
+      attempt.storageId ||
+      !blob ||
+      blob.size > VISUAL_LIMITS.bytes ||
+      !["image/png", "image/jpeg", "image/webp"].some(
+        (type) =>
+          blob.contentType === `${type}; mindspool-attempt=${attempt.nonce}`,
+      )
+    )
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: "Invalid staged image",
+      });
+    await ctx.db.patch(attemptId, { storageId });
+    return null;
+  },
+});
+export const staged = internalQuery({
+  args: {
+    captureId: v.id("visualCaptures"),
+    attemptId: v.id("visualCaptureAttempts"),
+  },
+  returns: v.object({
+    storageId: v.id("_storage"),
+    nonce: v.string(),
+    digest: v.string(),
+  }),
+  handler: async (ctx, { captureId, attemptId }) => {
+    const { capture, attempt } = await activeAttempt(ctx, captureId, attemptId);
+    if (!attempt.storageId || !capture.digest)
+      throw new ConvexError({ code: "CONFLICT", message: "Image not staged" });
+    return {
+      storageId: attempt.storageId,
+      nonce: attempt.nonce,
+      digest: capture.digest,
+    };
+  },
+});
+export const recordVerified = internalMutation({
+  args: {
+    captureId: v.id("visualCaptures"),
+    attemptId: v.id("visualCaptureAttempts"),
+    digest: v.string(),
+    width: v.number(),
+    height: v.number(),
+    bytes: v.number(),
+    contentType: visualContentType,
+  },
+  returns: v.null(),
+  handler: async (ctx, { captureId, attemptId, ...decoded }) => {
+    const { capture, attempt } = await activeAttempt(ctx, captureId, attemptId);
+    if (!attempt.storageId || capture.digest !== decoded.digest)
+      throw new ConvexError({
+        code: "CONFLICT",
+        message: "Capture payload changed",
+      });
+    await ctx.db.patch(captureId, {
+      ...decoded,
+      storageId: attempt.storageId,
+      state: "verified",
+    });
+    return null;
+  },
+});
+export const releaseUpload = internalMutation({
+  args: {
+    captureId: v.id("visualCaptures"),
+    attemptId: v.id("visualCaptureAttempts"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { captureId, attemptId }) => {
+    const capture = await ownedCapture(ctx, captureId);
+    if (capture.attemptId === attemptId && capture.state === "uploading") {
+      await closeAttempt(ctx, capture);
+      await ctx.db.patch(captureId, { state: "pending" });
+    }
+    return null;
   },
 });

@@ -60,7 +60,9 @@ import type * as seed from "../seed.js";
 import type * as tweetLinks from "../tweetLinks.js";
 import type * as validators from "../validators.js";
 import type * as visualCaptureState from "../visualCaptureState.js";
+import type * as visualCaptureUpload from "../visualCaptureUpload.js";
 import type * as visualCaptures from "../visualCaptures.js";
+import type * as visualImageDecode from "../visualImageDecode.js";
 
 import type {
   ApiFromModules,
@@ -121,7 +123,9 @@ declare const fullApi: ApiFromModules<{
   tweetLinks: typeof tweetLinks;
   validators: typeof validators;
   visualCaptureState: typeof visualCaptureState;
+  visualCaptureUpload: typeof visualCaptureUpload;
   visualCaptures: typeof visualCaptures;
+  visualImageDecode: typeof visualImageDecode;
 }>;
 
 /**
