@@ -1,4 +1,5 @@
 import { defineConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite";
 
 const originPermission = (name: string) => {
   const value = process.env[name];
@@ -26,7 +27,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   // Vite's modulepreload links trigger "cross-world extension resource
   // mismatch" warnings in extension pages and gain nothing from local files.
-  vite: () => ({ build: { modulePreload: false } }),
+  vite: () => ({ plugins: [tailwindcss()], build: { modulePreload: false } }),
   manifest: ({ browser }) => ({
     name: "MindSpool",
     description: "Keep your links, images, and ideas together.",
