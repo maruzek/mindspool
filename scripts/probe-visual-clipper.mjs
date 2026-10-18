@@ -1,9 +1,17 @@
 // Disposable Task 0 probes; never bundled into the MindSpool extension.
+// Use --fixture-only to test the built product instead of generating probe extensions.
 // Run from the repository root: node scripts/probe-visual-clipper.mjs
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:http";
+
+const fixtureOnly = process.argv.includes("--fixture-only");
+const port = Number(
+  process.argv.find((arg) => arg.startsWith("--port="))?.slice(7) ?? 0,
+);
+if (!Number.isInteger(port) || port < 0 || port > 65535)
+  throw new Error("Invalid fixture port");
 
 const assets = {
   "background.js": String.raw`const api = globalThis.browser ?? chrome;
@@ -209,8 +217,10 @@ const common = {
   permissions: ["activeTab", "scripting", "storage", "contextMenus"],
   action: { default_popup: "popup.html" },
 };
-const directory = await mkdtemp(join(tmpdir(), "mindspool-visual-probe-"));
-for (const name of ["chrome", "firefox"]) {
+const directory = fixtureOnly
+  ? undefined
+  : await mkdtemp(join(tmpdir(), "mindspool-visual-probe-"));
+for (const name of fixtureOnly ? [] : ["chrome", "firefox"]) {
   const destination = join(directory, name);
   await mkdir(destination);
   for (const [filename, source] of Object.entries(assets))
@@ -247,7 +257,7 @@ header{position:fixed;top:0;width:100%;height:80px;background:red}
 main{padding:130px 24px}img{display:block}footer{position:absolute;top:2060px;color:white}
 </style></head><body><header>Sticky capture fixture — red appears only once</header><main>
 <img src="/target.png" alt="Purple native image menu target" width="160" height="100">
-<p>Right-click the purple image, then choose Save image to MindSpool (probe).</p>
+<p>Right-click the purple image, then choose Save image to MindSpool${fixtureOnly ? "" : " (probe)"}.</p>
 <p>Run captures from the top. Keep this tab selected until the capture finishes.</p>
 </main><footer>Bottom edge — must be present in the full-page image</footer></body></html>`;
 const server = createServer((request, response) => {
@@ -261,13 +271,19 @@ const server = createServer((request, response) => {
 });
 await new Promise((resolve, reject) => {
   server.once("error", reject);
-  server.listen(0, "127.0.0.1", resolve);
+  server.listen(port, "127.0.0.1", resolve);
 });
 console.log(`Fixture: http://127.0.0.1:${server.address().port}/`);
-console.log(`Chrome: load unpacked folder ${join(directory, "chrome")}`);
-console.log(
-  `Firefox: load temporary add-on ${join(directory, "firefox", "manifest.json")}`,
-);
-console.log(
-  "Keep this terminal open. Remove the probe extensions when finished; Ctrl+C stops the fixture.",
-);
+if (fixtureOnly) {
+  console.log(
+    "Use the built MindSpool extension. Keep this terminal open; Ctrl+C stops the fixture.",
+  );
+} else {
+  console.log(`Chrome: load unpacked folder ${join(directory, "chrome")}`);
+  console.log(
+    `Firefox: load temporary add-on ${join(directory, "firefox", "manifest.json")}`,
+  );
+  console.log(
+    "Keep this terminal open. Remove the probe extensions when finished; Ctrl+C stops the fixture.",
+  );
+}
