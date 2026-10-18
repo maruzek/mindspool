@@ -40,6 +40,38 @@ export default defineBackground({
     });
 
     const visualCapture = browserVisualCapture(getToken);
+    browser.contextMenus.create(
+      {
+        id: "mindspool-save-image",
+        title: "Save image to MindSpool",
+        contexts: ["image"],
+        documentUrlPatterns: ["http://*/*", "https://*/*"],
+      },
+      () => {
+        void browser.runtime.lastError;
+      },
+    );
+    browser.contextMenus.onClicked.addListener((info, tab) => {
+      if (
+        info.menuItemId !== "mindspool-save-image" ||
+        !info.srcUrl ||
+        tab?.id === undefined ||
+        !tab.url
+      )
+        return;
+      const targetElementId =
+        "targetElementId" in info && typeof info.targetElementId === "number"
+          ? info.targetElementId
+          : undefined;
+      visualCapture.start("image", {
+        tabId: tab.id,
+        windowId: tab.windowId,
+        pageUrl: info.pageUrl ?? tab.url,
+        srcUrl: info.srcUrl,
+        frameId: info.frameId,
+        ...(targetElementId !== undefined ? { targetElementId } : {}),
+      });
+    });
     const handleClip = createClipHandler({
       getToken,
       client: {
@@ -63,6 +95,7 @@ export default defineBackground({
       ) {
         if (message.type === "start-visual-capture")
           return Promise.resolve(visualCapture.start(message.kind));
+        if (message.type === "retry-image-capture") visualCapture.retryImage();
         return Promise.resolve(visualCapture.status());
       }
       // Only this extension's own scripts may clip.

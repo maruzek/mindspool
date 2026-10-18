@@ -11,6 +11,7 @@ import {
 } from "./visualCapture";
 import { readRenderedPage } from "./pageContext";
 import { selectRegion } from "./regionCapture";
+import { downloadImage, selectedImageContext } from "./imageCapture";
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -129,13 +130,47 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
   };
   const controller = createVisualCapture({
     getToken,
-    page: async () => {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
+    page: async (target) => {
+      if (target?.frameId && target.frameId !== 0)
+        throw new Error("unsupported_page");
+      const tab = target
+        ? await browser.tabs.get(target.tabId)
+        : (await browser.tabs.query({ active: true, currentWindow: true }))[0];
       if (tab?.id === undefined) throw new Error("unsupported_page");
-      return readPage(tab.id, tab.windowId);
+      const page = await readPage(tab.id, tab.windowId);
+      if (target && page.pageUrl !== target.pageUrl)
+        throw new Error("page_changed");
+      return page;
+    },
+    image: async (page, target) => {
+      await assertPinned(page);
+      const [injection] = await browser.scripting.executeScript({
+        target: { tabId: page.tabId, frameIds: [0] },
+        func: selectedImageContext,
+        args:
+          target.targetElementId === undefined
+            ? [target.srcUrl]
+            : [target.srcUrl, target.targetElementId],
+      });
+      await assertPinned(page);
+      const local = injection?.result ?? {};
+      if (local.dataUrl && local.width && local.height)
+        return {
+          ...local,
+          dataUrl: local.dataUrl,
+          width: local.width,
+          height: local.height,
+          isAnimationStill: true,
+        };
+      const source = await downloadImage(target.srcUrl, (origin) =>
+        browser.permissions.contains({ origins: [`${origin}/*`] }),
+      );
+      await assertPinned(page);
+      return {
+        ...source,
+        ...(local.entryUrl ? { entryUrl: local.entryUrl } : {}),
+        ...(local.designSiteUrl ? { designSiteUrl: local.designSiteUrl } : {}),
+      };
     },
     screenshot,
     select: async (page) => {

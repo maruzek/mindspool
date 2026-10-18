@@ -3,9 +3,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { CapturePopup } from "./CapturePopup";
 import type { VisualCaptureRequest } from "./visualCapture";
+import { browser } from "wxt/browser";
 
 vi.mock("wxt/browser", () => ({
   browser: {
+    permissions: { request: vi.fn(async () => true) },
     runtime: { sendMessage: vi.fn() },
     tabs: {
       query: async () => [{ title: "Fixture", url: "https://example.com" }],
@@ -20,6 +22,7 @@ const host = document.createElement("div");
 afterEach(async () => {
   await act(async () => root?.unmount());
   host.replaceChildren();
+  vi.clearAllMocks();
 });
 async function render(
   auth: "signed_in" | "signed_out",
@@ -64,4 +67,21 @@ it("reads a completed background operation when reopened", async () => {
   await render("signed_in", async () => ({ state: "saved", itemId: "item-1" }));
   expect(host.textContent).toContain("Saved to your library");
   expect(host.querySelector('a[href*="item-1"]')).not.toBeNull();
+});
+it("requests only the selected image origin after an explicit click", async () => {
+  const send = vi.fn(async (_request: VisualCaptureRequest) => ({
+    state: "failed",
+    error: "permission_denied",
+    permissionOrigin: "https://images.example",
+  }));
+  await render("signed_in", send);
+  expect(browser.permissions.request).not.toHaveBeenCalled();
+  const button = Array.from(host.querySelectorAll("button")).find((button) =>
+    button.textContent?.includes("Allow image download"),
+  )!;
+  await act(async () => button.click());
+  expect(browser.permissions.request).toHaveBeenCalledWith({
+    origins: ["https://images.example/*"],
+  });
+  expect(send).toHaveBeenCalledWith({ type: "retry-image-capture" });
 });

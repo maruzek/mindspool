@@ -205,6 +205,43 @@ export function CapturePopup({
           </p>
         </div>
       )}
+      {status.permissionOrigin && status.error === "permission_denied" && (
+        <div className="flex flex-col gap-2">
+          <p className="break-all text-xs text-muted-foreground">
+            Download the selected image from {status.permissionOrigin}, or
+            capture an area instead.
+          </p>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={async () => {
+              const origin = status.permissionOrigin!;
+              if (!safeVisualUrl(origin) || new URL(origin).origin !== origin)
+                return;
+              setLaunching(true);
+              try {
+                const granted = await browser.permissions.request({
+                  origins: [`${origin}/*`],
+                });
+                if (granted) {
+                  await transport.current({ type: "retry-image-capture" });
+                  setStatus({ state: "capturing", kind: "image" });
+                }
+              } catch {
+                setStatus({
+                  state: "failed",
+                  error: "permission_denied",
+                  permissionOrigin: origin,
+                });
+              } finally {
+                setLaunching(false);
+              }
+            }}
+          >
+            Allow image download
+          </Button>
+        </div>
+      )}
       <footer className="mt-auto border-t-2 border-border pt-3">
         <a
           className="inline-flex items-center gap-1.5 text-xs font-bold text-primary"

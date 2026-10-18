@@ -62,6 +62,7 @@ export default defineConfig({
       ...captureHttpPermission(),
       ...originPermission("WXT_PUBLIC_CLERK_SYNC_HOST"),
     ],
+    optional_host_permissions: ["http://*/*", "https://*/*"],
     // `key` pins the Chrome extension ID; Firefox rejects the property.
     ...(browser !== "firefox" && process.env.CLERK_EXTENSION_PUBLIC_KEY
       ? { key: process.env.CLERK_EXTENSION_PUBLIC_KEY }
