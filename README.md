@@ -115,9 +115,50 @@ Use one Clerk development instance for all apps. Copy each app's `.env.example` 
 - **Web:** Set `VITE_CLERK_PUBLISHABLE_KEY` in `apps/web/.env.local`. Sign-in, account creation, and profile controls use Clerk's prebuilt UI.
 - **Mobile:** Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in `apps/mobile/.env.local`. Enable the Native API in the Clerk dashboard and configure the intended sign-in methods. Clerk's native UI uses the SDK's secure token cache and requires a development build; it cannot run in Expo Go. Native components are experimental/beta, so verify a real sign-in and session persistence on a device before relying on them.
 - **Mobile share target:** MindSpool appears in the Android share sheet for `text/plain`. A translucent `ShareActivity` saves the shared X post in the background (FxTwitter, then X syndication, then the bare link, via `items.create`) and shows a toast; the app never opens. See [SPEC-android-clipper.md](SPEC-android-clipper.md). Simulate with `adb shell am start -n com.mindspool.app/.ShareActivity -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "https://x.com/jack/status/20?s=20"`. Test cold shares with an EAS `preview` build, not the dev client. Status: [docs/verification/android-clipper.md](docs/verification/android-clipper.md).
-- **Browser extension:** Set `WXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `WXT_PUBLIC_CLERK_FRONTEND_API` (the full `https://` Frontend API URL) and `WXT_PUBLIC_CONVEX_URL` in `apps/extension/.env.local`; `WXT_PUBLIC_WEB_URL` (the popup's link, default `http://localhost:5173`) and `CLERK_EXTENSION_PUBLIC_KEY` (a stable Chrome extension id) are optional. Firefox uses the fixed add-on id `clipper@mindspool.local`. The popup signs in with Clerk's extension SDK; OAuth/SAML synchronization with the web app is a later integration.
+- **Browser extension:** Set `WXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `WXT_PUBLIC_CLERK_FRONTEND_API` (the full `https://` Frontend API URL) and `WXT_PUBLIC_CONVEX_URL` in `apps/extension/.env.local`; `WXT_PUBLIC_WEB_URL` (the popup's link, default `http://localhost:5173`) and `CLERK_EXTENSION_PUBLIC_KEY` (a stable Chrome extension id) are optional. Firefox uses the fixed add-on id `clipper@mindspool.local`. The popup uses Clerk’s extension SDK and reads the web session through `WXT_PUBLIC_CLERK_SYNC_HOST`.
 
-  **Clipping from X (Firefox):** a content script adds a Clip button to each tweet on x.com; the background script sends the tweet to `items.create`, and the library shows it as an X link with the tweet text and images in the inspector. The Convex deployment must include the `items.create` fields `sourceMetadata`, `extractedText` and `imageAssets`. To load it, run `pnpm --filter @mindspool/extension build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on…** and pick `apps/extension/.output/firefox-mv3/manifest.json` (not the `-dev` folder). It is removed when Firefox restarts. Sign in through the popup first. See [the verification report](docs/verification/extension-clipper.md) for what has and has not been checked.
+  **Clipping from X (Firefox):** a content script adds a Clip button to each tweet on x.com; the background script sends the tweet to `items.create`, and the library shows it as an X link with the tweet text and images in the inspector. The Convex deployment must include the `items.create` fields `sourceMetadata`, `extractedText` and `imageAssets`. Use the development loading and shared sign-in instructions below. Firefox temporary add-ons are removed when Firefox restarts. See [the verification report](docs/verification/extension-clipper.md) for what has and has not been checked.
+
+### Visual web clipper
+
+The extension popup offers **Capture visible area**, **Select an area**, and
+**Capture full page**. Right-click an image and choose **Save image to MindSpool**
+to save its actual pixels. Captures become library items; current label decisions
+make them eligible for board trays, and you place them manually. Capturing twice
+from one URL creates separate references. **Retry save** reuses the same intent.
+
+Stored static references are capped at **2 MiB (2,097,152 bytes)**. Finite full-page
+capture is bounded to 24 million pixels, 32,000 pixels per edge, 40 tiles and
+30 seconds, with page scroll/styles restored afterward. Unsupported or oversized
+pages fail explicitly. Direct-image downloads request only the needed optional
+origin permission; capture an area when an image cannot be read. Encoded retry
+bytes stay in extension-origin IndexedDB for at most one hour, without JWTs.
+
+For development review (using `apps/extension/.env.local`):
+
+```sh
+pnpm --filter @mindspool/extension exec wxt build --mode development
+pnpm --filter @mindspool/extension exec wxt build -b firefox --mv3 --mode development
+node scripts/probe-visual-clipper.mjs --fixture-only --port=36668
+```
+
+Load `apps/extension/.output/chrome-mv3-dev` through Chrome’s **Load unpacked**,
+or `apps/extension/.output/firefox-mv3-dev/manifest.json` through Firefox’s
+**Load Temporary Add-on**. These are built development artifacts; the `-dev`
+suffix selects development environment settings. Sign in to the web app at
+`http://localhost:5173` first; the popup reads the shared Clerk session through
+`WXT_PUBLIC_CLERK_SYNC_HOST`. Remove the old disposable probe extensions.
+
+Set `WXT_PUBLIC_CONVEX_URL` to the intended backend. Uploads use its corresponding
+`.convex.site` HTTP origin, or an explicit `WXT_PUBLIC_CONVEX_HTTP_URL` for custom
+hosting. The manifest grants that HTTP origin separately. Production builds use
+production environment settings, so verify the target before loading a build.
+
+Implementation and automated checks are complete; signed-in product acceptance
+in both desktop browsers remains open. Follow the
+[acceptance guide and evidence](docs/verification/visual-web-clipper.md).
+Existing AI membership uses text/metadata; image-aware classification is outside
+this feature’s verified scope.
 
 Initialize the backend from its workspace:
 

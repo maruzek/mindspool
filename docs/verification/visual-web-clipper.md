@@ -2,10 +2,143 @@
 
 Date: 2026-10-18. Branch: `feature/visual-web-clipper`.
 
-**Task 0 passed. Product implementation may proceed.** The disposable probes below exercise platform capabilities,
-not the eventual upload/session/cleanup implementation.
+**Feature implemented; authenticated Firefox/Chrome acceptance remains open.**
+Task 0 passed. The Task 0 evidence below proves platform capabilities separately
+from the implemented feature’s checks recorded here.
 
-## Run the missing desktop browser checks
+## Product implementation verification
+
+Branch `feature/visual-web-clipper` contains the capture session/upload lifecycle,
+all four acquisition modes, capture-first popup, encoded retry recovery,
+provenance, board display and zoomable inspection. No production deployment or
+extension publication has occurred. The development backend is
+`dev:graceful-stork-346`; both review manifests use that deployment’s `.cloud`
+and `.site` origins.
+
+Automated suites cover owned sessions, digest/nonce leases, streamed limits,
+static raster decoding, cleanup wraparound and late writes, deletion/replay,
+metadata preservation, board placement, controller/recovery, region selection,
+image downloads/provenance, fractional-scale stitching, popup states and viewer
+controls. `convex-test` omits Blob MIME metadata in its system-storage fixture;
+tests patch only that system fixture to model the real runtime’s preserved
+marker. Production verification remains strict.
+
+The implementation’s `decodeRaster` passed in Convex Node **v24.21.0** with Sharp
+**0.35.5**: 16 × 16 PNG (107 bytes), JPEG (269 bytes), and WebP (98 bytes) fully
+decoded; disguised SVG and truncated PNG were rejected. A regression test also
+rejects APNG animation controls, because libvips can otherwise decode a static
+fallback without reporting multiple frames. Temporary internal decoder probes
+were removed after testing.
+
+The **implemented** maintenance job also ran in the real development runtime.
+A private harness created synthetic session/attempt rows and five files across
+two scans. The job deleted exactly two known-nonce orphans (a post-store crash
+and a late write), preserved the exact completed-session asset, an unmarked
+legacy file and an unknown-marker file, and scanned **8 rows across 2 calls**
+with the configured **50-row per-call bound**. Mutation-side UUID creation and
+system-storage MIME markers worked. All five harness files and all harness
+session/attempt rows were removed in cleanup. The larger 56-row/two-page
+capability proof is recorded separately under Task 0 below.
+
+The CLI’s impersonated identity cannot invoke the temporary internal driver
+(it reports “Could not find function”; the normal admin invocation reaches the
+driver and correctly fails `requireOwner` without a user identity). No signed-in
+Clerk HTTP upload success is inferred from that attempt. HTTP auth/ownership and
+full upload/finalize are covered by integration tests; real JWT transport remains
+in the desktop matrix.
+
+Actual Chrome **153.0.8010.12** test-build extension processing, after the popup
+closed, produced:
+
+| Implemented runtime check | Result                                                                      |
+| ------------------------- | --------------------------------------------------------------------------- |
+| Full-page WebP            | 1000 × 2100, 14,130 bytes, complete vertical fixture                        |
+| Region WebP               | 100 × 40, 580 bytes; sampled red pixel `[255,1,0]`                          |
+| Direct image              | 16 × 16 WebP, 576 bytes; alpha 102 retained from 0.4 input                  |
+| Page restoration          | Original scroll 250 and header inline style restored                        |
+| Real IndexedDB            | Encoded Blob recovered from another extension context; expired entry pruned |
+
+The implemented page-control helper also ran in Chrome **153.0.8010.12** and
+Firefox **144.0.2**: initial header visible, later header suppressed, original
+scroll/style/important priority restored, and the page watchdog restored state
+after simulated worker loss. This does not prove a signed-in Firefox extension save.
+
+A browser harness rendered the actual popup component with mocked tab/status
+transport and the built extension CSS: 380px width with no horizontal overflow,
+48px primary button, 40px secondary buttons, shared colors and Archivo. Inspection
+caught and fixed Chrome’s default extension body font overriding the shared
+layered style; the body now inherits Archivo from the shared root. The actual
+viewer component with the built web CSS displayed a 2100px reference at 100%,
+scrolled to 800px in a 794px viewport, and closed with Escape. No browser page
+errors occurred. This harness supplies visual/component evidence, not Clerk or
+native-menu acceptance.
+
+## Final desktop product acceptance (Task 18)
+
+The prior disposable probe extensions are finished; remove them. Use the built
+**MindSpool** extension for this matrix. Development builds are prepared at:
+
+- Chrome: `apps/extension/.output/chrome-mv3-dev` (**Load unpacked**).
+- Firefox: `apps/extension/.output/firefox-mv3-dev/manifest.json`
+  (**Load Temporary Add-on**).
+
+Rebuild using `wxt build --mode development` and
+`wxt build -b firefox --mv3 --mode development` from the extension workspace.
+These are complete builds with development environment settings. Default
+production builds use a different backend; use the `-dev` paths above for review.
+
+Run `pnpm dev:web`, sign in at **http://localhost:5173**, and check the extension
+popup shares that account. Start a product-only local fixture with:
+
+```sh
+node scripts/probe-visual-clipper.mjs --fixture-only --port=36668
+```
+
+Open **http://127.0.0.1:36668/**. Keep the source tab selected during capture.
+Run the following in **both Chrome and Firefox**; report failures verbatim and
+record each actual browser version. The recorded Task 0 versions were Chrome
+155.0.8059.79 and Firefox 147.0.1.
+
+| Product scenario                                     | Expected result                                                                               | Chrome  | Firefox |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- | ------- |
+| Sign-in and popup keyboard order                     | Capture visible area primary, region/full-page next; account compact; no font/CSP errors      | Pending | Pending |
+| Visible capture at top, then scrolled                | Saved pixels match each current viewport; two independent items with source metadata          | Pending | Pending |
+| Region at 80%, 125%, and high DPI                    | Exact rectangle, no overlay; Escape creates no item                                           | Pending | Pending |
+| Native menu on fixture image                         | Only the purple image saved, independently of page screenshot/preview                         | Pending | Pending |
+| Native menu on a design aggregator and X attachment  | Correct selected image; unambiguous entry/post context; no hover UI                           | Pending | Pending |
+| Finite full page with red fixed header               | Complete bottom edge, one header, source tab restored; compare original scroll                | Pending | Pending |
+| Popup close/reopen and worker restart                | Background finishes or reports interruption; cached retry never recaptures a changed page     | Pending | Pending |
+| Offline during save, reconnect, Retry save           | Same intent saves once; repeat intentional capture creates a new item                         | Pending | Pending |
+| Denied image-origin permission / unavailable source  | Clear failure or explicit origin grant; selected-area alternative; no preview substitution    | Pending | Pending |
+| Unsupported browser page, oversized/infinite page    | Clear failure, no partial success, source styles/scroll restored                              | Pending | Pending |
+| Library → label tray → manual board placement        | Current membership decisions respected; no automatic canvas card                              | Pending | Pending |
+| Resize/column/full reference and tall inspection     | Complete image, useful 100% scrolling, Escape/focus preserved                                 | Pending | Pending |
+| Block original image requests, then delete reference | Stored copy still renders; deletion releases stored asset; stale retry does not recreate item | Pending | Pending |
+
+Use an existing suitable label description for current text/metadata membership;
+image-aware classification is outside this feature. Named live-site samples and
+access failures must be recorded instead of claiming a test passed. The T3
+collaborative browser reports no automation host for both status and open;
+headless local checks cannot supply this signed-in desktop/native-menu matrix.
+
+## Spec success-criterion coverage
+
+| Criterion                          | Automated / runtime evidence                                                      | Remaining acceptance                             |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 1: visible pixels and context      | Controller, page context, owned upload/finalize tests; built processor            | Signed-in viewport save in both browsers         |
+| 2: region and Escape               | Region/controller tests; real crop pixels                                         | Real pointer capture at zoom/DPI in both         |
+| 3: full-page/restoration           | Planning/stitch tests; Chrome processor; Chrome/Firefox control/watchdog fixtures | Full signed-in operation in both                 |
+| 4: actual native image             | Download/target/provenance tests; Task 0 native invocation                        | Built-product image save on fixture/aggregator/X |
+| 5: independent stored pixels       | Read/enrichment preservation tests                                                | Block original image requests                    |
+| 6: independent intents/idempotency | Session/controller/recovery/board tests; real IndexedDB                           | Offline/restart retry with one durable item      |
+| 7: membership/manual placement     | Board tests assert no automatic placement                                         | Live label tray flow                             |
+| 8: complete movable references     | Card geometry/containment tests; real tall viewer scrolling                       | Board drag/resize/columns                        |
+| 9: errors/owner isolation          | Auth/foreign/MIME/size/cancel/timeout tests                                       | Signed-out/permission and live failure states    |
+| 10: 2 MiB bound                    | Exact boundary and one-byte-over upload tests; bounded processor                  | Real stored-asset inventory after save/delete    |
+| 11: capture-first shared popup     | Popup behavior tests and actual component/CSS visual inspection                   | Both desktop auth/state/keyboard checks          |
+| 12: parity and repository gate     | Automated suites, typechecks and builds below; Task 0 both-browser proof          | Final product matrix remains open                |
+
+## Reproduce the completed Task 0 capability checks
 
 From the repository root:
 
@@ -178,7 +311,7 @@ accessible status, and Open MindSpool. Reuse the installed web Tailwind/Vite
 versions (4.3.3) when wiring the extension. This is a source/design-brief review;
 rendered popup acceptance remains pending Tasks 6–7.
 
-## Repository checks
+## Historical Task 0 repository checks
 
 - Backend typecheck: passed.
 - Development deployment restoration with typecheck: passed.
@@ -191,3 +324,28 @@ rendered popup acceptance remains pending Tasks 6–7.
   scroll/stitch flows passed as recorded above. User-run viewport, scroll/stitch,
   and native-menu checks passed in both browsers. Exact desktop versions and source-page
   restoration are recorded above.
+
+## Final repository gate
+
+`VITEST_MAX_WORKERS=1 pnpm check` runs the normal repository gate with serial
+Vitest workers to avoid the previously observed schema-audit timeout under
+resource contention. No tests/timeouts were changed or disabled.
+
+| Workspace | Tests passed |
+| --------- | ------------ |
+| Schema    | 49           |
+| Backend   | 617          |
+| Web       | 327          |
+| Extension | 164          |
+| Mobile    | 119          |
+| **Total** | **1,276**    |
+
+Formatting, all six workspace typechecks, web/Chrome/Android builds and a
+separate Firefox MV3 build pass. Both development browser bundles were rebuilt
+after the final popup/provenance fixes. Manifest inspection confirms the review
+builds use only `graceful-stork-346` for Convex `.cloud`/`.site` origins.
+
+Review covered correctness, ownership, nonce/digest attachment boundaries,
+stream/pixel/IPC bounds, page restoration, local data lifetime, metadata
+preservation, source-link safety and legacy flows. No release readiness claim
+is made while the authenticated desktop product matrix is open.

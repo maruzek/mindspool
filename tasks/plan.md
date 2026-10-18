@@ -1,6 +1,6 @@
 # Implementation Plan: Visual Web Clipper
 
-Status: **Implementation in progress; Task 0 passed.**
+Status: **Feature implemented; authenticated desktop acceptance pending.**
 
 Branch: `feature/visual-web-clipper`. Automated decoder/storage and Chrome
 test-build probes passed on 2026-10-18. User-run desktop viewport, full-page,
@@ -60,7 +60,8 @@ Do not persist raw full-page tiles across restarts; abort those operations safel
 
 ### Explicit permissions and browser parity
 
-Add `activeTab`, `scripting`, and cross-browser `contextMenus`. Add `offscreen`
+Add `activeTab`, `scripting`, cross-browser `contextMenus`, and `alarms` for
+precise expiry of the one-slot local retry payload. Add `offscreen`
 only for Chrome when needed by the proven adapter. Retain current social/auth
 permissions. Add the configured Convex HTTP action origin explicitly; do not
 assume permission for `.convex.cloud` also covers `.convex.site`.
@@ -185,6 +186,7 @@ type CaptureContext = {
     siteName?: string;
   };
   canonicalUrl?: string;
+  previewImageUrl?: string; // Rendered og:image context; never replaces captured pixels.
   sourceImageUrl?: string;
   entryUrl?: string;
   designSiteUrl?: string;
@@ -363,3 +365,29 @@ and shared image-viewer and theme styles.
 - [Convex HTTP actions](https://docs.convex.dev/functions/http-actions): authenticated request handling, binary bodies, Node action calls, and `.convex.site` origin.
 - [Convex storage](https://docs.convex.dev/file-storage/store-files) and [metadata](https://docs.convex.dev/file-storage/file-metadata): server-managed Blobs and system metadata; marker behavior still requires Task 0 proof.
 - [Sharp input documentation](https://sharp.pixelplumbing.com/api-input/): decoder metadata; complete decode, limits, and Convex compatibility remain implementation verification requirements.
+
+## Execution notes (2026-10-18)
+
+Implementation is committed on `feature/visual-web-clipper`. The session, upload,
+processor, popup, region, native-image, full-page, recovery, projections, board,
+and viewer slices are implemented. File budgets were maintained by splitting
+backend upload/attempt/finalization/maintenance, processor/browser wiring,
+region wiring, image download/controller/menu wiring, full-page control/stitch/
+wiring, and IndexedDB/controller wiring into separate verified commits.
+
+Immutable nonce history lives in `visualCaptureAttempts`, separately from the
+current session attempt, so late writes from replaced attempts remain recoverable.
+`visualCaptureMaintenance` holds the bounded system-storage scan cursor. The
+five-minute job scans 50 storage rows per page with wraparound and never deletes
+an unknown marker or the exact asset attached to a completed session.
+
+The source-context contract includes `previewImageUrl` to preserve rendered
+`og:image` independently. Optional image-origin permission is requested from an
+explicit popup button after a native-menu failure, preserving the browser's user
+gesture requirement. `alarms` expires cached encoded blobs even without reopening
+the popup. These changes retain the reviewed limits and trust boundaries.
+
+The implemented native decoder was exercised in the development Node runtime.
+Automated regression suites and built Chrome processor checks pass. The remaining
+signed-in product matrix in Firefox and Chrome is a required acceptance gate;
+Task 0 capability probes do not satisfy it. See the verification report.

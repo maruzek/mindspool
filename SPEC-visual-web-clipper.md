@@ -1,9 +1,12 @@
 # Spec: Visual Web Clipper
 
-Status: **Product scope reviewed; technical plan awaiting review.**
+Status: **Implemented on feature branch; final Firefox/Chrome acceptance pending.**
 
 The user requested planning on 2026-10-18. See [the implementation plan](tasks/plan.md)
-and [task list](tasks/todo.md). Implementation has not started.
+and [task list](tasks/todo.md). The user authorized implementation on a new branch;
+`feature/visual-web-clipper` contains the implementation and automated verification.
+See [the verification report](docs/verification/visual-web-clipper.md) for the
+remaining authenticated browser acceptance.
 
 ## Objective
 
@@ -389,9 +392,9 @@ fallback logic. Preserve existing X/Reddit contracts and ordinary URL deduplicat
 
 ## Open review points
 
-- Confirm immediate-save interaction and still-image-only scope. These defaults
-  have not yet been approved. The 2 MiB cap, equal Firefox/Chrome priority, and
-  simplified capture-first popup are confirmed product requirements.
+- The authorized implementation follows the plan’s immediate-save interaction
+  and still-image-only scope. Final interaction review remains part of browser
+  acceptance. The 2 MiB cap and equal Firefox/Chrome priority remain required.
 - Review the popup layout and styling during technical planning; this spec defines
   its hierarchy and behavior rather than a finished visual design.
 - The implementation plan must select and demonstrate full-page capture support
@@ -400,5 +403,6 @@ fallback logic. Preserve existing X/Reddit contracts and ordinary URL deduplicat
   based on the visual itself. This spec guarantees capture and availability, not
   visual classification accuracy.
 
-Approval of this document permits technical planning only. It does not approve
-implementation, deployment, publication, or expanding AI-model scope.
+The user subsequently authorized implementation and development verification.
+Production deployment, extension publication, and expanding AI-model scope
+require separate authorization.
