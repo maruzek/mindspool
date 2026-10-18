@@ -56,19 +56,19 @@ as part of the runtime proof; temporary probes stay outside tracked product file
 
 ### Task 1: Define capture vocabulary and additive storage shape
 
-- [ ] Complete Task 1.
+- [x] Complete Task 1.
 
 **Description:** Define the shared context/kind/limits and backend validators so
 all new capture paths agree without changing existing item inputs.
 
 **Acceptance criteria:**
 
-- [ ] Export the plan's `CaptureContext`/`VisualCaptureKind` and exact byte/pixel
+- [x] Export the plan's `CaptureContext`/`VisualCaptureKind` and exact byte/pixel
       constants; reject unsafe URLs, excessive metadata, and invalid timestamps.
-- [ ] Add optional item `visualCapture` metadata and the `visualCaptures` session
+- [x] Add optional item `visualCapture` metadata and the `visualCaptures` session
       table/indexes. Store authoritative dimensions, provenance and kind separately
       from generic thumbnails. Legacy rows remain readable without migration.
-- [ ] Existing `items.create` remains external-asset-only; contracts distinguish
+- [x] Existing `items.create` remains external-asset-only; contracts distinguish
       transport bytes, server-owned storage references, and public item metadata.
 
 **Verification:** `pnpm --filter @mindspool/schema test`; schema/backend
@@ -88,19 +88,19 @@ Split generated API changes into the first function-owning task if none arise he
 
 ### Task 2: Create owned capture sessions
 
-- [ ] Complete Task 2.
+- [x] Complete Task 2.
 
 **Description:** Introduce begin/status/cancel and private attempt transitions
 with authenticated identity and stable retry behavior.
 
 **Acceptance criteria:**
 
-- [ ] `visualCaptures.begin/status/cancel` follow the plan's signatures;
+- [x] `visualCaptures.begin/status/cancel` follow the plan's signatures;
       owner/key duplicates replay, conflicting contexts fail, foreign/missing
       sessions are indistinguishable, and receipts outlive active uploads.
-- [ ] Private lease/attempt transitions serialize uploads and cancellation;
+- [x] Private lease/attempt transitions serialize uploads and cancellation;
       expired/stale attempts cannot attach files or modify a completed capture.
-- [ ] Tests cover two owners, simultaneous begin/retry, cancel-before-upload,
+- [x] Tests cover two owners, simultaneous begin/retry, cancel-before-upload,
       completed-session cancel, and reuse of a deleted completed capture key.
 
 **Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/visualCaptures.test.ts`;
@@ -117,7 +117,7 @@ with authenticated identity and stable retry behavior.
 
 ### Checkpoint A: Foundations are viable
 
-- [ ] Tasks 0–2 pass and browser/storage evidence is reviewed; no unresolved
+- [x] Tasks 0–2 pass and browser/storage evidence is reviewed; no unresolved
       assumption is hidden behind permissive asset attachment or a missing browser.
 
 ## Phase 2: Save one viewport end to end

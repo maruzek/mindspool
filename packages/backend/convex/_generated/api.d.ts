@@ -40,7 +40,10 @@ import type * as mcp_handler from "../mcp/handler.js";
 import type * as mcp_proof from "../mcp/proof.js";
 import type * as mcp_registry from "../mcp/registry.js";
 import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_tools_excerpt from "../mcp/tools/excerpt.js";
+import type * as mcp_tools_read from "../mcp/tools/read.js";
 import type * as mcp_tools_shape from "../mcp/tools/shape.js";
+import type * as mcp_tools_streams from "../mcp/tools/streams.js";
 import type * as mcp_transport from "../mcp/transport.js";
 import type * as mcp_types from "../mcp/types.js";
 import type * as mcpConnections from "../mcpConnections.js";
@@ -56,6 +59,8 @@ import type * as sampleContent from "../sampleContent.js";
 import type * as seed from "../seed.js";
 import type * as tweetLinks from "../tweetLinks.js";
 import type * as validators from "../validators.js";
+import type * as visualCaptureState from "../visualCaptureState.js";
+import type * as visualCaptures from "../visualCaptures.js";
 
 import type {
   ApiFromModules,
@@ -96,7 +101,10 @@ declare const fullApi: ApiFromModules<{
   "mcp/proof": typeof mcp_proof;
   "mcp/registry": typeof mcp_registry;
   "mcp/tools": typeof mcp_tools;
+  "mcp/tools/excerpt": typeof mcp_tools_excerpt;
+  "mcp/tools/read": typeof mcp_tools_read;
   "mcp/tools/shape": typeof mcp_tools_shape;
+  "mcp/tools/streams": typeof mcp_tools_streams;
   "mcp/transport": typeof mcp_transport;
   "mcp/types": typeof mcp_types;
   mcpConnections: typeof mcpConnections;
@@ -112,6 +120,8 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   tweetLinks: typeof tweetLinks;
   validators: typeof validators;
+  visualCaptureState: typeof visualCaptureState;
+  visualCaptures: typeof visualCaptures;
 }>;
 
 /**
