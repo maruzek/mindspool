@@ -167,6 +167,7 @@ export async function itemDetailFor(
     ...(item.sourceMetadata ? { sourceMetadata: item.sourceMetadata } : {}),
     ...(item.extractedText ? { extractedText: item.extractedText } : {}),
     ...(item.redditCapture ? { redditCapture: item.redditCapture } : {}),
+    ...(item.visualCapture ? { visualCapture: item.visualCapture } : {}),
     ...(item.imageAssets.length ? { imageAssets: item.imageAssets } : {}),
     ...(images.length ? { images } : {}),
     ...(await fromPost(ctx, ownerId, item)),
@@ -415,6 +416,15 @@ const PREVIEW_RUNS = 3;
 
 function previewItem(item: Doc<"items">) {
   return {
+    ...(item.visualCapture
+      ? {
+          visualCapture: {
+            kind: item.visualCapture.kind,
+            width: item.visualCapture.width,
+            height: item.visualCapture.height,
+          },
+        }
+      : {}),
     _id: item._id,
     _creationTime: item._creationTime,
     inputType: item.inputType,

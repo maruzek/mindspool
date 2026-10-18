@@ -7,7 +7,9 @@ import { validElement } from "./boardState";
 import { invalid } from "./boardValidators";
 import { imageUrls } from "./itemImages";
 import { sourceKindOf } from "./itemState";
+import { visualCapturePreview } from "./validators";
 export const preview = v.object({
+  visualCapture: v.optional(visualCapturePreview),
   itemId: v.id("items"),
   title: v.string(),
   body: v.string(),
@@ -41,6 +43,15 @@ export async function previewItem(ctx: QueryCtx, item: Doc<"items">) {
       });
   }
   return {
+    ...(item.visualCapture
+      ? {
+          visualCapture: {
+            kind: item.visualCapture.kind,
+            width: item.visualCapture.width,
+            height: item.visualCapture.height,
+          },
+        }
+      : {}),
     itemId: item._id,
     title: (
       item.sourceMetadata?.title ||

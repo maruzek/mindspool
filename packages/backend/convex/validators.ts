@@ -106,6 +106,11 @@ export const visualCaptureMetadata = v.object({
   height: v.number(),
   contentType: visualContentType,
 });
+export const visualCapturePreview = v.object({
+  kind: visualCaptureKind,
+  width: v.number(),
+  height: v.number(),
+});
 export const visualCaptureState = v.union(
   v.literal("pending"),
   v.literal("uploading"),
@@ -195,6 +200,7 @@ export const decisionProvider = v.union(
   v.literal("openai-decisions"),
 );
 export const itemPreview = v.object({
+  visualCapture: v.optional(visualCapturePreview),
   _id: v.id("items"),
   _creationTime: v.number(),
   inputType,
@@ -226,6 +232,7 @@ export const itemPreview = v.object({
   labeling: v.optional(v.boolean()),
 });
 export const itemDetail = v.object({
+  visualCapture: v.optional(visualCaptureMetadata),
   _id: v.id("items"),
   _creationTime: v.number(),
   inputType,
