@@ -1,8 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { ClerkProvider, UserButton, useAuth } from "@clerk/chrome-extension";
 import { browser } from "wxt/browser";
-import { WorkspaceShell } from "@mindspool/ui";
-import { ClipStatus } from "../../src/ClipStatus";
+import { CapturePopup } from "../../src/CapturePopup";
 import "./style.css";
 
 const publishableKey = import.meta.env.WXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -15,21 +14,17 @@ const popupUrl = browser.runtime.getURL("/popup.html");
 
 function AuthControls() {
   const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded) return <p role="status">Loading sign-in…</p>;
-  return isSignedIn ? (
-    <>
-      <UserButton />
-      <ClipStatus webUrl={webUrl} />
-    </>
-  ) : (
-    <a href={webUrl} target="_blank" rel="noreferrer">
-      Sign in on MindSpool, then reopen this popup
-    </a>
+  return (
+    <CapturePopup
+      auth={!isLoaded ? "loading" : isSignedIn ? "signed_in" : "signed_out"}
+      webUrl={webUrl}
+      account={isSignedIn ? <UserButton /> : undefined}
+    />
   );
 }
 
 createRoot(document.getElementById("root")!).render(
-  <WorkspaceShell>
+  <>
     {publishableKey && frontendApi ? (
       <ClerkProvider
         publishableKey={publishableKey}
@@ -41,7 +36,7 @@ createRoot(document.getElementById("root")!).render(
         <AuthControls />
       </ClerkProvider>
     ) : (
-      <p>Sign-in is not configured for this environment.</p>
+      <CapturePopup auth="unconfigured" webUrl={webUrl} />
     )}
-  </WorkspaceShell>,
+  </>,
 );
