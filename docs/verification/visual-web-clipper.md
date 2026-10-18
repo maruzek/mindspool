@@ -37,6 +37,48 @@ The failed attempts created no library items; their staged files are reclaimed b
 the existing cleanup job. Signed-in desktop capture must be rerun after deploying
 the fix; the product matrix below remains open until that result is supplied.
 
+## Saved product captures after the MIME fix
+
+The user reported that the captures now save and supplied a library screenshot
+showing six screenshot references. They then explicitly confirmed **all four
+modes, including the purple image’s native menu, passed in both Firefox and
+Chrome**. Follow-up read-only inspection confirmed eight completed receipts and
+eight existing stored WebP files: two of every capture kind. Every file served
+successfully and fully decoded; stored dimensions matched the decoder and all
+eight retained the fixture title. No private page content or file
+URLs are included in this report.
+
+| Kind         | Dimensions  | Bytes  |
+| ------------ | ----------- | ------ |
+| Viewport     | 2560 × 1305 | 31,802 |
+| Region       | 242 × 366   | 7,084  |
+| Full page    | 2560 × 2100 | 47,738 |
+| Viewport     | 2560 × 1307 | 31,224 |
+| Region       | 391 × 242   | 3,474  |
+| Full page    | 2560 × 2100 | 47,154 |
+| Native image | 160 × 100   | 114    |
+| Native image | 160 × 100   | 596    |
+
+Both full-page files had 79 red rows at their midpoint (one compressed 80px
+header) and a bottom pixel `[1,128,1]`, confirming complete green-bottom output
+without repeated headers. These are successful built-product screenshot saves,
+not the earlier disposable capability probes. Both native-image items identify
+the fixture’s selected `/target.png` and retain its natural 160 × 100 dimensions.
+The user’s confirmation supplies both-browser parity for these four basic saves.
+Current source-tab restoration, zoom/DPI, live aggregator/X images, board use and
+interruption/retry still require the remaining desktop checks; successful basic
+saves alone do not complete the entire matrix.
+
+The library screenshot exposed misleading wording: “Extraction failed — link
+kept” described a saved image as though only its link remained. The cloud backend
+cannot fetch the fixture’s loopback webpage for enrichment, while its uploaded
+visual is stored independently. The shared status now says **“Saved — page
+details unavailable”**. List/grid regressions preserve the stored-image thumbnail
+when enrichment fails, and the ordinary saved-item status uses the same wording.
+
+The status-copy change passed the focused list/grid/component checks (**40 tests**),
+the full web suite (**54 files / 329 tests**), web/UI typechecks and the web build.
+
 ## Product implementation verification
 
 Branch `feature/visual-web-clipper` contains the capture session/upload lifecycle,
@@ -130,21 +172,21 @@ Run the following in **both Chrome and Firefox**; report failures verbatim and
 record each actual browser version. The recorded Task 0 versions were Chrome
 155.0.8059.79 and Firefox 147.0.1.
 
-| Product scenario                                     | Expected result                                                                               | Chrome  | Firefox                          |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- | -------------------------------- |
-| Sign-in and popup keyboard order                     | Capture visible area primary, region/full-page next; account compact; no font/CSP errors      | Pending | Pending                          |
-| Visible capture at top, then scrolled                | Saved pixels match each current viewport; two independent items with source metadata          | Pending | Initial 422; fix awaiting retest |
-| Region at 80%, 125%, and high DPI                    | Exact rectangle, no overlay; Escape creates no item                                           | Pending | Initial 422; fix awaiting retest |
-| Native menu on fixture image                         | Only the purple image saved, independently of page screenshot/preview                         | Pending | Pending                          |
-| Native menu on a design aggregator and X attachment  | Correct selected image; unambiguous entry/post context; no hover UI                           | Pending | Pending                          |
-| Finite full page with red fixed header               | Complete bottom edge, one header, source tab restored; compare original scroll                | Pending | Initial 422; fix awaiting retest |
-| Popup close/reopen and worker restart                | Background finishes or reports interruption; cached retry never recaptures a changed page     | Pending | Pending                          |
-| Offline during save, reconnect, Retry save           | Same intent saves once; repeat intentional capture creates a new item                         | Pending | Pending                          |
-| Denied image-origin permission / unavailable source  | Clear failure or explicit origin grant; selected-area alternative; no preview substitution    | Pending | Pending                          |
-| Unsupported browser page, oversized/infinite page    | Clear failure, no partial success, source styles/scroll restored                              | Pending | Pending                          |
-| Library → label tray → manual board placement        | Current membership decisions respected; no automatic canvas card                              | Pending | Pending                          |
-| Resize/column/full reference and tall inspection     | Complete image, useful 100% scrolling, Escape/focus preserved                                 | Pending | Pending                          |
-| Block original image requests, then delete reference | Stored copy still renders; deletion releases stored asset; stale retry does not recreate item | Pending | Pending                          |
+| Product scenario                                     | Expected result                                                                               | Chrome                                     | Firefox                                    |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
+| Sign-in and popup keyboard order                     | Capture visible area primary, region/full-page next; account compact; no font/CSP errors      | Pending                                    | Pending                                    |
+| Visible capture at top, then scrolled                | Saved pixels match each current viewport; two independent items with source metadata          | Top save passed; scrolled pending          | Top save passed; scrolled pending          |
+| Region at 80%, 125%, and high DPI                    | Exact rectangle, no overlay; Escape creates no item                                           | Save passed; zoom/DPI/Escape pending       | Save passed; zoom/DPI/Escape pending       |
+| Native menu on fixture image                         | Only the purple image saved, independently of page screenshot/preview                         | Passed                                     | Passed                                     |
+| Native menu on a design aggregator and X attachment  | Correct selected image; unambiguous entry/post context; no hover UI                           | Pending                                    | Pending                                    |
+| Finite full page with red fixed header               | Complete bottom edge, one header, source tab restored; compare original scroll                | Complete image passed; restoration pending | Complete image passed; restoration pending |
+| Popup close/reopen and worker restart                | Background finishes or reports interruption; cached retry never recaptures a changed page     | Pending                                    | Pending                                    |
+| Offline during save, reconnect, Retry save           | Same intent saves once; repeat intentional capture creates a new item                         | Pending                                    | Pending                                    |
+| Denied image-origin permission / unavailable source  | Clear failure or explicit origin grant; selected-area alternative; no preview substitution    | Pending                                    | Pending                                    |
+| Unsupported browser page, oversized/infinite page    | Clear failure, no partial success, source styles/scroll restored                              | Pending                                    | Pending                                    |
+| Library → label tray → manual board placement        | Current membership decisions respected; no automatic canvas card                              | Pending                                    | Pending                                    |
+| Resize/column/full reference and tall inspection     | Complete image, useful 100% scrolling, Escape/focus preserved                                 | Pending                                    | Pending                                    |
+| Block original image requests, then delete reference | Stored copy still renders; deletion releases stored asset; stale retry does not recreate item | Pending                                    | Pending                                    |
 
 Use an existing suitable label description for current text/metadata membership;
 image-aware classification is outside this feature. Named live-site samples and
@@ -154,20 +196,20 @@ headless local checks cannot supply this signed-in desktop/native-menu matrix.
 
 ## Spec success-criterion coverage
 
-| Criterion                          | Automated / runtime evidence                                                      | Remaining acceptance                             |
-| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 1: visible pixels and context      | Controller, page context, owned upload/finalize tests; built processor            | Signed-in viewport save in both browsers         |
-| 2: region and Escape               | Region/controller tests; real crop pixels                                         | Real pointer capture at zoom/DPI in both         |
-| 3: full-page/restoration           | Planning/stitch tests; Chrome processor; Chrome/Firefox control/watchdog fixtures | Full signed-in operation in both                 |
-| 4: actual native image             | Download/target/provenance tests; Task 0 native invocation                        | Built-product image save on fixture/aggregator/X |
-| 5: independent stored pixels       | Read/enrichment preservation tests                                                | Block original image requests                    |
-| 6: independent intents/idempotency | Session/controller/recovery/board tests; real IndexedDB                           | Offline/restart retry with one durable item      |
-| 7: membership/manual placement     | Board tests assert no automatic placement                                         | Live label tray flow                             |
-| 8: complete movable references     | Card geometry/containment tests; real tall viewer scrolling                       | Board drag/resize/columns                        |
-| 9: errors/owner isolation          | Auth/foreign/MIME/size/cancel/timeout tests                                       | Signed-out/permission and live failure states    |
-| 10: 2 MiB bound                    | Exact boundary and one-byte-over upload tests; bounded processor                  | Real stored-asset inventory after save/delete    |
-| 11: capture-first shared popup     | Popup behavior tests and actual component/CSS visual inspection                   | Both desktop auth/state/keyboard checks          |
-| 12: parity and repository gate     | Automated suites, typechecks and builds below; Task 0 both-browser proof          | Final product matrix remains open                |
+| Criterion                          | Automated / runtime evidence                                                      | Remaining acceptance                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 1: visible pixels and context      | Controller, page context, owned upload/finalize tests; built processor            | Scrolled/zoomed viewport acceptance                    |
+| 2: region and Escape               | Region/controller tests; real crop pixels                                         | Real pointer capture at zoom/DPI in both               |
+| 3: full-page/restoration           | Planning/stitch tests; Chrome processor; Chrome/Firefox control/watchdog fixtures | Built-product source restoration and unsupported cases |
+| 4: actual native image             | Download/target/provenance tests; Task 0 native invocation                        | Aggregator/X image save and permission paths           |
+| 5: independent stored pixels       | Read/enrichment preservation tests                                                | Block original image requests                          |
+| 6: independent intents/idempotency | Session/controller/recovery/board tests; real IndexedDB                           | Offline/restart retry with one durable item            |
+| 7: membership/manual placement     | Board tests assert no automatic placement                                         | Live label tray flow                                   |
+| 8: complete movable references     | Card geometry/containment tests; real tall viewer scrolling                       | Board drag/resize/columns                              |
+| 9: errors/owner isolation          | Auth/foreign/MIME/size/cancel/timeout tests                                       | Signed-out/permission and live failure states          |
+| 10: 2 MiB bound                    | Exact boundary and one-byte-over upload tests; bounded processor                  | Real stored-asset inventory after save/delete          |
+| 11: capture-first shared popup     | Popup behavior tests and actual component/CSS visual inspection                   | Both desktop auth/state/keyboard checks                |
+| 12: parity and repository gate     | Automated suites, typechecks and builds below; Task 0 both-browser proof          | Final product matrix remains open                      |
 
 ## Reproduce the completed Task 0 capability checks
 

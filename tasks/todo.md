@@ -640,6 +640,15 @@ Any production-code fix is a separately scoped follow-up task with its own test.
 
 - [ ] Complete Task 18.
 
+Progress: after fixing Node MIME-parameter whitespace rejection, the user
+confirmed viewport, region, full-page and native fixture-image saves in both
+Firefox and Chrome. Read-only runtime checks verified eight completed captures
+and fully decoded stored assets, including two complete full-page outputs and
+two natural-size images. The remaining matrix (restoration, zoom/DPI, live
+aggregator/X images, retry/worker interruption, permissions and board inspection)
+is still open; see the verification report. The library’s failed-enrichment
+status now clearly distinguishes saved content from unavailable page details.
+
 **Description:** Load the built extension in each actual browser and exercise
 the same product scenarios; record evidence rather than inferring support from builds.
 
