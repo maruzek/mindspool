@@ -1,6 +1,7 @@
 import { browser } from "wxt/browser";
 import { VISUAL_LIMITS } from "@mindspool/schema";
 import { pixelCrop } from "./regionCapture";
+import { rasterDimensions } from "./imageCapture";
 import {
   captureFailure,
   type EncodedCapture,
@@ -38,10 +39,12 @@ function dataUrl(blob: Blob) {
 async function processVisual(
   request: ProcessorRequest,
 ): Promise<EncodedCapture> {
-  const { width, height } = pngDimensions(request.dataUrl);
-  const bitmap = await createImageBitmap(
-    await (await fetch(request.dataUrl)).blob(),
-  );
+  const blob = await (await fetch(request.dataUrl)).blob();
+  const dimensions = request.sourceImage
+    ? rasterDimensions(new Uint8Array(await blob.arrayBuffer()))
+    : pngDimensions(request.dataUrl);
+  const bitmap = await createImageBitmap(blob);
+  const { width, height } = request.sourceImage ? bitmap : dimensions;
   const canvas = document.createElement("canvas");
   try {
     const crop = request.crop
@@ -53,14 +56,27 @@ async function processVisual(
           request.cssHeight,
         )
       : { left: 0, top: 0, width, height };
-    if (bitmap.width !== width || bitmap.height !== height)
+    if (
+      bitmap.width !== width ||
+      bitmap.height !== height ||
+      bitmap.width * bitmap.height > VISUAL_LIMITS.pixels
+    )
       throw new Error("image_unavailable");
     for (const scale of [1, 0.85, 0.7]) {
       canvas.width = Math.round(crop.width * scale);
       canvas.height = Math.round(crop.height * scale);
+      const floor = request.sourceImage
+        ? Math.min(1, 1280 / Math.max(width, height))
+        : undefined;
       if (
-        canvas.width < (request.crop?.width ?? request.cssWidth) ||
-        canvas.height < (request.crop?.height ?? request.cssHeight)
+        canvas.width <
+          (floor
+            ? Math.floor(width * floor)
+            : (request.crop?.width ?? request.cssWidth)) ||
+        canvas.height <
+          (floor
+            ? Math.floor(height * floor)
+            : (request.crop?.height ?? request.cssHeight))
       )
         continue;
       const context = canvas.getContext("2d");

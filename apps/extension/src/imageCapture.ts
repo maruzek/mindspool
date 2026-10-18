@@ -184,6 +184,9 @@ export function selectedImageContext(
     .filter(
       (url) =>
         /^https?:\/\//.test(url) &&
+        !new URL(url).username &&
+        !new URL(url).password &&
+        url.length <= 8192 &&
         url !== srcUrl &&
         !/\.(png|jpe?g|gif|webp)([?#]|$)/i.test(url),
     );

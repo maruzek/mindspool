@@ -35,6 +35,41 @@ function setup(overrides: Partial<CaptureDependencies> = {}) {
   return { controller: createVisualCapture(dependencies), saved, dependencies };
 }
 describe("background visual operation", () => {
+  it("resumes the same native image intent after an explicit origin grant", async () => {
+    let granted = false;
+    const { controller, saved } = setup({
+      image: async () => {
+        if (!granted) throw new Error("permission_denied");
+        return {
+          dataUrl: "data:image/png;base64,image",
+          width: 100,
+          height: 80,
+          isAnimationStill: true,
+        };
+      },
+    });
+    const intent = controller.start("image", {
+      tabId: 1,
+      windowId: 2,
+      pageUrl: "https://example.com/#pricing",
+      srcUrl: "https://images.example/actual.png",
+    });
+    await vi.waitFor(() =>
+      expect(controller.status()).toMatchObject({
+        state: "failed",
+        permissionOrigin: "https://images.example",
+      }),
+    );
+    granted = true;
+    controller.retryImage();
+    await vi.waitFor(() =>
+      expect(controller.status()).toMatchObject({
+        state: "saved",
+        captureKey: intent.captureKey,
+      }),
+    );
+    expect(saved).toEqual(["item"]);
+  });
   it("cancels an empty region without creating an upload or item", async () => {
     const { controller, saved } = setup({ select: async () => null });
     controller.start("region");
