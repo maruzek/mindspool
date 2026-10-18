@@ -2,6 +2,7 @@ import { browser } from "wxt/browser";
 import { VISUAL_LIMITS } from "@mindspool/schema";
 import { pixelCrop } from "./regionCapture";
 import { rasterDimensions } from "./imageCapture";
+import { stitchFullPage } from "./fullPageStitch";
 import {
   captureFailure,
   type EncodedCapture,
@@ -39,12 +40,34 @@ function dataUrl(blob: Blob) {
 async function processVisual(
   request: ProcessorRequest,
 ): Promise<EncodedCapture> {
-  const blob = await (await fetch(request.dataUrl)).blob();
-  const dimensions = request.sourceImage
-    ? rasterDimensions(new Uint8Array(await blob.arrayBuffer()))
-    : pngDimensions(request.dataUrl);
-  const bitmap = await createImageBitmap(blob);
-  const { width, height } = request.sourceImage ? bitmap : dimensions;
+  let bitmap: ImageBitmap | HTMLCanvasElement;
+  let close: () => void;
+  let width: number, height: number;
+  if (request.tiles) {
+    const stitched = await stitchFullPage(
+      {
+        tiles: request.tiles,
+        cssWidth: request.cssWidth,
+        cssHeight: request.cssHeight,
+      },
+      request.viewportHeight ?? 0,
+    );
+    bitmap = stitched;
+    width = stitched.width;
+    height = stitched.height;
+    close = () => {
+      stitched.width = stitched.height = 0;
+    };
+  } else {
+    const blob = await (await fetch(request.dataUrl)).blob();
+    const dimensions = request.sourceImage
+      ? rasterDimensions(new Uint8Array(await blob.arrayBuffer()))
+      : pngDimensions(request.dataUrl);
+    const decoded = await createImageBitmap(blob);
+    bitmap = decoded;
+    ({ width, height } = request.sourceImage ? decoded : dimensions);
+    close = () => decoded.close();
+  }
   const canvas = document.createElement("canvas");
   try {
     const crop = request.crop
@@ -114,7 +137,7 @@ async function processVisual(
     }
     throw new Error("too_large");
   } finally {
-    bitmap.close();
+    close();
     canvas.width = canvas.height = 0;
   }
 }

@@ -7,6 +7,7 @@ import {
 import { pageContext } from "./pageContext";
 import type { CaptureRect } from "./regionCapture";
 import type { ImageTarget, ImageSource } from "./imageCapture";
+import type { FullPageVisual } from "./fullPageCapture";
 export type CaptureFailure =
   | "unsupported_page"
   | "permission_denied"
@@ -55,6 +56,8 @@ export type EncodedCapture = {
   contentType: "image/png" | "image/jpeg" | "image/webp";
 };
 export type ProcessorRequest = {
+  tiles?: FullPageVisual["tiles"];
+  viewportHeight?: number;
   sourceImage?: boolean;
   crop?: CaptureRect;
   target: "visual-processor";
