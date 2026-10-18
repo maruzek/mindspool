@@ -35,6 +35,12 @@ function setup(overrides: Partial<CaptureDependencies> = {}) {
   return { controller: createVisualCapture(dependencies), saved, dependencies };
 }
 describe("background visual operation", () => {
+  it("cancels an empty region without creating an upload or item", async () => {
+    const { controller, saved } = setup({ select: async () => null });
+    controller.start("region");
+    await vi.waitFor(() => expect(controller.status().state).toBe("cancelled"));
+    expect(saved).toEqual([]);
+  });
   it("saves independently of the launcher, coalesces active starts, and makes a fresh intent after success", async () => {
     const { controller, saved } = setup();
     const first = controller.start("viewport");

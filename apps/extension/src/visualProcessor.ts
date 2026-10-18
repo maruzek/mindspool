@@ -1,5 +1,6 @@
 import { browser } from "wxt/browser";
 import { VISUAL_LIMITS } from "@mindspool/schema";
+import { pixelCrop } from "./regionCapture";
 import {
   captureFailure,
   type EncodedCapture,
@@ -43,16 +44,38 @@ async function processVisual(
   );
   const canvas = document.createElement("canvas");
   try {
+    const crop = request.crop
+      ? pixelCrop(
+          request.crop,
+          width,
+          height,
+          request.cssWidth,
+          request.cssHeight,
+        )
+      : { left: 0, top: 0, width, height };
     if (bitmap.width !== width || bitmap.height !== height)
       throw new Error("image_unavailable");
     for (const scale of [1, 0.85, 0.7]) {
-      canvas.width = Math.round(width * scale);
-      canvas.height = Math.round(height * scale);
-      if (canvas.width < request.cssWidth || canvas.height < request.cssHeight)
+      canvas.width = Math.round(crop.width * scale);
+      canvas.height = Math.round(crop.height * scale);
+      if (
+        canvas.width < (request.crop?.width ?? request.cssWidth) ||
+        canvas.height < (request.crop?.height ?? request.cssHeight)
+      )
         continue;
       const context = canvas.getContext("2d");
       if (!context) throw new Error("image_unavailable");
-      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        bitmap,
+        crop.left,
+        crop.top,
+        crop.width,
+        crop.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
       for (const quality of [0.9, 0.82, 0.74]) {
         const blob = await new Promise<Blob | null>((resolve) =>
           canvas.toBlob(resolve, "image/webp", quality),

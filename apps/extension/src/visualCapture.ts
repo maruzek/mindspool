@@ -4,6 +4,7 @@ import {
   type VisualCaptureKind,
 } from "@mindspool/schema";
 import { pageContext } from "./pageContext";
+import type { CaptureRect } from "./regionCapture";
 export type CaptureFailure =
   | "unsupported_page"
   | "permission_denied"
@@ -51,6 +52,7 @@ export type EncodedCapture = {
   contentType: "image/png" | "image/jpeg" | "image/webp";
 };
 export type ProcessorRequest = {
+  crop?: CaptureRect;
   target: "visual-processor";
   captureKey: string;
   dataUrl: string;
@@ -58,6 +60,7 @@ export type ProcessorRequest = {
   cssHeight: number;
 };
 export type CaptureDependencies = {
+  select?(page: PinnedPage): Promise<CaptureRect | null>;
   getToken(): Promise<string | null>;
   page(): Promise<PinnedPage>;
   screenshot(page: PinnedPage): Promise<string>;
@@ -115,7 +118,8 @@ export function createVisualCapture(deps: CaptureDependencies) {
   }
   async function run(kind: VisualCaptureKind, captureKey: string) {
     try {
-      if (kind !== "viewport") throw new Error("unsupported_page");
+      if (kind !== "viewport" && kind !== "region")
+        throw new Error("unsupported_page");
       const token = await deps.getToken();
       if (!token) throw new Error("signed_out");
       const page = await deps.page();
@@ -130,6 +134,17 @@ export function createVisualCapture(deps: CaptureDependencies) {
         },
         ...pageContext(page.pageUrl, page.head ?? ""),
       };
+      let crop: CaptureRect | undefined;
+      if (kind === "region") {
+        update({ state: "selecting" });
+        if (!deps.select) throw new Error("unsupported_page");
+        const selection = await deps.select(page);
+        if (!selection) {
+          update({ state: "cancelled" });
+          return;
+        }
+        crop = selection;
+      }
       const dataUrl = await deps.screenshot(page);
       update({ state: "encoding" });
       const visual = await deps.process({
@@ -138,6 +153,7 @@ export function createVisualCapture(deps: CaptureDependencies) {
         dataUrl,
         cssWidth: page.width,
         cssHeight: page.height,
+        ...(crop ? { crop } : {}),
       });
       if (visual.bytes > VISUAL_LIMITS.bytes) throw new Error("too_large");
       update({ state: "uploading" });
