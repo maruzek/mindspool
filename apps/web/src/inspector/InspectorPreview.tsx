@@ -32,13 +32,13 @@ function Media({
           onClick={() => onOpen(0)}
           className="block aspect-video w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {/* Referenced from its source, never fetched or stored by us. */}
+          {/* Stored captures and source previews use the same inspection surface. */}
           <img
             src={hero}
             alt=""
             referrerPolicy="no-referrer"
             onError={() => setFailed(hero)}
-            className="size-full object-cover outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+            className={`size-full ${item.visualCapture ? "object-contain bg-muted" : "object-cover"} outline -outline-offset-1 outline-black/10 dark:outline-white/10`}
           />
           <span className="sr-only">Open image 1 of {images.length}</span>
         </button>
@@ -86,6 +86,14 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
     <div className="flex flex-col gap-4">
       <Media item={item} images={images} onOpen={setViewer} />
       <ImageViewer
+        inspection={
+          item.visualCapture
+            ? {
+                width: item.visualCapture.width,
+                height: item.visualCapture.height,
+              }
+            : undefined
+        }
         images={images}
         index={viewer ?? 0}
         onIndexChange={setViewer}
@@ -109,9 +117,43 @@ export function InspectorPreview({ item }: { item: ItemDetail }) {
         </div>
       ) : (
         <FactList>
-          <Fact label="URL">
+          <Fact label={item.visualCapture ? "Browsing URL" : "URL"}>
             <UrlValue value={url} />
           </Fact>
+          {item.visualCapture && (
+            <>
+              <Fact label="Capture">
+                {item.visualCapture.kind} · {item.visualCapture.width} ×{" "}
+                {item.visualCapture.height}
+              </Fact>
+              <Fact label="Captured">
+                {new Date(item.visualCapture.capturedAt).toLocaleString()}
+              </Fact>
+              {item.visualCapture.entryUrl && (
+                <Fact label="Entry URL">
+                  <UrlValue value={item.visualCapture.entryUrl} />
+                </Fact>
+              )}
+              {item.visualCapture.designSiteUrl && (
+                <Fact label="Design site URL">
+                  <UrlValue value={item.visualCapture.designSiteUrl} />
+                </Fact>
+              )}
+              {item.visualCapture.sourceImageUrl && (
+                <Fact label="Source image URL">
+                  <UrlValue value={item.visualCapture.sourceImageUrl} />
+                </Fact>
+              )}
+              {item.visualCapture.previewImageUrl && (
+                <Fact label="Page preview URL">
+                  <UrlValue value={item.visualCapture.previewImageUrl} />
+                </Fact>
+              )}
+              {item.visualCapture.isAnimationStill && (
+                <Fact label="Format">Saved as a still image.</Fact>
+              )}
+            </>
+          )}
           {item.canonicalUrl && item.canonicalUrl !== url && (
             <Fact label="Canonical URL">
               <UrlValue value={item.canonicalUrl} />

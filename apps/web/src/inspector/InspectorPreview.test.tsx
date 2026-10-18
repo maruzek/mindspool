@@ -4,6 +4,41 @@ import { InspectorPreview } from "./InspectorPreview";
 import type { ItemDetail } from "./types";
 
 afterEach(cleanup);
+it("contains the captured visual and distinguishes browsing, entry, design and image provenance", () => {
+  render(
+    <InspectorPreview
+      item={link({
+        originalInput: "https://aggregator.example/#entry",
+        originalUrl: "https://aggregator.example/#entry",
+        images: ["https://stored.example/capture.webp"],
+        visualCapture: {
+          captureKey: "visual:61363ee8-23cc-4cb6-b827-9c39c694af38",
+          kind: "image",
+          pageUrl: "https://aggregator.example/#entry",
+          capturedAt: 1000,
+          width: 1000,
+          height: 2100,
+          contentType: "image/webp",
+          entryUrl: "https://aggregator.example/entry",
+          designSiteUrl: "https://design.example",
+          sourceImageUrl: "https://cdn.example/design.png",
+          isAnimationStill: true,
+        },
+      })}
+    />,
+  );
+  for (const label of [
+    "Browsing URL",
+    "Entry URL",
+    "Design site URL",
+    "Source image URL",
+  ])
+    expect(screen.getByText(label)).toBeTruthy();
+  expect(screen.getByText("Saved as a still image.")).toBeTruthy();
+  expect(
+    document.querySelector("img")?.classList.contains("object-contain"),
+  ).toBe(true);
+});
 
 it("renders a structured Reddit discussion without a second flattened copy", () => {
   render(

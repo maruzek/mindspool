@@ -1,9 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  XIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from "lucide-react";
 import { cn } from "cn";
 
 type ImageViewerProps = {
+  inspection?: { width: number; height: number };
   images: string[];
   index: number;
   onIndexChange: (index: number) => void;
@@ -45,7 +52,7 @@ function NavButton({
 /**
  * Full-height image carousel in a dialog: previous/next buttons, ← and → keys,
  * swipe, a "2 / 4" counter, and Escape or the close button to leave. Images
- * are hotlinked and sent no referrer. With one image there is no navigation.
+ * are sent no referrer. Visual references can opt into zoom and scrolling.
  */
 function ImageViewer({
   images,
@@ -53,10 +60,33 @@ function ImageViewer({
   onIndexChange,
   open,
   onOpenChange,
+  inspection,
 }: ImageViewerProps) {
   const count = images.length;
   const last = count - 1;
   const swipeStart = useRef<number | null>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState<"fit" | number>("fit");
+  const zoomed = Boolean(inspection && zoom !== "fit");
+  useEffect(() => {
+    setZoom("fit");
+    if (viewport.current) {
+      viewport.current.scrollTop = 0;
+      viewport.current.scrollLeft = 0;
+    }
+  }, [open, index, images[index]]);
+  const changeZoom = (factor: number) => {
+    if (!inspection) return;
+    const fit = Math.min(
+      Math.max(1, (viewport.current?.clientWidth || innerWidth) - 112) /
+        inspection.width,
+      Math.max(1, (viewport.current?.clientHeight || innerHeight) - 16) /
+        inspection.height,
+    );
+    setZoom(
+      Math.max(0.001, Math.min(4, (zoom === "fit" ? fit : zoom) * factor)),
+    );
+  };
   const go = (next: number) => {
     if (next >= 0 && next <= last) onIndexChange(next);
   };
@@ -83,6 +113,7 @@ function ImageViewer({
         <DialogPrimitive.Popup
           data-slot="image-viewer"
           onKeyDown={(event) => {
+            if (zoomed) return;
             if (event.key === "ArrowLeft") go(index - 1);
             else if (event.key === "ArrowRight") go(index + 1);
             else return;
@@ -101,17 +132,66 @@ function ImageViewer({
             ) : (
               <span />
             )}
+            {inspection && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-pressed={zoom === "fit"}
+                  className="px-2 py-1 text-sm outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => setZoom("fit")}
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={zoom === 1}
+                  className="px-2 py-1 text-sm outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => setZoom(1)}
+                >
+                  100%
+                </button>
+                <button
+                  type="button"
+                  aria-label="Zoom out"
+                  className="p-2 outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => changeZoom(0.8)}
+                >
+                  <ZoomOutIcon className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Zoom in"
+                  className="p-2 outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
+                  onClick={() => changeZoom(1.25)}
+                >
+                  <ZoomInIcon className="size-4" />
+                </button>
+                <span aria-live="polite" className="w-12 text-xs tabular-nums">
+                  {zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`}
+                </span>
+              </div>
+            )}
             <DialogPrimitive.Close className="flex size-11 items-center justify-center outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white [&_svg]:size-6">
               <XIcon aria-hidden="true" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           </div>
           <div
-            className="relative flex min-h-0 flex-1 touch-pan-y items-center justify-center px-14 pb-4"
+            ref={viewport}
+            role={inspection ? "region" : undefined}
+            aria-label={inspection ? "Scrollable image" : undefined}
+            tabIndex={inspection ? 0 : undefined}
+            className={cn(
+              "relative min-h-0 flex-1 px-14 pb-4",
+              zoomed
+                ? "overflow-auto"
+                : "flex touch-pan-y items-center justify-center",
+            )}
             onPointerDown={(event) => {
               swipeStart.current = event.clientX;
             }}
             onPointerUp={(event) => {
+              if (zoomed) return;
               const start = swipeStart.current;
               swipeStart.current = null;
               if (start === null) return;
@@ -124,7 +204,8 @@ function ImageViewer({
             }}
             onClick={(event) => {
               // A click on the empty area around the image closes the viewer.
-              if (event.target === event.currentTarget) onOpenChange(false);
+              if (!zoomed && event.target === event.currentTarget)
+                onOpenChange(false);
             }}
           >
             {src && (
@@ -134,7 +215,20 @@ function ImageViewer({
                 alt={`Image ${index + 1} of ${count}`}
                 referrerPolicy="no-referrer"
                 draggable={false}
-                className="max-h-full max-w-full object-contain select-none"
+                className={cn(
+                  "object-contain select-none",
+                  zoomed
+                    ? "mx-auto block max-h-none max-w-none"
+                    : "max-h-full max-w-full",
+                )}
+                style={
+                  zoomed && inspection && typeof zoom === "number"
+                    ? {
+                        width: inspection.width * zoom,
+                        height: inspection.height * zoom,
+                      }
+                    : undefined
+                }
               />
             )}
             {count > 1 && (
