@@ -23,6 +23,10 @@ import {
 } from "./boardValidators";
 
 export default defineSchema({
+  visualCaptureMaintenance: defineTable({
+    key: v.literal("storage"),
+    cursor: v.union(v.string(), v.null()),
+  }).index("by_key", ["key"]),
   visualCaptures: defineTable(visualCaptureFields)
     .index("by_owner_key", ["ownerId", "captureKey"])
     .index("by_state_expiry", ["state", "expiresAt"]),
