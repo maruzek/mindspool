@@ -261,13 +261,58 @@ main{padding:130px 24px}img{display:block}footer{position:absolute;top:2060px;co
 <p>Run captures from the top. Keep this tab selected until the capture finishes.</p>
 </main><footer>Bottom edge — must be present in the full-page image</footer></body></html>`;
 const server = createServer((request, response) => {
-  if (request.url === "/target.png") {
-    response.writeHead(200, { "Content-Type": "image/png" });
-    response.end(image);
-  } else {
-    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    response.end(fixture);
+  const url = new URL(request.url, "http://127.0.0.1");
+  if (url.pathname === "/target.png") {
+    // A missing raster forces every acquisition path to report unavailable.
+    const unavailable = url.searchParams.has("unavailable");
+    response.writeHead(unavailable ? 404 : 200, {
+      "Content-Type": "image/png",
+      "Cache-Control": "no-store",
+    });
+    response.end(unavailable ? undefined : image);
+    return;
   }
+  const testCase = url.searchParams.get("case");
+  let page = fixture;
+  if (testCase === "oversized")
+    page = page.replace(
+      "</head>",
+      "<style>body{height:40000px}</style></head>",
+    );
+  if (testCase === "growing")
+    page = page.replace(
+      "</body>",
+      `<script>
+      addEventListener("scroll", () => {
+        if (scrollY + innerHeight >= document.documentElement.scrollHeight - 4)
+          document.body.style.height = (document.documentElement.scrollHeight + innerHeight) + "px";
+      });
+    </script></body>`,
+    );
+  if (testCase === "permission" || testCase === "unavailable") {
+    // Open this page on localhost: the 127.0.0.1 image is deliberately cross-origin
+    // and has no CORS header, forcing the optional-origin download path.
+    const source = `http://127.0.0.1:${server.address().port}/target.png${testCase === "unavailable" ? "?unavailable=1" : ""}`;
+    page = page.replace('src="/target.png"', `src="${source}"`);
+    if (testCase === "unavailable")
+      page = page.replace(
+        'alt="Purple native image menu target"',
+        'style="background:#6629cc" alt="Unavailable image target"',
+      );
+  }
+  if (testCase === "retry") {
+    const browser =
+      url.searchParams.get("browser") === "firefox" ? "Firefox" : "Chrome";
+    page = page.replace(
+      "MindSpool capture fixture",
+      `MindSpool retry fixture — ${browser}`,
+    );
+  }
+  response.writeHead(200, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  response.end(page);
 });
 await new Promise((resolve, reject) => {
   server.once("error", reject);
@@ -275,6 +320,18 @@ await new Promise((resolve, reject) => {
 });
 console.log(`Fixture: http://127.0.0.1:${server.address().port}/`);
 if (fixtureOnly) {
+  console.log(
+    `Oversized page: http://127.0.0.1:${server.address().port}/?case=oversized`,
+  );
+  console.log(
+    `Growing page: http://127.0.0.1:${server.address().port}/?case=growing`,
+  );
+  console.log(
+    `Permission test: http://localhost:${server.address().port}/?case=permission`,
+  );
+  console.log(
+    `Unavailable image: http://localhost:${server.address().port}/?case=unavailable`,
+  );
   console.log(
     "Use the built MindSpool extension. Keep this terminal open; Ctrl+C stops the fixture.",
   );

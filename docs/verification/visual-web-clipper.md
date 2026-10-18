@@ -153,6 +153,16 @@ native-menu acceptance.
 
 ## Final desktop product acceptance (Task 18)
 
+For the remaining checks, use the [step-by-step manual checklist](visual-web-clipper-manual-checks.md).
+The fixture launcher now includes oversized, growing, cross-origin permission,
+and unavailable-download cases; restart the launcher to load the updated routes.
+These fixture paths were checked in headless Chrome 153.0.8010.12 and Firefox
+144.0.2 using the implemented page controller: oversized/growing capture failed
+with `too_large`, restored scroll 200 and left the header visible. Both browsers
+loaded the permission case’s cross-origin 160 × 100 image while canvas access
+was tainted; the unavailable case uses a broken-image target and returns 404. This prepares reproducible
+manual inputs; it does not mark the native desktop failure matrix as passed.
+
 The prior disposable probe extensions are finished; remove them. Use the built
 **MindSpool** extension for this matrix. Development builds are prepared at:
 
