@@ -66,7 +66,9 @@ it("offers sign-in without actionable capture controls while signed out", async 
 it("reads a completed background operation when reopened", async () => {
   await render("signed_in", async () => ({ state: "saved", itemId: "item-1" }));
   expect(host.textContent).toContain("Saved to your library");
-  expect(host.querySelector('a[href*="item-1"]')).not.toBeNull();
+  expect(host.querySelector('a[href*="item-1"]')?.getAttribute("href")).toBe(
+    "https://mindspool.example/library?item=item-1",
+  );
 });
 it("requests only the selected image origin after an explicit click", async () => {
   const send = vi.fn(async (_request: VisualCaptureRequest) => ({

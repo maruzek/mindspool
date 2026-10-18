@@ -119,7 +119,7 @@ export function CapturePopup({
       setLaunching(false);
     }
   }
-  const itemUrl = new URL(webUrl);
+  const itemUrl = new URL("/library", webUrl);
   if (status.itemId) itemUrl.searchParams.set("item", status.itemId);
   return (
     <main className="flex min-h-[280px] flex-col gap-5 p-5">
