@@ -18,3 +18,4 @@ export const MAX_LABEL_QUESTIONS = 64;
 export * from "./reddit";
 export * from "./itemDisplay";
 export * from "./links";
+export * from "./visualCapture";

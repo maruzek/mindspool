@@ -69,6 +69,74 @@ export const redditCapture = v.object({
     }),
   ),
 });
+export const visualCaptureKind = v.union(
+  v.literal("viewport"),
+  v.literal("region"),
+  v.literal("full-page"),
+  v.literal("image"),
+);
+export const visualContentType = v.union(
+  v.literal("image/png"),
+  v.literal("image/jpeg"),
+  v.literal("image/webp"),
+);
+export const captureContextFields = {
+  captureKey: v.string(),
+  kind: visualCaptureKind,
+  pageUrl: v.string(),
+  capturedAt: v.number(),
+  canonicalUrl: v.optional(v.string()),
+  previewImageUrl: v.optional(v.string()),
+  sourceImageUrl: v.optional(v.string()),
+  entryUrl: v.optional(v.string()),
+  designSiteUrl: v.optional(v.string()),
+  isAnimationStill: v.optional(v.boolean()),
+  sourceMetadata: v.optional(
+    v.object({
+      title: v.optional(v.string()),
+      description: v.optional(v.string()),
+      author: v.optional(v.string()),
+      siteName: v.optional(v.string()),
+    }),
+  ),
+};
+export const visualCaptureMetadata = v.object({
+  ...captureContextFields,
+  width: v.number(),
+  height: v.number(),
+  contentType: visualContentType,
+});
+export const visualCaptureState = v.union(
+  v.literal("pending"),
+  v.literal("uploading"),
+  v.literal("verified"),
+  v.literal("complete"),
+  v.literal("cancelled"),
+  v.literal("expired"),
+);
+export const visualCaptureFields = {
+  ownerId: v.string(),
+  captureKey: v.string(),
+  context: v.object(captureContextFields),
+  fingerprint: v.string(),
+  state: visualCaptureState,
+  expiresAt: v.number(),
+  attemptId: v.optional(v.id("visualCaptureAttempts")),
+  storageId: v.optional(v.id("_storage")),
+  digest: v.optional(v.string()),
+  width: v.optional(v.number()),
+  height: v.optional(v.number()),
+  contentType: v.optional(visualContentType),
+  bytes: v.optional(v.number()),
+  itemId: v.optional(v.id("items")),
+};
+export const visualAttemptFields = {
+  captureId: v.id("visualCaptures"),
+  nonce: v.string(),
+  expiresAt: v.number(),
+  state: v.union(v.literal("open"), v.literal("closed"), v.literal("attached")),
+  storageId: v.optional(v.id("_storage")),
+};
 export const itemFields = {
   ownerId: v.string(),
   captureKey: v.string(),
@@ -94,6 +162,7 @@ export const itemFields = {
   ),
   extractedText: v.optional(v.string()),
   redditCapture: v.optional(redditCapture),
+  visualCapture: v.optional(visualCaptureMetadata),
   imageAssets: v.array(asset),
   updatedAt: v.number(),
   pendingEnrichmentRunId: v.optional(v.id("processingRuns")),

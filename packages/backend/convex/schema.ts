@@ -11,6 +11,8 @@ import {
   labelFields,
   ownerStatsFields,
   runFields,
+  visualCaptureFields,
+  visualAttemptFields,
 } from "./validators";
 
 import {
@@ -21,6 +23,12 @@ import {
 } from "./boardValidators";
 
 export default defineSchema({
+  visualCaptures: defineTable(visualCaptureFields)
+    .index("by_owner_key", ["ownerId", "captureKey"])
+    .index("by_state_expiry", ["state", "expiresAt"]),
+  visualCaptureAttempts: defineTable(visualAttemptFields)
+    .index("by_nonce", ["nonce"])
+    .index("by_state_expiry", ["state", "expiresAt"]),
   mcpConnections: defineTable(mcpConnectionFields)
     .index("by_owner_client", ["ownerId", "clientId"])
     .index("by_owner", ["ownerId"])
