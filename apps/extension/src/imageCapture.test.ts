@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import {
   downloadImage,
   rasterDimensions,
@@ -59,4 +59,16 @@ it("omits ambiguous local provenance for repeated image URLs", () => {
   document.body.innerHTML =
     '<article><a href="https://design.example"><img src="https://images.example/p.png"></a></article><article><a href="https://other.example"><img src="https://images.example/p.png"></a></article>';
   expect(selectedImageContext("https://images.example/p.png")).toEqual({});
+});
+it("preserves an unambiguous X post despite profile and attachment links", () => {
+  vi.stubGlobal("location", new URL("https://x.com/home"));
+  try {
+    document.body.innerHTML =
+      '<article><a href="https://x.com/designer">Designer</a><a href="https://x.com/designer/status/123">Post</a><a href="https://x.com/designer/status/123/photo/1"><img src="https://images.example/p.png"></a></article>';
+    expect(selectedImageContext("https://images.example/p.png").entryUrl).toBe(
+      "https://x.com/designer/status/123",
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

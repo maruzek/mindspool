@@ -195,7 +195,26 @@ export function selectedImageContext(
   const external = unique.filter(
     (url) => new URL(url).origin !== location.origin,
   );
-  if (local.length === 1) context.entryUrl = local[0];
+  const xPostUrls = [
+    "x.com",
+    "www.x.com",
+    "twitter.com",
+    "www.twitter.com",
+  ].includes(location.hostname)
+    ? [
+        ...new Set(
+          local.flatMap((url) => {
+            const parsed = new URL(url);
+            const post = parsed.pathname.match(
+              /^\/[^/]+\/status\/\d+(?=\/|$)/,
+            )?.[0];
+            return post ? [`${parsed.origin}${post}`] : [];
+          }),
+        ),
+      ]
+    : [];
+  if (xPostUrls.length === 1) context.entryUrl = xPostUrls[0];
+  else if (local.length === 1) context.entryUrl = local[0];
   if (external.length === 1) context.designSiteUrl = external[0];
   if (
     image.naturalWidth &&
