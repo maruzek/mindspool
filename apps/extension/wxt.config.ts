@@ -33,6 +33,7 @@ export default defineConfig({
     description: "Keep your links, images, and ideas together.",
     permissions: [
       "storage",
+      "alarms",
       "cookies",
       "activeTab",
       "scripting",

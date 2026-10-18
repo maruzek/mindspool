@@ -85,3 +85,22 @@ it("requests only the selected image origin after an explicit click", async () =
   });
   expect(send).toHaveBeenCalledWith({ type: "retry-image-capture" });
 });
+it("retries a saved intent without starting a new capture", async () => {
+  const send = vi.fn(async (_request: VisualCaptureRequest) => ({
+    state: "failed",
+    error: "network",
+    retryable: true,
+    captureKey: "visual:existing",
+  }));
+  await render("signed_in", send);
+  const retry = Array.from(host.querySelectorAll("button")).find(
+    (button) => button.textContent === "Retry save",
+  )!;
+  await act(async () => retry.click());
+  expect(send).toHaveBeenCalledWith({ type: "retry-visual-capture" });
+  expect(
+    send.mock.calls.some(
+      ([request]) => request.type === "start-visual-capture",
+    ),
+  ).toBe(false);
+});

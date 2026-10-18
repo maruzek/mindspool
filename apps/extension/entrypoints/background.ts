@@ -63,14 +63,15 @@ export default defineBackground({
         "targetElementId" in info && typeof info.targetElementId === "number"
           ? info.targetElementId
           : undefined;
-      visualCapture.start("image", {
+      const target = {
         tabId: tab.id,
         windowId: tab.windowId,
         pageUrl: info.pageUrl ?? tab.url,
         srcUrl: info.srcUrl,
         frameId: info.frameId,
         ...(targetElementId !== undefined ? { targetElementId } : {}),
-      });
+      };
+      void visualCapture.ready.then(() => visualCapture.start("image", target));
     });
     const handleClip = createClipHandler({
       getToken,
@@ -93,10 +94,15 @@ export default defineBackground({
         sender.url?.startsWith(browser.runtime.getURL("/")) &&
         isVisualCaptureRequest(message)
       ) {
-        if (message.type === "start-visual-capture")
-          return Promise.resolve(visualCapture.start(message.kind));
-        if (message.type === "retry-image-capture") visualCapture.retryImage();
-        return Promise.resolve(visualCapture.status());
+        return visualCapture.ready.then(() => {
+          if (message.type === "start-visual-capture")
+            return visualCapture.start(message.kind);
+          if (message.type === "retry-image-capture")
+            visualCapture.retryImage();
+          if (message.type === "retry-visual-capture") visualCapture.retry();
+          if (message.type === "cancel-visual-capture") visualCapture.cancel();
+          return visualCapture.status();
+        });
       }
       // Only this extension's own scripts may clip.
       if (sender.id !== browser.runtime.id || !isClipRequest(message))

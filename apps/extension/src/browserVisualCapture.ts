@@ -13,6 +13,8 @@ import { readRenderedPage } from "./pageContext";
 import { selectRegion } from "./regionCapture";
 import { downloadImage, selectedImageContext } from "./imageCapture";
 import { captureFullPage, fullPageControl } from "./fullPageCapture";
+import { indexedCaptureRecovery, encodedBlob } from "./captureRecovery";
+import type { CaptureStatus } from "./visualCapture";
 
 const delay = (milliseconds: number) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -126,6 +128,7 @@ async function process(request: ProcessorRequest): Promise<EncodedCapture> {
 }
 
 export function browserVisualCapture(getToken: () => Promise<string | null>) {
+  const storage = indexedCaptureRecovery();
   const convexUrl = import.meta.env.WXT_PUBLIC_CONVEX_URL;
   const httpUrl =
     import.meta.env.WXT_PUBLIC_CONVEX_HTTP_URL ??
@@ -137,6 +140,38 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
     return convex;
   };
   const controller = createVisualCapture({
+    recovery: {
+      ...storage,
+      save: async (record) => {
+        await storage.save(record);
+        await browser.alarms.create("visual-capture-retry-expiry", {
+          when: record.expiresAt,
+        });
+      },
+    },
+    loadStatus: async () =>
+      (await browser.storage.local.get("visualCaptureStatus"))
+        .visualCaptureStatus as CaptureStatus | undefined,
+    abort: async (page, captureKey) => {
+      await browser.scripting.executeScript({
+        target: { tabId: page.tabId, frameIds: [0] },
+        func: (documentId, token) => {
+          const scope = globalThis as typeof globalThis & {
+            __mindspoolDocumentId?: string;
+            __mindspoolFullPage?: { token: string; restore(): void };
+          };
+          if (scope.__mindspoolDocumentId !== documentId) return;
+          window.dispatchEvent(new CustomEvent("mindspool-cancel-capture"));
+          if (scope.__mindspoolFullPage?.token === token)
+            scope.__mindspoolFullPage.restore();
+        },
+        args: [page.documentId, captureKey],
+      });
+    },
+    cancelCapture: (captureId, token) =>
+      client(token).mutation(api.visualCaptures.cancel, {
+        captureId: captureId as Id<"visualCaptures">,
+      }),
     getToken,
     page: async (target) => {
       if (target?.frameId && target.frameId !== 0)
@@ -181,19 +216,24 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
       };
     },
     screenshot,
-    fullPage: (page, token) =>
-      captureFullPage(page, token, {
-        screenshot,
-        control: async (command) => {
-          const [result] = await browser.scripting.executeScript({
-            target: { tabId: page.tabId, frameIds: [0] },
-            func: fullPageControl,
-            args: [command],
-          });
-          if (!result?.result) throw new Error("page_changed");
-          return result.result;
+    fullPage: (page, token, signal) =>
+      captureFullPage(
+        page,
+        token,
+        {
+          screenshot,
+          control: async (command) => {
+            const [result] = await browser.scripting.executeScript({
+              target: { tabId: page.tabId, frameIds: [0] },
+              func: fullPageControl,
+              args: [command],
+            });
+            if (!result?.result) throw new Error("page_changed");
+            return result.result;
+          },
         },
-      }),
+        signal,
+      ),
     select: async (page) => {
       await assertPinned(page);
       const [selection] = await browser.scripting.executeScript({
@@ -206,9 +246,9 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
     process,
     begin: (context, token) =>
       client(token).mutation(api.visualCaptures.begin, { context }),
-    upload: async (captureId, visual, token) => {
+    upload: async (captureId, visual, token, signal) => {
       if (!httpUrl) throw new Error("network");
-      const blob = await (await fetch(visual.dataUrl)).blob();
+      const blob = encodedBlob(visual);
       if (blob.size > VISUAL_LIMITS.bytes) throw new Error("too_large");
       const response = await fetch(
         `${httpUrl}/visual-captures/upload?captureId=${encodeURIComponent(captureId)}`,
@@ -221,7 +261,9 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
           body: blob,
           credentials: "omit",
           redirect: "error",
-          signal: AbortSignal.timeout(20_000),
+          signal: signal
+            ? AbortSignal.any([signal, AbortSignal.timeout(20_000)])
+            : AbortSignal.timeout(20_000),
         },
       ).catch(() => {
         throw new Error("network");
@@ -247,6 +289,16 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
       ).itemId,
     changed: async (status) => {
       await browser.storage.local.set({ visualCaptureStatus: status });
+      await browser.contextMenus
+        .update("mindspool-save-image", {
+          enabled: ![
+            "selecting",
+            "capturing",
+            "encoding",
+            "uploading",
+          ].includes(status.state),
+        })
+        .catch(() => {});
       await browser.action.setBadgeText({
         text:
           status.state === "saved"
@@ -259,6 +311,13 @@ export function browserVisualCapture(getToken: () => Promise<string | null>) {
       });
       await browser.action.setBadgeBackgroundColor({ color: "#5b2fc9" });
     },
+  });
+  browser.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "visual-capture-retry-expiry")
+      void storage
+        .load()
+        .then(() => controller.expire())
+        .catch(() => {});
   });
   return controller;
 }
