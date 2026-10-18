@@ -38,6 +38,12 @@ Every command that touches production (`convex deploy`, `convex env set --prod`,
 
 `pnpm --filter @mindspool/extension generate-key <path>.pem` writes the private key to a path **outside the repo** (store it in the password manager) and prints `CLERK_EXTENSION_PUBLIC_KEY` and the extension ID. Add `chrome-extension://<id>` to the Clerk allowed origins (dev now, production later). Reuse the same key for both so the ID never changes.
 
+## Signing the Firefox build (Mozilla)
+
+Once: create keys at https://addons.mozilla.org/developers/addon/api/key/, copy `apps/extension/.env.signing.example` to `apps/extension/.env.signing` (gitignored) and fill `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`. Then, after bumping the extension version:
+
+`pnpm --filter @mindspool/extension sign:firefox` builds the Firefox zip and sources zip, submits them as an unlisted add-on, waits for Mozilla's review, and writes the signed `.xpi` to `apps/extension/.output/signed/`.
+
 ## Approving another user
 
 1. Approve them in the Clerk dashboard (Waitlist).
