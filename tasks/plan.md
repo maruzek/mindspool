@@ -1,105 +1,354 @@
-# Implementation Plan: mcp-discovery
+# Implementation Plan: Visual Web Clipper
 
-Spec: [SPEC-mcp-discovery.md](../SPEC-mcp-discovery.md). Map: [CAPABILITY-MAP-mcp.md](../CAPABILITY-MAP-mcp.md).
-Tasks: [todo.md](todo.md) (markdown, no external tracker). The previous `mcp-access` plan and task list are in
-[archive/mcp-access-plan.md](archive/mcp-access-plan.md) and [archive/mcp-access-todo.md](archive/mcp-access-todo.md).
+Status: **Ready for review; implementation has not started.**
 
-## Overview
+Spec: [SPEC-visual-web-clipper.md](../SPEC-visual-web-clipper.md).
+Task list: [todo.md](todo.md), the sole execution checklist for this feature.
+The user requested planning after spec review and authorized archiving the completed
+MCP work in [archive/mcp-discovery-plan.md](archive/mcp-discovery-plan.md) and
+[archive/mcp-discovery-todo.md](archive/mcp-discovery-todo.md) on 2026-10-18.
 
-Add four read-only MCP tools (`mindspool_list_labels`, `mindspool_browse_items`, `mindspool_search_items`,
-`mindspool_get_item`) on top of the `mcp-access` dispatcher. Each reuses the existing owner-scoped library logic through
-`ownerId` helpers, so the MCP path never touches browser auth and the web app's behavior is unchanged. Browsing is
-exhaustive and search is explicitly not. Resources and URLs are returned before long content, and posts expose the link
-clips extracted from them.
+## Goal and constraints
 
-## Integration status (2026-10-17)
+Capture the visible webpage, a selected region, a finite full page, or a
+right-clicked image as a durable design reference. Make the actual visual
+available for manual arrangement on the existing label boards.
 
-The user authorized consolidating the tweet-link work, MCP access foundation,
-and these discovery documents into local `main`. Both feature histories are
-included, full checks pass, and the source worktree is retained. The tweet-link
-integration gate below is satisfied. At that integration checkpoint, access Tasks 6–12 were unfinished;
-the current implementation and verification status follows below. No endpoint was enabled or deployment performed by the
-merge.
-
-## Progress (2026-10-17)
-
-Discovery Tasks 0–9 are implemented and verified on development. Both real clients exercised
-the four discovery tools, exact browse membership/order and content continuation. The user-approved
-resource-count field and bounded migration are deployed: all 75 items have counts, with zero mismatches. Access UI/setup/maintenance, authenticated preview checks and disposable-user
-OAuth lifecycle verification are complete on development. CLI-agent limitations
-and the remaining human outcome review are documented. See [todo.md](todo.md).
-
-## Prerequisites (gates, not tasks)
-
-1. **Merge tweet-links to main first** (decided). `feat/tweet-multi-link-extraction` provides `fromItemId`,
-   `items.detail`'s `fromPost`, and `tweetLinks:backfill`. After it merges, rebase or merge `main` into
-   `feature/mcp-spec`. Tasks 7 and 8 need it; Tasks 1-6 only need the rebase for a stable base.
-2. **`mcp-access` dispatcher must exist.** Discovery registers tools through the access module's registry with a
-   declared required scope and a verified `VerifiedMcpPrincipal` (`packages/backend/convex/mcp/`). Task 0 confirmed
-   the dispatcher and scope enforcement before tool implementation. The archived access
-   checklist and verification documents now record the completed development work.
+- Firefox and Chrome are equal acceptance targets, using current stable desktop
+  releases at implementation time; record exact tested versions.
+- Maximum **2 MiB = 2,097,152 bytes** per reference, including derived stored previews.
+- Convex storage only; no R2, auto-placement, board picker, hover image buttons,
+  video recording, or image-aware AI implementation.
+- New capture intent means a new item; retrying the same intent means the same item.
+- The popup uses the existing MindSpool design system and prioritizes capture.
+- Preserve existing X/Reddit capture and bare-link deduplication contracts.
+- Immediate save and static image output are the planning defaults carried from
+  the spec. Animation becomes an explicitly described still; capture is never automatic.
 
 ## Architecture decisions
 
-- **`ownerId` helpers, not duplicated queries.** Extract the bodies of `items.list/search/detail`,
-  `itemLabels.listItemsForLabel/searchItemsForLabel` and `labels.list` into plain functions taking `ownerId`. Public
-  queries become `requireOwner(ctx)` + helper. MCP calls `internalQuery` wrappers (`mcpDiscovery.ts`) whose `ownerId` arg
-  is supplied only by the verified handler. A parity test guards the refactor.
-- **Owner-scoped index and approved count cache:** `items.by_owner_from` on `["ownerId", "fromItemId"]`
-  supports resource navigation. `tweetLinks:backfill` derives legacy parent references. Fresh review showed
-  child hydration for summary counts can exceed the read budget; the user approved optional
-  `items.linkedItemStats: { count?, revision }` and a byte-bounded, revision-checked backfill on development.
-  Canonical child writers update counts transactionally; summaries never hydrate child articles.
-- **Response shaping lives at the boundary** (`mcp/tools/discovery.ts`): Convex results are mapped to the spec's
-  `ItemSummary`/`ItemDetail` there. Shaping is a pure function, unit-tested without Convex.
-- **Content stream** for `get_item` is one logical string (saved text, then Reddit post and comments) addressed by
-  `contentOffset`; slicing is done server-side by character offset, so reassembly is exact.
-- **64 KiB cap** is applied last over the serialized result; content shrinks first, `nextOffset` reflects the real end.
-- **Tool descriptions are contract** and are asserted in tests (browse-until-`isDone`, search not exhaustive, content
-  untrusted).
+### One complete viewport path first
 
-## Dependency graph
+Build only the shared contracts/storage prerequisites needed to save one viewport
+through the existing authenticated extension. Prove that complete path before
+adding other capture modes. Region and image capture then reuse encoding,
+upload, finalization, status, and metadata. Full-page mode is bounded and tested
+against the same cross-browser acceptance requirements.
 
+### Capture execution survives the popup
+
+The popup is a launcher and status surface, not the owner of capture work.
+The background orchestrator owns intent and browser API calls. A hidden extension
+processing document owns DOM canvas decoding, cropping, stitching, and encoding:
+Chrome uses an offscreen document; Firefox uses a compatible extension-document
+adapter established in Task 0. Never move tokens or raw screenshots into the
+website's JavaScript world. Programmatically injected isolated-world page helpers
+read bounded metadata, select rectangles, and control full-page scrolling.
+
+Persist only small operation metadata/status in extension storage. Keep any
+encoded retry blob in extension-origin IndexedDB, not synchronized storage, and
+remove it after success, cancellation, or expiry. Do not persist Clerk tokens.
+Do not persist raw full-page tiles across restarts; abort those operations safely.
+
+### Explicit permissions and browser parity
+
+Add `activeTab`, `scripting`, and cross-browser `contextMenus`. Add `offscreen`
+only for Chrome when needed by the proven adapter. Retain current social/auth
+permissions. Add the configured Convex HTTP action origin explicitly; do not
+assume permission for `.convex.cloud` also covers `.convex.site`.
+
+For direct image downloads, declare optional HTTP(S) host access and request
+only the necessary image origin after the context-menu user action. Track exact
+redirect origins; reject a redirect requiring an ungranted origin rather than
+silently broadening access. Prefer a readable already-loaded selected image
+when safely available, otherwise an extension fetch without page cookies or
+forwarded page credentials. If permissions or canvas restrictions prevent
+obtaining the image, offer screenshot capture. No mandatory all-sites access.
+
+Restrict v1 to ordinary HTTP(S) pages. Browser pages, extension pages, local
+files, protected stores, unsupported frames, or denied injection produce an
+unsupported result, even if a browser API can technically capture some of them.
+
+### Owned upload path; no arbitrary storage-ID attachment
+
+Keep ordinary `items.create` unchanged. Add `visualCaptures` with an immutable
+capture context, owner, key, status, upload attempt/lease, expiry, digest,
+validated dimensions/format, staged storage reference, and eventual item ID.
+Use owner/key and expiry indexes. Add optional `visualCapture` item metadata;
+older items need no backfill. Store one canonical visual per item in v1, with no
+extra stored thumbnail, so the entire 2 MiB budget belongs to the useful image.
+
+An authenticated HTTP upload route receives binary bytes tied to an owned
+capture session. It bounds the stream before buffering and stores through a
+server-owned operation; clients never supply a storage ID for finalization.
+Use the existing Clerk Convex JWT and `ctx.auth.getUserIdentity()`, not a second
+authentication scheme. The backend never downloads an arbitrary image URL.
+
+Actual server-side raster decoding is required, beyond trusting headers or a
+client's width/height. Proposed additional dependency: **`sharp` in the backend
+Node action**, version pinned after the compatibility check in Task 0. Fully
+decode with strict pixel/frame limits; accept static PNG/JPEG/WebP only. The
+browser canonicalizes other decodable sources into that set. Invoke Node
+decoding using a private staged storage ID, not public file URLs. The server overwrites
+the stored Blob MIME parameter with its own attempt marker before storing;
+client-provided markers are never trusted. Dependency
+installation is part of later plan approval, not performed during planning.
+
+Finalization atomically inserts the owned item with its server-attached asset
+and marks the session complete. Use a dedicated internal writer so existing
+external-only validation is not weakened. Invoke the existing enrichment/decision
+pipeline only after the visual and item exist. Enrichment preserves the visual.
+
+### Crash cleanup is part of the upload design
+
+An HTTP action's storage write and its subsequent mutation are not atomic.
+Do not claim that `try/finally` alone closes this gap. Before writing, record an
+attempt with a server-generated nonce. Tag its stored blob with a standard image
+MIME type plus a server-controlled attempt parameter. Task 0 must prove that
+Convex retains that parameter in `_storage.contentType`, that storage URLs still
+render correctly, and that a paginated system-table scan can recover a file
+written before the storage-ID registration mutation.
+
+A bounded maintenance scan reconciles only files carrying this capture marker
+against the recorded attempt. It never deletes unrelated legacy storage or an
+attached item asset. Expiry first atomically closes the attempt, preventing late
+finalization; late writes remain identifiable on subsequent scans. Scan system-storage rows in pages
+of 50 with a persisted cursor and recurring wraparound; do not permanently pass
+over an unexpired candidate. Expire unfinished sessions after one hour, run
+maintenance every five minutes, and target cleanup within the next complete
+scan after expiry. Preserve completed-key receipts so a stale retry cannot
+recreate an intentionally deleted reference.
+
+**Task 0 is a hard feasibility gate:** if marker retention, Node decoding,
+cleanup safety, or browser processing cannot be proven, revise this architecture
+and review it before storage implementation. Do not replace it with trusting
+arbitrary uploaded IDs or deleting all unrecognized files. Timing and scan
+guarantees are measured and recorded on representative storage volume.
+
+### Source context and explicit identity
+
+Use `visual:<UUID>` per user intent, created once in the trusted extension
+orchestrator. Persist that key across network retries. Context consists of page
+URL, optional canonical/source-image/entry/design-site URLs, bounded metadata,
+capture kind, capture time, dimensions, and whether animation was flattened.
+An immutable context fingerprint plus encoded-payload digest detects conflicting
+reuse; a different context/body for a live key is a conflict.
+
+Use the existing metadata parser on a bounded reconstruction of document-head
+metadata read from the actual rendered page. Keep its fallback order, while
+trimming fields to current backend capture limits. Do not send raw body HTML,
+cookies, form inputs, or an entire DOM snapshot. Retain the actual browsing URL
+separately from canonical metadata. For aggregator/image captures, record only
+unambiguous links from the selected image's local context; failure to resolve
+them never prevents saving the correct visual.
+
+### Complete visuals on existing boards
+
+Add optional capture kind/dimensions to existing owned detail/board-preview
+projections. New visual cards default to image mode, with initial height derived
+from stored dimensions and clamped to the existing board geometry limits.
+Use `object-contain` for these references, including after resizing and inside
+columns; do not change legacy card cropping or rewrite saved layouts.
+
+The existing viewer fits the entire image but does not provide useful zoom for
+long pages. Add optional zoom/scroll inspection for visual references without
+changing the default viewer behavior for other items. Preserve source context
+in the inspector. Board membership remains the existing AI label decision;
+there are no placement writes from capture or decisions.
+
+## Shared contracts
+
+Define `packages/schema/src/visualCapture.ts` as the shared vocabulary:
+
+```ts
+type VisualCaptureKind = "viewport" | "region" | "full-page" | "image";
+type CaptureContext = {
+  captureKey: string;
+  kind: VisualCaptureKind;
+  pageUrl: string;
+  capturedAt: number;
+  sourceMetadata?: {
+    title?: string;
+    description?: string;
+    author?: string;
+    siteName?: string;
+  };
+  canonicalUrl?: string;
+  sourceImageUrl?: string;
+  entryUrl?: string;
+  designSiteUrl?: string;
+  isAnimationStill?: boolean;
+};
+type EncodedVisual = {
+  blob: Blob;
+  width: number;
+  height: number;
+  contentType: "image/png" | "image/jpeg" | "image/webp";
+};
 ```
-[Gate: tweet-links on main, rebase]   [Task 0: confirm access dispatcher]
-              │                                   │
-              └───────────────┬───────────────────┘
-                              ▼
-                 Task 1: ownerId helper extraction (parity)
-                              │
-                 Task 2: list_labels (+ registry wiring, hasItems)
-                              │
-                 Task 3: browse_items (label resolution, pages, isDone)
-                 ├── Task 4: search_items
-                 └── Task 5: get_item (content paging, links, labels)
-                              │
-                 Task 6: Reddit content in the stream
-                              │
-         Task 7: by_owner_from index + linkedItems/fromPost + linkedItemCount
-                              │
-                 Task 8: result cap, ordering, descriptions
-                              │
-                 Task 9: docs + real-client verification
+
+`Blob` stays in the extension processor/upload transport, never a Convex validator.
+Backend validators mirror the serializable context, rejecting unsafe URLs and
+unbounded metadata. Server-derived dimensions are authoritative.
+
+| Boundary           | Contract                                                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Popup → background | `start-visual-capture { kind: viewport                                                                                                                                                                          | region | full-page }`returns`{ captureKey }`; background derives the target tab and context. |
+| Background status  | `get-visual-capture-status { captureKey? }` returns `idle / selecting / capturing / encoding / uploading / saved / cancelled / failed`; saved includes item ID, failure includes typed reason and retryability. |
+| Native image menu  | Uses `contextMenus.onClicked` target data plus a same-document selected-image context token; never accepts arbitrary page-origin upload requests.                                                               |
+| Begin RPC          | `visualCaptures.begin({ context }) → { captureId, state, itemId? }`, owner/key idempotent with context-conflict validation.                                                                                     |
+| Upload HTTP        | `POST /visual-captures/upload?captureId=…`, Bearer JWT and raw raster body; streams at most 2,097,152 bytes; success returns capture status, never a reusable arbitrary-file attachment capability.             |
+| Finalize RPC       | `visualCaptures.finalize({ captureId }) → { itemId }`; only a verified, owned server-registered asset can be attached.                                                                                          |
+| Status/cancel RPC  | `visualCaptures.status({ captureId })` and `visualCaptures.cancel({ captureId })`; missing/foreign are indistinguishable. Cancellation never deletes a finalized item.                                          |
+| Internal save      | `insertVisualCapture(ctx, ownerId, captureId) → Id<"items">`; atomically claims the staged asset, inserts one item, updates session/receipt, and starts existing processing.                                    |
+
+Extend the extension's typed error vocabulary for `unsupported_page`,
+`permission_denied`, `image_unavailable`, `too_large`, `page_changed`,
+`capture_interrupted`, `signed_out`, `network`, and generic failure. Backend
+failures retain current structured Convex conventions; HTTP maps to 401,
+404, 409, 413, 415/422, or retryable 5xx without content/token leakage.
+
+## Capture and encoding limits
+
+Proposed implementation constants, validated at the Task 0 gate:
+
+| Limit                 | Value and behavior                                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stored bytes          | Inclusive 2,097,152; reject anything larger server-side.                                                                                                                                                           |
+| Source image download | 16 MiB stream cap, 10-second timeout; no unbounded response buffering.                                                                                                                                             |
+| Decoded image         | Maximum 24 million pixels and 32,000 pixels per edge before canvas/decode.                                                                                                                                         |
+| Full-page capture     | 30 seconds, 40 tiles, 24 million output pixels, 32,000 output height; abort on any limit.                                                                                                                          |
+| Screenshot cadence    | At least 600 ms between screenshots, serialized per browser instance; stay below Chrome's documented two calls/second.                                                                                             |
+| Stability             | Abort if target tab/document/URL, viewport width, device scale, or page extent changes incompatibly during capture.                                                                                                |
+| Encoding              | Try original dimensions, WebP qualities 0.9, 0.82, 0.74; preserve alpha. Then at most two proportional reductions to 0.85 and 0.7 of original dimensions, repeating qualities. Never crop to fit bytes.            |
+| Quality floor         | Do not downscale a screenshot below its captured CSS dimensions; do not shrink a direct image's longest edge below 1,280 pixels unless it started smaller. If still too large, explain and offer a smaller region. |
+
+Unsupported codec output must fail or use a proven PNG/JPEG fallback within the
+same limits. Encoding/decoding confirms actual output type and dimensions.
+These are bounded engineering defaults, not claims of browser capability already
+verified. Both browsers must pass the same supported full-page fixtures.
+
+Full-page capture uses a shared scroll-and-stitch implementation rather than a
+Chrome debugger permission or Firefox-only full-page API. Snapshot initial scroll,
+hide fixed/sticky repeats only for subsequent tiles, stitch actual offsets (last
+tile may overlap), and restore styles/scroll on completion, cancellation, navigation,
+or timeout. A page-side watchdog restores temporary modifications if the extension
+worker disappears. Lazy-load extent changes settle within the same deadline;
+unbounded growth is unsupported. Do not dismiss real page dialogs or erase them
+from ordinary viewport/region captures.
+
+## Popup design brief
+
+Keep the current compact 380px width as the initial layout constraint, adjusted
+only after visual review. Use Archivo, shared semantic tokens, zero-radius
+controls, existing borders/shadows, and icons from the shared UI library.
+
+```text
+MindSpool                          [compact account control]
+Current page title (one line)
+
+[ Capture visible area                                  ]
+[ Select an area             ] [ Capture full page      ]
+
+Short live status / retry or sign-in action when needed
+Open MindSpool
 ```
 
-Tasks 4 and 5 are independent of each other once Task 3 lands and can run in parallel.
+No technical setup paragraphs or destination selectors. Signed-out/loading states
+explain availability; unsupported-page feedback is specific. Tab order follows
+visual order. Capture remains understandable without icons or animation. Image
+right-click capture uses a short action-badge status plus persistent popup status,
+so results are visible even though the menu cannot contain a progress UI.
+
+## Dependency graph and execution order
+
+```text
+0 feasibility + popup design review
+  → 1 shared contracts/schema
+  → 2 owned sessions → 3 upload ingress → 4 finalize/cleanup
+  → 5 viewport vertical slice
+       → 6 shared popup styles → 7 capture-first popup
+       → 8 metadata/source context → 9 region capture → 10 image context menu
+       → 11 full-page scroll → 12 stitching
+       → 13 interruption/retry recovery
+  4 + 8 → 14 read projections → 15 board visuals → 16 detailed image viewer
+  all slices → 17 lifetime/security regressions → 18 browser matrix → 19 final docs/checks
+```
+
+Tasks are fully specified in [todo.md](todo.md). Checkpoints follow Tasks 0–2,
+3–5, 6–8, 9–10, 11–13, 14–16, and 17–19. Keep additions behind unavailable
+controls until their complete flow is ready; every committed step builds.
+Generated Convex API declarations are included in the owning task's file budget.
+
+No delegation is started by this plan. During later authorized execution, popup
+styling can proceed independently of backend work after contracts, and display
+work after projections can proceed independently of capture-mode helpers. Schema,
+shared message contracts, background wiring, and upload state transitions remain
+sequential/coordinated changes.
+
+## Verification and review focus
+
+1. A tab switch/navigation must never capture another page or mix its metadata
+   with the original pixels (Tasks 5, 9, 11–13).
+2. Crash between storing a file and registering its ID must be recoverable without
+   deleting a finalized or foreign asset (Tasks 0, 3–4, 17).
+3. A tiny encoded image claiming huge dimensions, truncated raster, or disguised
+   SVG must fail server validation (Tasks 3, 17).
+4. X/aggregator source context and CDN permissions must target the selected image,
+   including cross-origin/redirect failure, rather than another card (Tasks 8, 10).
+5. Tall/wide references must remain complete and readable in free cards, columns,
+   resized cards, and the inspector (Tasks 14–16, 18).
+
+Use focused Vitest commands per task, relevant typechecks after each slice, and
+both extension builds at integration checkpoints. Full `pnpm check` is the final
+repository gate; follow installed Turbo docs before changing any Turbo commands
+or configuration. No Turbo change is planned.
+
+Use T3 collaborative preview for supported web-app inspection. Extension install,
+native context menus, offscreen documents, and actual browser screenshots require
+real extension-enabled Firefox and Chrome sessions. A preview screenshot alone
+does not satisfy those checks. If that environment is unavailable, preserve the
+acceptance task as open and record exactly what remains unverified.
 
 ## Risks and mitigations
 
-| Risk                                                                      | Impact | Mitigation                                                                                                      |
-| ------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
-| Access module is less complete than the map implies (open archived tasks) | High   | Task 0 inventories it first; stop and report before Task 2 if the registry or scope enforcement is missing.     |
-| Helper extraction changes web behavior                                    | High   | Task 1 runs the full web/backend suites and adds parity tests before any MCP code.                              |
-| `linkedItemCount` adds a read per summary (10 per page)                   | Med    | Read cached parent counts; byte-bounded migration and transactional child writers maintain accuracy.            |
-| Convex read limits shorten or fail pages                                  | Med    | `isDone` never inferred from length; limit errors map to `UNAVAILABLE` retryable (Task 3 test).                 |
-| Tool results exceed client token budgets                                  | Med    | Page size 10, 120-char snippets, 20,000-char content, 64 KiB cap; measure real sizes in Task 9.                 |
-| Prompt injection via clip text                                            | Med    | No write tools in this module; `untrusted: true` and descriptions; scope enforced by dispatcher not by content. |
-| Index added before backfill ran, so `linkedItems` is incomplete           | Med    | Run `tweetLinks:backfill` on development in Task 7; success check compares counts against `fromItemId` rows.    |
+| Risk                                            | Impact         | Mitigation                                                                                                        |
+| ----------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Offscreen/background differences                | High           | Task 0 proves both processing adapters and popup-close behavior before the upload/UI build.                       |
+| Native raster dependency in Convex Node runtime | High           | Verify pinned Sharp packaging/decoding early; review an alternative if unsupported rather than weaken validation. |
+| Orphan storage after process death              | High           | Server-owned attempt marker, leases, recurring bounded reconciliation, and injected crash tests.                  |
+| Infinite/lazy pages or sticky layers            | High           | Early fixture proof, fixed bounds, watchdog restoration, no truncated success.                                    |
+| 2 MiB compression obscures design details       | Medium         | Limited quality/downscaling ladder, real design review, reject with region alternative.                           |
+| CDN/CORS permissions prevent image download     | Medium         | Optional origin access, bounded credential-free download, no silent substitution; screenshot alternative.         |
+| Popup design diverges from app                  | Medium         | Import shared CSS/build pipeline and components; review all states beside the app.                                |
+| AI currently cannot classify image content      | Known boundary | Save still succeeds; reuse metadata decisions, leave image-aware AI to its own spec.                              |
 
-## Open questions
+## Review gates and completion
 
-None blocking. The spec's open questions are all decided. Task 0 may raise access-module gaps for the user.
+The user's planning request approves moving beyond the spec, not implementation.
+Review this plan's proposed Sharp dependency, optional-origin permissions,
+additive capture/session schema, full-page limits, and popup hierarchy together.
+Task 0 confirms technical feasibility without weakening the product contract.
 
-## Task list
+No production deployment, publishing/signing, credential changes, or R2 work is
+authorized here. Any backend runtime verification first classifies its target
+under the repository's deployment guard. No bulk data migration is needed.
+After plan approval, execute the checklist in order; do not mark the feature
+complete until both browser acceptance matrices and the repository checks pass.
 
-See [todo.md](todo.md). Checkpoints follow Tasks 3, 6, 8 and 9.
+## Sources checked during planning
+
+Installed Convex **1.46.0** types were read from the backend workspace, including
+storage Blob access, file metadata, and deprecated metadata APIs. Repository
+sources read include `libraryWriters.ts`, `validators.ts`, `enrichment.ts`,
+`boardPreviews.ts`, `boardOperations.ts`, extension background/manifest/popup,
+and shared image-viewer and theme styles.
+
+- [MDN captureVisibleTab](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/captureVisibleTab): active-tab viewport capture and permissions.
+- [Chrome tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs): viewport API and two-calls-per-second limit.
+- [Chrome offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen): hidden document processing with DOM APIs.
+- [Chrome worker lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle): termination/restart requires explicit state handling.
+- [MDN optional host permissions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/optional_host_permissions): optional origin access.
+- [Convex HTTP actions](https://docs.convex.dev/functions/http-actions): authenticated request handling, binary bodies, Node action calls, and `.convex.site` origin.
+- [Convex storage](https://docs.convex.dev/file-storage/store-files) and [metadata](https://docs.convex.dev/file-storage/file-metadata): server-managed Blobs and system metadata; marker behavior still requires Task 0 proof.
+- [Sharp input documentation](https://sharp.pixelplumbing.com/api-input/): decoder metadata; complete decode, limits, and Convex compatibility remain implementation verification requirements.

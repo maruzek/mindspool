@@ -1,6 +1,6 @@
 # Verification: mcp-discovery
 
-Spec: [SPEC-mcp-discovery.md](../../SPEC-mcp-discovery.md). Tasks: [todo.md](../../tasks/todo.md).
+Spec: [SPEC-mcp-discovery.md](../../SPEC-mcp-discovery.md). Tasks: [todo.md](../../tasks/archive/mcp-discovery-todo.md).
 
 ## Task 0: access dispatcher inventory (2026-10-17)
 

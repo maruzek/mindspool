@@ -1,141 +1,662 @@
-# Tasks: mcp-discovery
+# Tasks: Visual Web Clipper
 
-Plan: [plan.md](plan.md). Spec: [SPEC-mcp-discovery.md](../SPEC-mcp-discovery.md).
-Backend tests: `pnpm --filter @mindspool/backend test` · types: `pnpm --filter @mindspool/backend typecheck` · all: `pnpm check`.
+Status: **Planned; no implementation started.**
+Spec: [SPEC-visual-web-clipper.md](../SPEC-visual-web-clipper.md).
+Plan and shared interfaces: [plan.md](plan.md). Read both before execution.
+The previous completed MCP task list is [archived](archive/mcp-discovery-todo.md).
 
-## Handoff (2026-10-17)
+Each task starts with the meaningful failing tests named below, implements the
+smallest passing slice, and finishes with the stated verification. Documentation
+and feasibility tasks use evidence rather than artificial unit tests. File lists
+include adjacent tests; if execution needs more than five files, split the task
+before expanding it. Worktree/branch setup occurs at execution, not during planning.
 
-Branch `feature/mcp-discovery` (not pushed, not merged). Discovery Tasks 0–9 are implemented
-and verified on **development** only (`graceful-stork-346`). The user-approved optional
-`linkedItemStats` field and bounded count backfill are deployed: all 75 items have initialized
-counts, with zero mismatches. Both Codex and Claude Code verified exact 33-item label membership/order,
-search, reading, resources and two-window content continuation. See the
-[evidence](../docs/verification/mcp-discovery.md).
-Access connection UI/setup and maintenance are implemented; authenticated preview
-layout/keyboard checks and the disposable-account OAuth lifecycle matrix passed.
-CLI-agent limitations are documented. Human outcome review remains open. Never
-touch production without approval.
-After changing backend code, redeploy to development with `cd packages/backend && pnpm exec convex dev --once`
-(commit generated `_generated/api.d.ts`; `pnpm typecheck` must pass after codegen). Tools live in
-`convex/mcp/discovery.ts`, pure detail shaping in `convex/mcp/tools/shape.ts`, registration in
-`convex/mcp/registry.ts`, and internal reads in `convex/mcpDiscovery.ts`.
-Access Tasks 9–12 have development verification; see the archived checklist and limitations.
+## Phase 1: Prove the foundations
 
-## Gate: before Task 1
+### Task 0: Resolve browser and upload feasibility
 
-- [x] tweet-links (`feat/tweet-multi-link-extraction`) merged to `main`; `main` merged into `feature/mcp-spec`; `pnpm check` green.
+- [ ] Complete Task 0.
 
-## Phase 1: Foundation
+**Description:** Produce disposable probes and evidence for the risky decisions
+before committing to implementation; review the capture-first popup brief.
 
-- [x] **Task 0: Confirm the access dispatcher** (XS, no code)
-  - Acceptance: a short note in `docs/verification/mcp-discovery.md` lists what exists in `packages/backend/convex/mcp/`:
-    tool registry with required-scope declaration, `VerifiedMcpPrincipal` in the handler, 403 `insufficient_scope`, rate
-    limit, error mapping. Anything missing is listed for the user.
-  - Verify: read `mcp/*.ts`, run `pnpm --filter @mindspool/backend exec vitest run convex/mcp`.
-  - Files: `docs/verification/mcp-discovery.md`
-  - Dependencies: none
+**Acceptance criteria:**
 
-- [x] **Task 1: Extract `ownerId` helpers from existing queries** (M)
-  - Acceptance: `items.list/search/detail`, `itemLabels.listItemsForLabel/searchItemsForLabel`, `labels.list/get` call
-    shared helpers taking `ownerId`; public behavior, args and return validators are unchanged; no public function
-    gains an `ownerId` argument.
-  - Verify: existing `items.test.ts`, `itemQueries.test.ts`, `itemLabels.test.ts`, web tests pass unchanged;
-    `pnpm --filter @mindspool/backend typecheck`.
-  - Files: `items.ts`, `itemLabels.ts`, `labels.ts`, `itemLabelsQueries.ts` (new helpers module if needed), tests
-  - Dependencies: Gate
+- [ ] Prove viewport capture, canvas processing after popup close, context-menu
+      invocation, and a sticky-header scroll/stitch fixture in both real browsers;
+      record versions and supported processing adapters. Verify the proposed limits.
+- [ ] Prove the private Convex upload/Node decoder can fully decode a small raster,
+      reject a disguised/truncated raster, preserve/recover the attempt marker after
+      an injected post-store crash, and safely retain attached assets during cleanup.
+- [ ] Record the pinned Sharp version/build requirements, precise additional
+      permissions, and popup layout review. Any failed architecture assumption is
+      corrected in the plan before downstream tasks; do not silently drop guarantees.
 
-## Phase 2: Tools
+**Verification:** Review evidence in `docs/verification/visual-web-clipper.md`;
+check both fixture images and `_storage` recovery results. Classify any deployment
+target first. No production probe. Disposable code is not production implementation.
 
-- [x] **Task 2: `mindspool_list_labels` end to end** (M)
-  - Acceptance: tool listed with annotations and `mindspool:read` scope; returns `{id, name, description?, hasItems}`
-    pages (limit 1..50) with `Page` (`nextCursor`, `isDone`, `returned`); `hasItems` false for an empty label; a token
-    without read scope executes nothing; two owners see only their own labels.
-  - Verify: `pnpm --filter @mindspool/backend exec vitest run convex/mcpDiscovery.test.ts convex/mcp`
-  - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, `mcpDiscovery.test.ts`, registry wiring
-  - Dependencies: Tasks 0, 1
+**Dependencies:** Human plan review.
 
-- [x] **Task 3: `mindspool_browse_items`** (M)
-  - Acceptance: whole library or one label by `labelId` or `labelName`; filters `source`, `needsReview`; `ItemSummary`
-    with `snippet` (~120 chars), `enrichment`, 3 labels + `labelCount`, `suggested` marking; excluded items never
-    appear; `isDone` true only at the end (empty non-final page allowed); a 25+ item label enumerates fully, in order,
-    without duplicates; cursor from other filters is `INVALID_INPUT`; case-insensitive exact name, near miss and
-    both-args errors; foreign id equals missing id; Convex read-limit failure becomes retryable `UNAVAILABLE`.
-  - Verify: `vitest run convex/mcpDiscovery.test.ts` (includes parity with the public query results).
-  - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, `mcp/tools/shape.ts` (pure shaping), tests
-  - Dependencies: Task 2
+**Files likely touched:** `docs/verification/visual-web-clipper.md`, `tasks/plan.md`,
+`packages/backend/package.json`, `pnpm-lock.yaml`. Pin the reviewed decoder dependency
+as part of the runtime proof; temporary probes stay outside tracked product files.
 
-### Checkpoint: browse works
+**Estimated scope:** Medium, up to four tracked files.
 
-- [x] All backend tests and typecheck pass; browse a seeded 25-item label through the real handler in a test.
-- [x] Review with user before continuing. (Reviewed 2026-10-17; Claude Code browsed a 33-clip label on development.)
+### Task 1: Define capture vocabulary and additive storage shape
 
-- [x] **Task 4: `mindspool_search_items`** (S)
-  - Acceptance: library or label scope; app query rules (1-200 chars, 16 words); best-match order; always
-    `exhaustive: false`; includes inbox and unlabeled clips for library scope; snippets present; description tells the
-    agent to use browse for "all".
-  - Verify: `vitest run convex/mcpDiscovery.test.ts`
-  - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, tests
-  - Dependencies: Task 3 (parallel with Task 5)
+- [ ] Complete Task 1.
 
-- [x] **Task 5: `mindspool_get_item` (text items)** (M)
-  - Acceptance: `ItemDetail` with metadata, `userInput` (<= 4,000, flagged), `content` window (20,000 chars,
-    `offset`/`nextOffset`/`totalChars`/`truncated`), `links` (original, canonical, in-content http(s), deduplicated by
-    `urlKey`, <= 50 flagged), all labels (<= 100 flagged), image URLs only (<= 10), `linkedPageRead`, `untrusted: true`.
-    Foreign, deleted and malformed ids return the identical `NOT_FOUND`. Reassembling a >20,000-char item through
-    continuation equals the stored text.
-  - Verify: `vitest run convex/mcpDiscovery.test.ts`
-  - Files: `mcpDiscovery.ts`, `mcp/tools/discovery.ts`, `mcp/tools/shape.ts`, tests
-  - Dependencies: Task 3 (parallel with Task 4)
+**Description:** Define the shared context/kind/limits and backend validators so
+all new capture paths agree without changing existing item inputs.
 
-- [x] **Task 6: Reddit content in the stream** (S)
-  - Acceptance: for items with `redditCapture`, `content` is the post text followed by the comments, in one offset-
-    addressed stream; bounded and continuable like other content; summaries show only the snippet.
-  - Verify: `vitest run convex/mcpDiscovery.test.ts` with a Reddit fixture spanning several windows.
-  - Files: `mcp/tools/shape.ts`, `mcpDiscovery.ts`, tests
-  - Dependencies: Task 5
+**Acceptance criteria:**
 
-### Checkpoint: reading works
+- [ ] Export the plan's `CaptureContext`/`VisualCaptureKind` and exact byte/pixel
+      constants; reject unsafe URLs, excessive metadata, and invalid timestamps.
+- [ ] Add optional item `visualCapture` metadata and the `visualCaptures` session
+      table/indexes. Store authoritative dimensions, provenance and kind separately
+      from generic thumbnails. Legacy rows remain readable without migration.
+- [ ] Existing `items.create` remains external-asset-only; contracts distinguish
+      transport bytes, server-owned storage references, and public item metadata.
 
-- [x] All backend tests and typecheck pass; every tool callable through the real handler with a read-only principal.
-- [x] Review with user before continuing. (User authorized continued execution 2026-10-17.)
+**Verification:** `pnpm --filter @mindspool/schema test`; schema/backend
+typechecks; legacy item fixtures pass. Generate types only against a classified
+authorized development target when required; generated declarations belong here.
 
-## Phase 3: Resources first, hardening, proof
+**Dependencies:** Task 0.
 
-- [x] **Task 7: Post/link navigation** (M)
-  - Acceptance: `items.by_owner_from` index on `["ownerId", "fromItemId"]` added; `get_item` returns `fromPost` and
-    `linkedItems` (<= 20: id, url, title, snippet, enrichment; only items the owner still owns); summaries carry
-    `linkedItemCount` (transactionally maintained parent count) and omit it when none; `tweetLinks:backfill` run on development, then
-    `linkedItems` count equals the `fromItemId` rows for a sample tweet.
-  - Verify: `vitest run convex/mcpDiscovery.test.ts convex/tweetLinks.test.ts`; confirm a browse page stays within
-    the read budget with 10 posts of 20 links each.
-  - Files: `schema.ts`, `mcpDiscovery.ts`, `mcp/tools/shape.ts`, tests
-  - Dependencies: Gate, Tasks 3, 5. Ask the user before applying the index to any deployment.
+**Files likely touched:** `packages/schema/src/visualCapture.ts`,
+`packages/schema/src/visualCapture.test.ts`, `packages/schema/src/index.ts`,
+`packages/backend/convex/validators.ts`, `packages/backend/convex/schema.ts`.
+Export the new shared vocabulary through the existing schema package entrypoint;
+keep backend-only session validators in `validators.ts`.
+Split generated API changes into the first function-owning task if none arise here.
 
-- [x] **Task 8: Ordering, 64 KiB cap, descriptions** (S)
-  - Acceptance: in `get_item`, `links`, `linkedItems`, `fromPost` are serialized before `content`, and are absent from
-    continuation calls unless requested; assembled result never exceeds 64 KiB (content shrinks, `nextOffset` honest);
-    every truncation is flagged; tool descriptions state browse-until-`isDone`, search is not exhaustive, content is
-    untrusted. A test asserts each description sentence.
-  - Verify: `vitest run convex/mcpDiscovery.test.ts convex/mcp`
-  - Files: `mcp/tools/discovery.ts`, `mcp/tools/shape.ts`, tests
-  - Dependencies: Tasks 6, 7
+**Estimated scope:** Medium, five files.
 
-### Checkpoint: contract complete
+### Task 2: Create owned capture sessions
 
-- [x] Every spec success criterion 2-7 has a passing assertion.
-- [x] `pnpm check` green; no public function exposes `ownerId` (test greps the public API).
-- [x] Review with user before the real-client run. (User authorized continued execution.)
+- [ ] Complete Task 2.
 
-- [x] **Task 9: Docs and real-client verification** (M)
-  - Acceptance: `docs/mcp.md` documents the four tools and agent guidance; with read-only Codex and Claude Code against
-    the classified development deployment, each lists labels, enumerates a >10-clip label to `isDone: true` with ids
-    matching the web app, searches, reads an item with continuation, follows a post to its `linkedItems`, and states
-    coverage correctly. Observed result sizes recorded.
-  - Verify: evidence in `docs/verification/mcp-discovery.md` (versions, redacted URLs, results, unverified cases).
-  - Files: `docs/mcp.md`, `docs/verification/mcp-discovery.md`, `CAPABILITY-MAP-mcp.md` (status)
-  - Dependencies: Task 8, working `mcp-access` connection
+**Description:** Introduce begin/status/cancel and private attempt transitions
+with authenticated identity and stable retry behavior.
 
-### Checkpoint: complete
+**Acceptance criteria:**
 
-- [x] All discovery spec success criteria met with real-client evidence; remaining limitations listed.
-- [ ] Human reviews outcome. No production deployment without explicit approval.
+- [ ] `visualCaptures.begin/status/cancel` follow the plan's signatures;
+      owner/key duplicates replay, conflicting contexts fail, foreign/missing
+      sessions are indistinguishable, and receipts outlive active uploads.
+- [ ] Private lease/attempt transitions serialize uploads and cancellation;
+      expired/stale attempts cannot attach files or modify a completed capture.
+- [ ] Tests cover two owners, simultaneous begin/retry, cancel-before-upload,
+      completed-session cancel, and reuse of a deleted completed capture key.
+
+**Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/visualCaptures.test.ts`;
+`pnpm --filter @mindspool/backend typecheck` after code generation if needed.
+
+**Dependencies:** Task 1.
+
+**Files likely touched:** `packages/backend/convex/visualCaptures.ts`,
+`packages/backend/convex/visualCaptureState.ts`,
+`packages/backend/convex/visualCaptures.test.ts`,
+`packages/backend/convex/_generated/api.d.ts`.
+
+**Estimated scope:** Medium, four files.
+
+### Checkpoint A: Foundations are viable
+
+- [ ] Tasks 0–2 pass and browser/storage evidence is reviewed; no unresolved
+      assumption is hidden behind permissive asset attachment or a missing browser.
+
+## Phase 2: Save one viewport end to end
+
+### Task 3: Receive and validate an owned raster upload
+
+- [ ] Complete Task 3.
+
+**Description:** Add the authenticated binary route and private decoder using
+the reviewed staged-asset lifecycle.
+
+**Acceptance criteria:**
+
+- [ ] `POST /visual-captures/upload` authenticates the Clerk JWT and owned session,
+      bounds the stream even with missing/false Content-Length, tags stored bytes
+      with the recorded server attempt marker, and uses typed safe HTTP failures.
+- [ ] Fully decode only static PNG/JPEG/WebP under the plan's pixel/frame limits;
+      store server-derived dimensions and payload digest. Test exactly 2,097,152
+      bytes versus one byte over, forged MIME, huge dimensions, and truncated input.
+- [ ] The Node decoder dependency is pinned; session/lease guards reject stale,
+      foreign or conflicting attempts. New APIs accept no client storage IDs.
+
+**Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/visualCaptureUpload.test.ts`;
+backend typecheck; actual Node runtime decode on the authorized development target.
+
+**Dependencies:** Task 2; Task 0's dependency/runtime proof.
+
+**Files likely touched:** `packages/backend/convex/visualCaptureUpload.ts`,
+`packages/backend/convex/visualImageDecode.ts`,
+`packages/backend/convex/visualCaptureUpload.test.ts`,
+`packages/backend/convex/_generated/api.d.ts`. The decoder dependency was pinned
+in Task 0. Route export is wired in Task 4 to retain the file budget.
+
+**Estimated scope:** Medium, four files.
+
+### Task 4: Finalize durable items and reclaim abandoned uploads
+
+- [ ] Complete Task 4.
+
+**Description:** Expose the route and finalize verified assets into ordinary
+owned library items, with recurring safe cleanup.
+
+**Acceptance criteria:**
+
+- [ ] Implement `visualCaptures.finalize` and the internal `insertVisualCapture`
+      writer: verified owned asset attachment, item insertion, session completion,
+      and receipt update are transactional; retry returns the same item.
+- [ ] A five-minute maintenance job expires unfinished one-hour sessions, scans
+      at most 50 system-storage rows per page with cursor wraparound,
+      and cleans crash/late-write orphans without touching completed/foreign/legacy files.
+- [ ] Wire the HTTP route with scoped CORS where needed, existing processing hooks,
+      and normal item deletion cleanup. Completed receipt replay cannot recreate
+      a user-deleted item. Capture has no board placement side effect.
+
+**Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/visualCaptures.test.ts`;
+backend typecheck; inject post-store and post-finalize response loss, run maintenance,
+then assert one item, no abandoned file and intact finalized visuals.
+
+**Dependencies:** Task 3.
+
+**Files likely touched:** `packages/backend/convex/visualCaptures.ts`,
+`packages/backend/convex/visualCaptures.test.ts`, `packages/backend/convex/http.ts`,
+`packages/backend/convex/crons.ts`, `packages/backend/convex/_generated/api.d.ts`.
+The internal writer and bounded maintenance functions live in `visualCaptures.ts`;
+do not weaken `libraryWriters` validation. Split maintenance into its own reviewed
+task if this module exceeds a focused-session scope.
+
+**Estimated scope:** Medium, five files.
+
+### Task 5: Capture and save the visible webpage
+
+- [ ] Complete Task 5.
+
+**Description:** Deliver the first complete viewport-to-library path through a
+trusted background operation and cross-browser processor adapter.
+
+**Acceptance criteria:**
+
+- [ ] Background creates one intent key, pins tab/window/document, captures the
+      current viewport, encodes with the bounded ladder, and invokes begin/upload/finalize.
+      Reject navigation/tab races; never capture a different tab as a fallback.
+- [ ] Processor adapter works after popup close in both browsers; manifest adds
+      only the reviewed capture/processor/HTTP-origin permissions. Raw pixels and
+      tokens never enter a page-origin script or synchronized storage.
+- [ ] Test operation sequencing, codec/size failure, concurrent screenshot cadence,
+      signed-out save, and response-loss retry. Existing social handlers still work.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/visualCapture.test.ts`;
+extension typecheck and both builds. Trigger the real operation from the extension
+runtime in both browsers; verify stored pixels and library item.
+
+**Dependencies:** Task 4.
+
+**Files likely touched:** `apps/extension/src/visualCapture.ts`,
+`apps/extension/src/visualCapture.test.ts`, `apps/extension/entrypoints/background.ts`,
+`apps/extension/entrypoints/processor.html` (WXT page entry with self-contained module),
+`apps/extension/wxt.config.ts`.
+Keep initial processor/transport helpers together; split them only as later tasks need it.
+
+**Estimated scope:** Medium, five files.
+
+### Checkpoint B: First working visual save
+
+- [ ] Tasks 3–5 pass; one real viewport capture is stored and inspectable in each
+      browser, retries are idempotent, and failure cleanup is proven.
+
+## Phase 3: Make everyday capture accessible
+
+### Task 6: Connect the popup to shared project styling
+
+- [ ] Complete Task 6.
+
+**Description:** Replace copied theme values with shared CSS/tokens and prepare
+the extension build to render the project's existing UI components correctly.
+
+**Acceptance criteria:**
+
+- [ ] Popup imports shared theme styles and appropriate shared buttons/icons;
+      Tailwind discovers extension and shared components without a second theme.
+- [ ] Preserve Archivo, semantic colors, zero-radius controls, borders/shadows,
+      focus states and compact sizing; remove obsolete duplicate popup styling.
+- [ ] Both browser builds render the shared controls without missing classes,
+      font/CSP errors, or changes to the web app's existing theme.
+
+**Verification:** Both extension builds and extension typecheck; inspect a popup
+beside MindSpool in both browsers. No implementation-mirroring theme unit test.
+
+**Dependencies:** Task 5.
+
+**Files likely touched:** `apps/extension/entrypoints/popup/style.css`,
+`apps/extension/wxt.config.ts`, `apps/extension/package.json`, `pnpm-lock.yaml`.
+If the existing build requires the Tailwind plugin, reuse the pinned web version;
+record it as the plan's build-only dependency, not a new product UI library.
+
+**Estimated scope:** Medium, four files.
+
+### Task 7: Deliver the simplified capture-first popup
+
+- [ ] Complete Task 7.
+
+**Description:** Implement the plan's popup hierarchy with viewport capture
+working and later modes unavailable until wired.
+
+**Acceptance criteria:**
+
+- [ ] Signed-in UI leads with visible-area capture and secondary region/full-page
+      actions; account/link controls are compact. No board picker or setup paragraphs.
+- [ ] Show auth/loading/unsupported/progress/saved/error/retry states accessibly;
+      reopening reads background status instead of restarting an intent.
+- [ ] Keyboard order follows hierarchy; double-clicking during an active operation
+      does not create duplicate captures. Completed-action repetition is a new intent.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/CapturePopup.test.tsx`;
+extension typecheck; real popup keyboard and close/reopen checks in both browsers.
+
+**Dependencies:** Task 6.
+
+**Files likely touched:** `apps/extension/src/CapturePopup.tsx`,
+`apps/extension/src/CapturePopup.test.tsx`, `apps/extension/entrypoints/popup/main.tsx`,
+`apps/extension/src/visualCapture.ts`.
+
+**Estimated scope:** Medium, four files.
+
+### Task 8: Preserve rendered metadata and precise provenance
+
+- [ ] Complete Task 8.
+
+**Description:** Read bounded actual-page metadata and selected-example context;
+prevent later enrichment from replacing the captured visual/context.
+
+**Acceptance criteria:**
+
+- [ ] Reuse `parseMetadata` fallback order via a bounded page-head representation,
+      respecting capture validation lengths. Missing metadata still saves the visual.
+- [ ] Preserve browsing URL/fragment separately from canonical, plus safe selected
+      image, entry, design-site and X-post URLs only when unambiguous. No site branding guesses.
+- [ ] Enrichment updates metadata/thumbnail without overwriting capture pixels,
+      timestamp, source context, or existing manual decisions. Test generic aggregator
+      metadata, SPA changes, expired blob URLs, and failed enrichment.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/pageContext.test.ts`;
+`pnpm --filter @mindspool/backend exec vitest run convex/enrichment.test.ts`;
+extension/backend typechecks.
+
+**Dependencies:** Task 5; integrates with Task 7.
+
+**Files likely touched:** `apps/extension/src/pageContext.ts`,
+`apps/extension/src/pageContext.test.ts`, `apps/extension/src/visualCapture.ts`,
+`packages/backend/convex/enrichment.test.ts`, `packages/backend/convex/processingRuns.ts`
+(the existing run-settlement owner of enrichment metadata; modify only if tests show overwrite).
+
+**Estimated scope:** Medium, up to five files.
+
+### Checkpoint C: Everyday viewport capture
+
+- [ ] Tasks 6–8 pass; popup hierarchy matches the project and a scrolled section
+      saves the right pixels, source URL, metadata, and separate `og:image` context.
+
+## Phase 4: Capture a detail or a particular image
+
+### Task 9: Capture a user-selected rectangle
+
+- [ ] Complete Task 9.
+
+**Description:** Add explicit region selection and scaled cropping to the
+shared save path, enabling the popup's selected-area action.
+
+**Acceptance criteria:**
+
+- [ ] Isolated-world overlay appears only after the action; pointer selection is
+      clamped to the viewport. Escape/empty selection sends no capture upload.
+- [ ] Remove overlay before capture, crop using measured screenshot-to-CSS ratios,
+      and preserve the selected complete visual at non-default zoom/device scale.
+- [ ] Abort on tab/document/viewport changes, restore focus/handlers, and test
+      reversed drag, edges, cancellation, and rapid navigation.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/regionCapture.test.ts`;
+both builds; real rectangle capture at 80%, 125%, and high-DPI scale in both browsers.
+
+**Dependencies:** Task 8.
+
+**Files likely touched:** `apps/extension/src/regionCapture.ts`,
+`apps/extension/src/regionCapture.test.ts`, `apps/extension/src/visualCapture.ts`,
+`apps/extension/entrypoints/processor.html`, `apps/extension/src/CapturePopup.tsx`.
+
+**Estimated scope:** Medium, five files.
+
+### Task 10: Save an image from its native context menu
+
+- [ ] Complete Task 10.
+
+**Description:** Register the native image action and obtain the selected image
+without hover affordances or surrounding-feed capture.
+
+**Acceptance criteria:**
+
+- [ ] One image-context action uses the browser-supplied target and matching local
+      context; menus survive restart/reinstall without duplicates. No injected image UI.
+- [ ] Use readable selected pixels or bounded credential-free fetch with optional
+      origin permission; reject ungranted redirects/unsupported frames/tainted
+      canvas and offer screenshot capture. Image CORS failure cannot substitute `og:image`.
+- [ ] Persist the static canonical image through the shared upload path; correctly
+      handle responsive/CSS-cropped images, X attachments, repeated image URLs on
+      multiple cards, alpha, animation-as-still, permission denial, and 16 MiB/timeout limits.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/imageCapture.test.ts`;
+both builds; native image right-click acceptance on an aggregator and X in both browsers.
+Badge/popup status must expose failure and retry without leaving a page overlay.
+
+**Dependencies:** Task 8; Task 9's selection changes must be integrated before background edits.
+
+**Files likely touched:** `apps/extension/src/imageCapture.ts`,
+`apps/extension/src/imageCapture.test.ts`, `apps/extension/entrypoints/background.ts`,
+`apps/extension/src/visualCapture.ts`, `apps/extension/wxt.config.ts`.
+
+**Estimated scope:** Medium, five files.
+
+### Checkpoint D: Targeted captures work
+
+- [ ] Tasks 9–10 pass in both browsers; region and actual-image capture preserve
+      the intended visual, no hover UI exists, and permission failures are understandable.
+
+## Phase 5: Bounded full-page capture and recovery
+
+### Task 11: Control full-page scrolling safely
+
+- [ ] Complete Task 11.
+
+**Description:** Add page measurement, tile positions, sticky/fixed handling,
+stability guards, and self-restoration for finite full-page capture.
+
+**Acceptance criteria:**
+
+- [ ] Plan tile offsets within 30 seconds/40 tiles/24 million pixels/32,000px
+      height; serialize screenshots at least 600ms apart. Detect incompatible extent,
+      width, scroll, tab/document, or device-scale changes.
+- [ ] Preserve page overlays in the initial capture, suppress only repeated fixed/
+      sticky layers in subsequent tiles, and restore exact temporary styles/scroll
+      in all exit paths with a page-side watchdog if the worker dies.
+- [ ] Tests cover short/long pages, last overlapping tile, sticky header, lazy
+      growth, infinite growth, nested-scroll refusal, cancellation, and watchdog expiry.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/fullPageCapture.test.ts`;
+both-browser fixture checks before wiring the popup action.
+
+**Dependencies:** Tasks 9–10.
+
+**Files likely touched:** `apps/extension/src/fullPageCapture.ts`,
+`apps/extension/src/fullPageCapture.test.ts`,
+`apps/extension/src/__fixtures__/capture-page.html`,
+`apps/extension/src/__fixtures__/growing-page.html`.
+
+**Estimated scope:** Medium, four files.
+
+### Task 12: Stitch and save the complete supported page
+
+- [ ] Complete Task 12.
+
+**Description:** Use actual offsets/scales to stitch captured tiles and enable
+the popup's full-page action through the normal encoded upload flow.
+
+**Acceptance criteria:**
+
+- [ ] Stitch without gaps/duplicate overlap at measured pixel positions, preserving
+      page width and the final bottom edge; free tile/canvas memory as work completes.
+- [ ] Encode within 2 MiB and quality floors. Limit failures explicitly offer
+      viewport/region capture; partial output is never reported as full-page success.
+- [ ] Tests cover tall-page scaling, noninteger DPR, short final tile, timeout,
+      encoding failure and cleanup; a real supported fixture matches in both browsers.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/fullPageStitch.test.ts`;
+both builds; visually inspect complete stored output and restored source page.
+
+**Dependencies:** Task 11.
+
+**Files likely touched:** `apps/extension/src/fullPageStitch.ts`,
+`apps/extension/src/fullPageStitch.test.ts`, `apps/extension/entrypoints/processor.html`,
+`apps/extension/src/visualCapture.ts`, `apps/extension/src/CapturePopup.tsx`.
+
+**Estimated scope:** Medium, five files.
+
+### Task 13: Recover operation status and network retries
+
+- [ ] Complete Task 13.
+
+**Description:** Make popup/worker interruption explicit without duplicate
+items, stranded page modifications, or persistent raw-pixel storage.
+
+**Acceptance criteria:**
+
+- [ ] Persist small operation metadata/status in extension storage and encoded
+      retry payload in extension-origin IndexedDB for at most one hour; never tokens
+      or unencoded full-page tiles. Remove payload after success/cancel/expiry.
+- [ ] Reopening/status after worker restart reconciles server state; replay the
+      same encoded intent key or report interruption. Do not silently recapture a
+      changed page under an old key. An explicit new capture gets a new key.
+- [ ] Test upload timeout before/after server success, restart at each phase,
+      concurrent attempts, sign-out during upload, and cancellation racing finalize.
+
+**Verification:** `pnpm --filter @mindspool/extension exec vitest run src/captureRecovery.test.ts`;
+extension typecheck; suspend/restart real background contexts and reopen the popup
+in both browsers. Assert one saved item and restored original-page state.
+
+**Dependencies:** Task 12.
+
+**Files likely touched:** `apps/extension/src/captureRecovery.ts`,
+`apps/extension/src/captureRecovery.test.ts`, `apps/extension/src/visualCapture.ts`,
+`apps/extension/entrypoints/background.ts`.
+
+**Estimated scope:** Medium, four files.
+
+### Checkpoint E: All capture modes are complete
+
+- [ ] Tasks 11–13 pass; both browsers capture a complete supported finite page,
+      recover safely from interruption, and report unsupported/oversized pages honestly.
+
+## Phase 6: Use the visuals on the existing board
+
+### Task 14: Expose owned visual metadata to display surfaces
+
+- [ ] Complete Task 14.
+
+**Description:** Extend bounded item/detail/board read projections with the
+metadata needed for complete-image display and provenance.
+
+**Acceptance criteria:**
+
+- [ ] Return optional kind/dimensions/source context alongside existing primary
+      stored-image URLs; preserve legacy item return shapes through optional fields.
+- [ ] Projection queries remain owner-scoped and bounded; neither uploaded IDs
+      nor temporary source blob URLs become unvalidated public links.
+- [ ] Tests cover correct primary visual after enrichment, legacy fallback,
+      foreign detail/board reads, and two separate captures from the same URL.
+
+**Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/visualCaptureReads.test.ts`;
+backend and web typechecks; existing item/board query tests.
+
+**Dependencies:** Tasks 4, 8; execute after Task 13 in the default sequential order.
+
+**Files likely touched:** `packages/backend/convex/validators.ts`,
+`packages/backend/convex/items.ts`, `packages/backend/convex/boardPreviews.ts`,
+`packages/backend/convex/visualCaptureReads.test.ts`,
+`packages/backend/convex/_generated/api.d.ts` if code generation changes declarations.
+
+**Estimated scope:** Medium, up to five files.
+
+### Task 15: Show complete references on manually arranged cards
+
+- [ ] Complete Task 15.
+
+**Description:** Set useful initial visual proportions and show complete captures
+when the user adds them to the board.
+
+**Acceptance criteria:**
+
+- [ ] New visual-capture placements default to image mode and aspect-derived
+      initial image height within existing 80–10,000 geometry bounds. Legacy cards
+      keep current defaults; no migration or automatic placement.
+- [ ] Visual references use containment without stretching/cropping in free cards,
+      columns and resized cards; extreme tall/wide images remain entirely visible.
+- [ ] Backend tests prove capture/labeling created no board element and independent
+      same-URL references are separately placeable; web tests cover all display modes.
+
+**Verification:** `pnpm --filter @mindspool/backend exec vitest run convex/boards.test.ts`;
+`pnpm --filter @mindspool/web exec vitest run src/boards/ItemCardNode.test.tsx`;
+web/backend typechecks; real drag/resize/column inspection.
+
+**Dependencies:** Task 14.
+
+**Files likely touched:** `packages/backend/convex/boardOperations.ts`,
+`packages/backend/convex/boards.test.ts`, `apps/web/src/boards/ItemCardNode.tsx`,
+`apps/web/src/boards/ItemCardNode.test.tsx`, `apps/web/src/boards/types.ts`
+(only if its derived preview type requires changes).
+
+**Estimated scope:** Medium, up to five files.
+
+### Task 16: Inspect tall captures at useful detail
+
+- [ ] Complete Task 16.
+
+**Description:** Present full source context and add opt-in zoom/scroll viewing
+for stored design references using the existing shared image viewer.
+
+**Acceptance criteria:**
+
+- [ ] Inspector identifies browsing/entry/design-site/image URLs distinctly when
+      available, without requiring every source to provide all of them.
+- [ ] Viewer offers fit and useful zoom with scrolling/panning for tall references;
+      retain Escape, focus return and keyboard controls. Other items retain current defaults.
+- [ ] A full-page capture is readable beyond a tiny fit-to-screen thumbnail, and
+      remains available when requests to the original source image are blocked.
+
+**Verification:** `pnpm --filter @mindspool/web exec vitest run src/inspector/InspectorPreview.test.tsx src/inspector/VisualCaptureViewer.test.tsx`;
+web/UI typechecks; inspect a tall stored capture and keyboard navigation in a real browser.
+
+**Dependencies:** Task 15.
+
+**Files likely touched:** `apps/web/src/inspector/InspectorPreview.tsx`,
+`apps/web/src/inspector/InspectorPreview.test.tsx`,
+`packages/ui/src/components/mindspool/image-viewer.tsx`,
+`apps/web/src/inspector/VisualCaptureViewer.test.tsx`.
+
+**Estimated scope:** Medium, four files.
+
+### Checkpoint F: The inspiration-board workflow works
+
+- [ ] Tasks 14–16 pass; captures appear in eligible trays, manual placement is
+      required, and complete visuals can be arranged, resized and inspected.
+
+## Phase 7: Prove lifecycle safety and browser parity
+
+### Task 17: Exercise storage lifecycle and existing-flow regressions
+
+- [ ] Complete Task 17.
+
+**Description:** Run adversarial integration cases across upload, item deletion,
+enrichment, AI failure and cleanup; fix scoped defects before browser acceptance.
+
+**Acceptance criteria:**
+
+- [ ] Crash injection at every store/register/finalize boundary leaves one durable
+      item or eventual cleanup; late writes and scan wraparound cannot delete attached
+      files. Pending/foreign asset attachment and forged payloads are refused.
+- [ ] Item deletion releases its exclusively owned file; a stale replay does not
+      recreate it. Test cancellation, expiry and successful finalize racing cleanup.
+- [ ] Existing bare-link dedupe, tweet/Reddit clipping, thumbnails, manual label
+      corrections and daily AI-limit behavior pass unchanged; AI failure preserves capture.
+
+**Verification:** `pnpm --filter @mindspool/backend test`;
+`pnpm --filter @mindspool/extension test`; backend/extension typechecks;
+development storage inventory before/after fault injection, without private data in logs.
+
+**Dependencies:** Task 16.
+
+**Files likely touched:** `packages/backend/convex/visualCaptures.test.ts`,
+`packages/backend/convex/visualCaptureUpload.test.ts`,
+`packages/backend/convex/visualCaptureReads.test.ts`,
+`apps/extension/src/visualCapture.test.ts`,
+`docs/verification/visual-web-clipper.md`.
+Any production-code fix is a separately scoped follow-up task with its own test.
+
+**Estimated scope:** Medium, five files.
+
+### Task 18: Complete the Firefox and Chrome acceptance matrix
+
+- [ ] Complete Task 18.
+
+**Description:** Load the built extension in each actual browser and exercise
+the same product scenarios; record evidence rather than inferring support from builds.
+
+**Acceptance criteria:**
+
+- [ ] In both browsers verify sign-in, capture-first popup visuals/keyboard,
+      viewport at top/scrolled/zoomed positions, region capture/cancel, right-click
+      aggregator/X images, and complete finite full-page capture with sticky header.
+- [ ] Verify source URLs/metadata, two captures of one URL, retry with one item,
+      popup close/worker interruption, denied permission, unsupported page, unavailable
+      source, oversized reference, infinite page failure, and source-page restoration.
+- [ ] Capture → existing AI membership → tray → manual board placement works;
+      compare/resize complete references, inspect tall detail, block source-image
+      requests, delete a reference and verify file cleanup. No automatic placement.
+
+**Verification:** `pnpm --filter @mindspool/extension build:firefox` and
+`pnpm --filter @mindspool/extension build`; record each pass/failure with browser
+version in `docs/verification/visual-web-clipper.md`. Use named aggregator samples
+when accessible, with unavailable/live-site limitations recorded honestly.
+Use T3 preview for web surfaces when supported; native extension checks need
+extension-enabled browser sessions. Unavailable sessions leave this task open.
+
+**Dependencies:** Task 17 and working classified/authorized development backend. Use existing text/metadata
+decisions and suitable label descriptions for membership checks; do not treat
+this acceptance matrix as verification of future image-aware classification.
+
+**Files likely touched:** `docs/verification/visual-web-clipper.md`.
+Defects become focused follow-up tasks; do not tick failed matrix entries.
+
+**Estimated scope:** Small tracked change; substantial manual verification.
+
+### Task 19: Record final evidence and hand off for review
+
+- [ ] Complete Task 19.
+
+**Description:** Update project documentation and feature status with the exact
+verified scope, then run the final repository gate.
+
+**Acceptance criteria:**
+
+- [ ] README documents popup actions, native image menu, 2 MiB cap, both-browser
+      loading instructions, Convex HTTP origin, and the AI-image boundary.
+- [ ] Verification report maps every spec success criterion to automated/browser
+      evidence, actual cleanup scan bounds, versions and remaining limitations.
+      Spec status is updated only when its full acceptance criteria are met.
+- [ ] Full repository checks pass without suppressions, skipped tests or weakened
+      limits. No secrets, captured private content, production deployment, R2 setup,
+      or extension publication is included.
+
+**Verification:** `pnpm check`; review diff and spec coverage. Read installed
+Turbo docs before any change to Turbo configuration/commands; none is expected.
+
+**Dependencies:** Task 18.
+
+**Files likely touched:** `README.md`, `SPEC-visual-web-clipper.md`,
+`docs/verification/visual-web-clipper.md`, `tasks/todo.md`, `tasks/plan.md`.
+
+**Estimated scope:** Medium, five documentation files.
+
+### Checkpoint G: Ready for user outcome review
+
+- [ ] Tasks 17–19 pass, both browser matrices are complete, storage lifecycle is
+      proven, and every spec criterion has evidence.
+- [ ] Human reviews the implemented outcome. Production deployment and extension
+      publication require separate explicit authorization.

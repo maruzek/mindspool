@@ -90,7 +90,7 @@ After approval, write the following specs one at a time, with review after each:
 | Module          | Future specification                           | Status                                                                                                                                 |
 | --------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `mcp-access`    | [SPEC-mcp-access.md](SPEC-mcp-access.md)       | Backend, controls, setup and lifecycle verified on development; human review pending ([access plan](tasks/archive/mcp-access-plan.md)) |
-| `mcp-discovery` | [SPEC-mcp-discovery.md](SPEC-mcp-discovery.md) | Four tools verified on development in both clients; human outcome review pending ([plan](tasks/plan.md))                               |
+| `mcp-discovery` | [SPEC-mcp-discovery.md](SPEC-mcp-discovery.md) | Four tools verified on development in both clients; human outcome reviewed; archived ([plan](tasks/archive/mcp-discovery-plan.md))     |
 | `mcp-labels`    | `SPEC-mcp-labels.md`                           | Not started                                                                                                                            |
 
 The access spec must establish the hosted authorization flow and client
