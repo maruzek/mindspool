@@ -25,6 +25,29 @@ function streamed(bytes: number, claimedLength?: string) {
   });
 }
 describe("bounded raster ingestion", () => {
+  it("rejects APNG animation control even when the native loader exposes only its PNG fallback", async () => {
+    const png = await sharp({
+      create: { width: 16, height: 16, channels: 3, background: "red" },
+    })
+      .png()
+      .toBuffer();
+    const chunk = Buffer.alloc(20);
+    chunk.writeUInt32BE(8);
+    chunk.write("acTL", 4);
+    chunk.writeUInt32BE(2, 8);
+    let crc = 0xffffffff;
+    for (const byte of chunk.subarray(4, 16)) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++)
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    chunk.writeUInt32BE((crc ^ 0xffffffff) >>> 0, 16);
+    await expect(
+      decodeRaster(
+        Buffer.concat([png.subarray(0, 33), chunk, png.subarray(33)]),
+      ),
+    ).rejects.toThrow("invalid_image");
+  });
   it("authenticates the HTTP boundary and bounds bytes before decode", async () => {
     const t = convexTest(schema, modules);
     const alice = t.withIdentity({ subject: "alice" });

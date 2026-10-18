@@ -10,6 +10,26 @@ import { ConvexError, v } from "convex/values";
 export async function decodeRaster(bytes: Uint8Array) {
   if (!bytes.length || bytes.byteLength > VISUAL_LIMITS.bytes)
     throw new Error("too_large");
+  const buffer = Buffer.from(bytes);
+  // libvips can expose an APNG's static PNG fallback without reporting pages.
+  if (
+    buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  ) {
+    for (let offset = 8; offset + 12 <= buffer.length;) {
+      const length = buffer.readUInt32BE(offset);
+      if (length > buffer.length - offset - 12)
+        throw new Error("invalid_image");
+      if (buffer.toString("ascii", offset + 4, offset + 8) === "acTL")
+        throw new Error("invalid_image");
+      offset += length + 12;
+    }
+  }
+  if (
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 16) === "WEBPVP8X" &&
+    buffer[20]! & 2
+  )
+    throw new Error("invalid_image");
   const image = sharp(Buffer.from(bytes), {
     animated: true,
     limitInputPixels: VISUAL_LIMITS.pixels,
