@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { McpAuthorizationError } from "./mcp/auth";
@@ -11,6 +11,13 @@ import { toolBytes } from "./mcp/tools";
 import schema from "./schema";
 import { withSnippets } from "./mcpDiscovery";
 import { modules } from "./test.setup";
+
+// These fixtures exercise reads; keep their captured-item jobs from racing later databases.
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 const resourceUrl = "https://dev.convex.site/mcp";
 const config: EnabledMcpConfig = {

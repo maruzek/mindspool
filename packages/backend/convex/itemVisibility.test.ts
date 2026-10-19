@@ -62,8 +62,8 @@ describe("library role storage contract", () => {
       t.run((ctx) =>
         ctx.db.insert("items", {
           ...base,
-          // @ts-expect-error Invalid storage value must also be rejected at runtime.
-          libraryRole: "normal",
+          // Model an untyped storage boundary without weakening static checks.
+          ...JSON.parse('{"libraryRole":"normal"}'),
         }),
       ),
     ).rejects.toThrow();
