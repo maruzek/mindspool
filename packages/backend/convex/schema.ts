@@ -23,6 +23,12 @@ import {
 } from "./boardValidators";
 
 export default defineSchema({
+  // Per-URL receipts outlive resource deletion, without growing the source document.
+  tweetLinkReceipts: defineTable({
+    ownerId: v.string(),
+    tweetId: v.id("items"),
+    urlKey: v.string(),
+  }).index("by_owner_tweet_url", ["ownerId", "tweetId", "urlKey"]),
   visualCaptureMaintenance: defineTable({
     key: v.literal("storage"),
     cursor: v.union(v.string(), v.null()),

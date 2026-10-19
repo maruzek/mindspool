@@ -128,3 +128,37 @@ it("retries extraction after a caught error leaves a resource write but no compl
   });
   expect(await a.query(api.items.stats, {})).toMatchObject({ total: 1 });
 });
+
+it("does not recreate a deleted partial resource while retrying unfinished URLs", async () => {
+  const { t, a } = setup();
+  const source = await a.mutation(api.items.create, {
+    ...input,
+    extractedText: "not evaluated",
+  });
+  const { insertCapture } = await import("./libraryWriters");
+  const { extractTweetResources } = await import("./tweetResourceWriters");
+  await t.run(async (ctx) => {
+    await ctx.db.patch(source, {
+      extractedText: "https://example.org/a https://example.org/b",
+    });
+    try {
+      await extractTweetResources(ctx, source, async (...args) => {
+        await insertCapture(...args);
+        throw new Error("Interrupted after resource A");
+      });
+    } catch {
+      /* Surviving partial write, without a completion marker. */
+    }
+  });
+  const partial = (await t.run((ctx) => ctx.db.query("items").collect())).find(
+    (row) => row.fromItemId === source,
+  )!;
+  await a.mutation(api.items.remove, { id: partial._id });
+  await t.mutation(internal.tweetLinks.apply, { itemId: source });
+  expect(
+    (await t.run((ctx) => ctx.db.query("items").collect()))
+      .filter((row) => row.fromItemId === source)
+      .map((row) => row.originalInput),
+  ).toEqual(["https://example.org/b"]);
+  expect(await a.query(api.items.stats, {})).toMatchObject({ total: 1 });
+});

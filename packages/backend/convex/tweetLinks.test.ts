@@ -489,3 +489,24 @@ it("handles reordered growing text without reusing capture keys or recreating de
   ).toEqual(["https://example.org/b", "https://example.org/c"]);
   expect((await t.run((ctx) => ctx.db.get(source)))?.tweetLinksVersion).toBe(2);
 });
+
+it("remembers deleted resources across longer texts that omit and later repeat the URL", async () => {
+  const { t, alice, clip, items } = setup();
+  const source = await clip("1", "https://example.org/a");
+  const resource = (await items()).find((row) => row.fromItemId === source)!;
+  await alice.mutation(api.items.remove, { id: resource._id });
+  await t.mutation(internal.tweetLinks.apply, {
+    itemId: source,
+    fullText: "Longer text contains only https://example.org/b",
+  });
+  await t.mutation(internal.tweetLinks.apply, {
+    itemId: source,
+    fullText:
+      "Even longer text repeats https://example.org/a alongside https://example.org/b",
+  });
+  expect(
+    (await items())
+      .filter((row) => row.fromItemId === source)
+      .map((row) => row.originalInput),
+  ).toEqual(["https://example.org/b"]);
+});

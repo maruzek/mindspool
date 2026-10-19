@@ -34,24 +34,44 @@ export async function extractTweetResources(
         tweet.tweetLinksVersion,
       )
     : new Set<string>();
-  if (links.length) await convertTweetSource(ctx, itemId);
-  let created = 0;
-  for (const [n, link] of links.entries()) {
-    const key = urlKey(link)!;
-    const existing = await ctx.db
+  const receiptFor = (key: string) =>
+    ctx.db
+      .query("tweetLinkReceipts")
+      .withIndex("by_owner_tweet_url", (q) =>
+        q.eq("ownerId", tweet.ownerId).eq("tweetId", itemId).eq("urlKey", key),
+      )
+      .unique();
+  const remember = async (key: string) => {
+    if (!(await receiptFor(key)))
+      await ctx.db.insert("tweetLinkReceipts", {
+        ownerId: tweet.ownerId,
+        tweetId: itemId,
+        urlKey: key,
+      });
+  };
+  const resourceFor = (key: string) =>
+    ctx.db
       .query("items")
       .withIndex("by_owner_url_key", (q) =>
         q.eq("ownerId", tweet.ownerId).eq("urlKey", key),
       )
       .first();
+  // Seed old completion markers before an expanded text can omit those URLs.
+  for (const key of processed) await remember(key);
+  if (links.length) await convertTweetSource(ctx, itemId);
+  let created = 0;
+  for (const [n, link] of links.entries()) {
+    const key = urlKey(link)!;
+    const existing = await resourceFor(key);
     if (existing) {
       if (existing.fromItemId === undefined) {
         await ctx.db.patch(existing._id, { fromItemId: itemId });
         await changeLinkedItemStats(ctx, tweet.ownerId, itemId, 1);
       }
+      await remember(key);
       continue;
     }
-    if (processed.has(key)) continue;
+    if (await receiptFor(key)) continue;
     // Appearance order remains the initial identity; expansion may bind that slot to another URL.
     const base = `xlink:${itemId}:${n}`;
     let captureKey = base;
@@ -67,13 +87,20 @@ export async function extractTweetResources(
         throw new Error("Tweet resource capture identity exhausted");
       captureKey = `${base}:${hashKey(key)}:${attempt}`;
     }
-    await insertResource(ctx, tweet.ownerId, {
-      originalInput: link,
-      inputType: "url",
-      captureSource: tweet.captureSource,
-      captureKey,
-      fromItemId: itemId,
-    });
+    try {
+      await insertResource(ctx, tweet.ownerId, {
+        originalInput: link,
+        inputType: "url",
+        captureSource: tweet.captureSource,
+        captureKey,
+        fromItemId: itemId,
+      });
+    } catch (error) {
+      // Capture may catch our error: protect any resource write that survived it.
+      if (await resourceFor(key)) await remember(key);
+      throw error;
+    }
+    await remember(key);
     created++;
   }
   // A caught error cannot leave a success marker ahead of surviving partial writes.
