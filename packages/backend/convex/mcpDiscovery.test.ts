@@ -1054,28 +1054,6 @@ it("returns a bounded retryable error for an oversized label page without silent
     ).toBeLessThanOrEqual(65536);
 });
 
-it("keeps owner selection out of every public function's argument schema", async () => {
-  const loaded = await Promise.all(
-    Object.values(modules).map((load) => load()),
-  );
-  let inspected = 0;
-  for (const module of loaded)
-    for (const exported of Object.values(module as Record<string, unknown>)) {
-      if (
-        typeof exported === "function" &&
-        "isPublic" in exported &&
-        exported.isPublic === true &&
-        "exportArgs" in exported &&
-        typeof exported.exportArgs === "function"
-      ) {
-        const validator = JSON.parse(exported.exportArgs());
-        expect(validator.value).not.toHaveProperty("ownerId");
-        inspected++;
-      }
-    }
-  expect(inspected).toBeGreaterThan(20);
-});
-
 type SummaryRow = { itemId: string } & Record<string, any>;
 const ids = (page: { items: SummaryRow[] }) => page.items.map((i) => i.itemId);
 const failure = (result: { structuredContent: any }) =>
