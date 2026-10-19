@@ -1,9 +1,8 @@
 import { BrandIcon } from "../library/BrandIcon";
-import { ItemLink } from "../library/ItemList";
 import { SectionHeading } from "./Facts";
 import type { ItemDetail } from "./types";
 
-/** The post a link was found in; opens that post in the inspector. */
+/** The retained source context links to the original post; hidden snapshots have no normal detail. */
 export function SourcePost({
   post,
 }: {
@@ -12,9 +11,10 @@ export function SourcePost({
   return (
     <section aria-labelledby="source-post" className="flex flex-col gap-2">
       <SectionHeading id="source-post">Found in post</SectionHeading>
-      <ItemLink
-        itemId={post._id}
-        selected={false}
+      <a
+        href={post.url}
+        target="_blank"
+        rel="noopener noreferrer"
         className="relative flex flex-col gap-1 border p-3 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex items-center gap-2">
@@ -26,7 +26,7 @@ export function SourcePost({
             {post.excerpt}
           </span>
         )}
-      </ItemLink>
+      </a>
     </section>
   );
 }

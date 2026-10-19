@@ -55,7 +55,7 @@ describe("item inspector frame", () => {
         ?.getAttribute("data-state"),
     ).toBe("expanded");
   });
-  it("links to the post a link was found in", async () => {
+  it("retains source context and links to the original post when its snapshot is hidden", async () => {
     backend.detail = (args) => {
       const { id } = args as { id: string };
       return id === "a"
@@ -68,7 +68,7 @@ describe("item inspector frame", () => {
               excerpt: "7 Mockup tools every designer should bookmark.",
             },
           }
-        : { ...detail(id), sourceMetadata: { title: "The tweet" } };
+        : null;
     };
     const router = await renderAt("/library?item=a");
     const link = await screen.findByRole("link", { name: /Noah \(@noah\)/ });
@@ -76,11 +76,11 @@ describe("item inspector frame", () => {
     expect(
       screen.getByText("7 Mockup tools every designer should bookmark."),
     ).toBeTruthy();
-    fireEvent.click(link);
-    expect(
-      await screen.findByRole("heading", { name: "The tweet" }),
-    ).toBeTruthy();
-    expect(router.state.location.search).toMatchObject({ item: "tweet" });
+    expect(link.getAttribute("href")).toBe("https://x.com/noah/status/1");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    await router.navigate({ to: "/library", search: { item: "tweet" } });
+    expect(await screen.findByText("Not found")).toBeTruthy();
   });
   it("shows no source post for a link saved directly", async () => {
     backend.detail = (args) => detail((args as { id: string }).id);
