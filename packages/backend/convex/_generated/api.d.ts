@@ -58,6 +58,7 @@ import type * as redditCaptureModel from "../redditCaptureModel.js";
 import type * as sampleContent from "../sampleContent.js";
 import type * as seed from "../seed.js";
 import type * as tweetLinks from "../tweetLinks.js";
+import type * as tweetSourceMigration from "../tweetSourceMigration.js";
 import type * as tweetSourceState from "../tweetSourceState.js";
 import type * as validators from "../validators.js";
 import type * as visualCaptureMaintenance from "../visualCaptureMaintenance.js";
@@ -123,6 +124,7 @@ declare const fullApi: ApiFromModules<{
   sampleContent: typeof sampleContent;
   seed: typeof seed;
   tweetLinks: typeof tweetLinks;
+  tweetSourceMigration: typeof tweetSourceMigration;
   tweetSourceState: typeof tweetSourceState;
   validators: typeof validators;
   visualCaptureMaintenance: typeof visualCaptureMaintenance;
