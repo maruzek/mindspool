@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { LoaderCircleIcon, PlusIcon, SearchIcon, TagIcon } from "lucide-react";
 import { api } from "@mindspool/backend/api";
@@ -23,9 +23,10 @@ type LabelOption = {
   isAssigned: boolean;
 };
 
-/** ReUI's label-selection combobox, with server search and inline creation. */
+/** Load labels on first use, retain live assignment updates, and filter locally. */
 export function AddLabelPopover({ itemId }: { itemId: Id<"items"> }) {
   const [open, setOpen] = useState(false);
+  const [enabled, setEnabled] = useState(false);
   const [search, setSearch] = useState("");
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
@@ -34,25 +35,40 @@ export function AddLabelPopover({ itemId }: { itemId: Id<"items"> }) {
   const term = search.trim();
   const { results, status, loadMore } = usePaginatedQuery(
     api.itemLabels.availableLabels,
-    open ? { itemId, search: term.toLowerCase() } : "skip",
+    enabled ? { itemId } : "skip",
     { initialNumItems: PAGE_SIZE },
   );
   const attach = useMutation(api.itemLabels.attach);
   const remove = useMutation(api.itemLabels.remove);
   const create = useMutation(api.labels.create);
-  const loading = status === "LoadingFirstPage";
-  const options: LabelOption[] = results.map((label) => ({
-    id: label._id,
-    labelId: label._id,
-    name: label.name,
-    isAssigned: label.isAssigned,
-  }));
-  const selected = options.filter((label) => label.isAssigned);
+  // Complete the list once so local searches and duplicate checks cover every page.
+  useEffect(() => {
+    if (enabled && status === "CanLoadMore") loadMore(PAGE_SIZE);
+  }, [enabled, status, loadMore]);
+  const loading = status !== "Exhausted";
+  const allOptions: LabelOption[] = useMemo(
+    () =>
+      results.map((label) => ({
+        id: label._id,
+        labelId: label._id,
+        name: label.name,
+        isAssigned: label.isAssigned,
+      })),
+    [results],
+  );
+  const selected = useMemo(
+    () => allOptions.filter((label) => label.isAssigned),
+    [allOptions],
+  );
+  const normalizedTerm = term.toLowerCase();
+  const options = allOptions.filter((label) =>
+    label.name.toLowerCase().includes(normalizedTerm),
+  );
   const canCreate =
     !loading &&
     term.length > 0 &&
     term.length <= 80 &&
-    !options.some((label) => label.name.toLowerCase() === term.toLowerCase());
+    !allOptions.some((label) => label.name.toLowerCase() === normalizedTerm);
   if (canCreate)
     options.push({ id: "create-label", name: term, isAssigned: false });
 
@@ -104,6 +120,7 @@ export function AddLabelPopover({ itemId }: { itemId: Id<"items"> }) {
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
+        if (next) setEnabled(true);
         if (!next) {
           setSearch("");
           setError(null);
@@ -126,7 +143,7 @@ export function AddLabelPopover({ itemId }: { itemId: Id<"items"> }) {
         Add label
       </ComboboxTrigger>
       <ComboboxContent
-        className="w-72 max-w-(--available-width)"
+        className="flex h-64 w-72 max-w-(--available-width) flex-col"
         aria-label="Labels"
       >
         <ComboboxInput
@@ -141,65 +158,61 @@ export function AddLabelPopover({ itemId }: { itemId: Id<"items"> }) {
             <SearchIcon aria-hidden="true" />
           </InputGroupAddon>
         </ComboboxInput>
-        {loading ? (
-          <p role="status" className="px-3 py-4 text-sm text-muted-foreground">
+        {options.length === 0 && (
+          <p
+            role={loading ? "status" : undefined}
+            className="px-3 py-4 text-sm text-muted-foreground"
+          >
+            {loading
+              ? "Loading labels…"
+              : term
+                ? "No labels found."
+                : "Search or type a name to create a label."}
+          </p>
+        )}
+        <ComboboxList
+          aria-label="Labels"
+          aria-busy={pending || loading}
+          className="min-h-0 max-h-none flex-1"
+        >
+          {(label: LabelOption) => (
+            <ComboboxItem
+              key={label.id}
+              value={label}
+              disabled={pending}
+              className={!label.labelId ? "border-t border-border" : undefined}
+            >
+              {label.labelId ? (
+                <TagIcon
+                  aria-hidden="true"
+                  className="size-4 text-muted-foreground"
+                />
+              ) : pending ? (
+                <LoaderCircleIcon
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
+              ) : (
+                <PlusIcon aria-hidden="true" className="size-4" />
+              )}
+              <span className="min-w-0 truncate">
+                {label.labelId ? label.name : `Create “${label.name}”`}
+              </span>
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+        {loading && options.length > 0 && (
+          <p
+            role="status"
+            className="border-t border-border px-3 py-2 text-xs text-muted-foreground"
+          >
             Loading labels…
           </p>
-        ) : (
-          <>
-            {options.length === 0 && (
-              <p className="px-3 py-4 text-sm text-muted-foreground">
-                {term
-                  ? "No labels found."
-                  : "Search or type a name to create a label."}
-              </p>
-            )}
-            <ComboboxList aria-label="Labels" aria-busy={pending}>
-              {(label: LabelOption) => (
-                <ComboboxItem
-                  key={label.id}
-                  value={label}
-                  disabled={pending}
-                  className={
-                    !label.labelId ? "border-t border-border" : undefined
-                  }
-                >
-                  {label.labelId ? (
-                    <TagIcon
-                      aria-hidden="true"
-                      className="size-4 text-muted-foreground"
-                    />
-                  ) : pending ? (
-                    <LoaderCircleIcon
-                      aria-hidden="true"
-                      className="size-4 animate-spin"
-                    />
-                  ) : (
-                    <PlusIcon aria-hidden="true" className="size-4" />
-                  )}
-                  <span className="min-w-0 truncate">
-                    {label.labelId ? label.name : `Create “${label.name}”`}
-                  </span>
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </>
         )}
         {term.length > 80 && (
           <p className="px-3 pb-2 text-xs text-muted-foreground">
             Label names can have up to 80 characters.
           </p>
-        )}
-        {(status === "CanLoadMore" || status === "LoadingMore") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="m-1"
-            disabled={pending || status === "LoadingMore"}
-            onClick={() => loadMore(PAGE_SIZE)}
-          >
-            {status === "LoadingMore" ? "Loading…" : "Show more"}
-          </Button>
         )}
         {error && (
           <p

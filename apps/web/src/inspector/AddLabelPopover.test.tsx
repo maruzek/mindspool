@@ -32,17 +32,31 @@ const search = (text: string) =>
   });
 
 describe("AddLabelPopover", () => {
-  it("subscribes only while open and searches all labels through the backend", async () => {
-    backend.available = [opt("l1", "Food")];
+  it("loads on first open and filters locally without changing the subscription", async () => {
+    backend.available = [opt("l1", "Food"), opt("l2", "Travel inspiration")];
     render(<AddLabelPopover itemId={itemId} />);
     expect(backend.paginatedArgs["itemLabels:availableLabels"]).toBe("skip");
     open();
     await screen.findByRole("option", { name: "Food" });
-    search("  FOOD  ");
+    search("  inspiration  ");
     expect(backend.paginatedArgs["itemLabels:availableLabels"]).toEqual({
       itemId,
-      search: "food",
     });
+    expect(option("Travel inspiration")).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Food" })).toBeNull();
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Search labels" }), {
+      key: "Escape",
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("combobox", { name: "Search labels" }),
+      ).toBeNull(),
+    );
+    expect(backend.paginatedArgs["itemLabels:availableLabels"]).toEqual({
+      itemId,
+    });
+    open();
+    expect(await screen.findByRole("option", { name: "Food" })).toBeTruthy();
   });
 
   it("reflects assignment and toggles labels without closing the picker", async () => {
@@ -54,6 +68,8 @@ describe("AddLabelPopover", () => {
     await screen.findByRole("option", { name: "Food" });
     expect(option("Food").getAttribute("aria-selected")).toBe("false");
     expect(option("Dinner").getAttribute("aria-selected")).toBe("true");
+    search("food");
+    expect(screen.queryByRole("option", { name: "Dinner" })).toBeNull();
     fireEvent.click(option("Food"));
     await waitFor(() =>
       expect(backend.attachItemLabel).toHaveBeenCalledWith({
@@ -62,8 +78,10 @@ describe("AddLabelPopover", () => {
       }),
     );
     await waitFor(() =>
-      expect(option("Dinner").getAttribute("aria-disabled")).not.toBe("true"),
+      expect(option("Food").getAttribute("aria-disabled")).not.toBe("true"),
     );
+    search("dinner");
+    expect(option("Dinner").getAttribute("aria-selected")).toBe("true");
     fireEvent.click(option("Dinner"));
     await waitFor(() =>
       expect(backend.removeItemLabel).toHaveBeenCalledWith({
@@ -143,13 +161,23 @@ describe("AddLabelPopover", () => {
     expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
   });
 
-  it("requests the next page with Show more", async () => {
+  it("automatically loads remaining pages before offering creation", async () => {
     backend.available = [opt("l1", "Food")];
     backend.availableStatus = "CanLoadMore";
-    render(<AddLabelPopover itemId={itemId} />);
+    const view = render(<AddLabelPopover itemId={itemId} />);
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Show more" }));
-    expect(backend.loadMoreAvailable).toHaveBeenCalledWith(10);
+    await waitFor(() =>
+      expect(backend.loadMoreAvailable).toHaveBeenCalledWith(10),
+    );
+    search("Travel");
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+    expect(screen.queryByRole("option", { name: "Food" })).toBeNull();
+    backend.available = [opt("l1", "Food"), opt("l2", "Travel", true)];
+    backend.availableStatus = "Exhausted";
+    view.rerender(<AddLabelPopover itemId={itemId} />);
+    expect(await screen.findByRole("option", { name: "Travel" })).toBeTruthy();
+    expect(option("Travel").getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
   });
 
   it("announces an assignment failure and keeps server selection", async () => {
