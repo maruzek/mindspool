@@ -1,8 +1,9 @@
 # Spec: Tweet link extraction (`tweet-links`)
 
-Status: accepted for technical planning by the user's request to make the plan.
-The original feature is implemented; this revision changes its threshold and
-source-item behavior. The implementation plan remains subject to review.
+Status: implementation authorized by the user's request to execute the plan.
+T1–T12 are implemented and locally verified. Inspector regression, final checks
+and independent review are in progress; live browser acceptance and migration
+rehearsal require an authorized development environment.
 
 ## Objective
 
@@ -208,7 +209,7 @@ Test (schema):    pnpm --filter @mindspool/schema test
 Test (extension): pnpm --filter @mindspool/extension test
 Typecheck:        pnpm typecheck
 Full gate:        pnpm check
-Backfill (dev):   cd packages/backend && npx convex run tweetLinks:backfill
+Migration:       see docs/verification/tweet-links.md (preview and approval first)
 ```
 
 ## Project Structure
@@ -279,15 +280,14 @@ export function urlKey(raw: string): string | null { … }
   backfills preserve references and do not duplicate resources or counts.
 - `pnpm check` passes.
 
-## Open Questions
+## Review decisions
 
-1. Proposed duplicate-source rule: when an extracted URL already exists, attach
-   this source if it has none; preserve its first source otherwise. Approve this
-   rule or request tracking multiple source tweets per resource.
+The user authorized plan execution, accepting first-source attribution: fill a
+missing source and preserve an existing source, including dangling references.
+Existing tweets are in scope; live migration execution remains separate.
 
-## Approval Gate
+## Verification and migration
 
-The user requested technical planning after specification. The resulting
-[plan](tasks/plan.md) and [checklist](tasks/todo.md) are ready for review before
-implementation. First-source attribution is the explicit planning assumption;
-the confirmed historical scope includes existing saved tweets.
+See [the verification report and runbook](docs/verification/tweet-links.md) for
+local evidence, open browser acceptance, exact versioned migration commands,
+target classification, backup/recovery and approval requirements.
