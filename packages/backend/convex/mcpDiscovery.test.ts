@@ -1742,3 +1742,55 @@ describe("efficiency gates (synthetic fixtures)", () => {
     expect(efficient.total).toBeLessThanOrEqual(legacy.total);
   });
 });
+
+it("rejects hidden IDs through legacy and efficient MCP reads while retaining resource context", async () => {
+  const { t, alice, bob, save, label, attach, callTool } = await setup();
+  const source = await save(alice, "hidden source snapshot");
+  const resource = await save(alice, "visible resource");
+  const labelId = await label(alice, "Source-only label");
+  await attach(alice, source, labelId);
+  const { ownerId } = await alice.query(api.identity.current, {});
+  await t.run(async (ctx) => {
+    await ctx.db.patch(source, { libraryRole: "tweet_source" });
+    await ctx.db.patch(resource, { fromItemId: source });
+  });
+  await expect(
+    t.query(internal.mcpDiscovery.getItem, { ownerId, itemId: source }),
+  ).rejects.toThrow("Not found");
+  await expect(
+    t.query(internal.mcpDiscovery.readItem, {
+      ownerId,
+      itemId: source,
+      context: true,
+      resources: true,
+    }),
+  ).rejects.toThrow("Not found");
+  for (const mode of [undefined, "metadata", "excerpt", "full"]) {
+    expect(
+      (
+        await callTool(alice, "mindspool_get_item", {
+          itemId: source,
+          ...(mode ? { mode } : {}),
+        })
+      ).isError,
+    ).toBe(true);
+  }
+  const detail = await t.query(internal.mcpDiscovery.readItem, {
+    ownerId,
+    itemId: resource,
+    context: true,
+    resources: true,
+  });
+  expect(detail.fromPost?._id).toBe(source);
+  expect(
+    (await callTool(bob, "mindspool_get_item", { itemId: resource })).isError,
+  ).toBe(true);
+  const labels = await t.query(internal.mcpDiscovery.listLabels, {
+    ownerId,
+    cursor: null,
+    limit: 20,
+  });
+  expect(labels.labels.find((row) => row._id === labelId)?.hasItems).toBe(
+    false,
+  );
+});

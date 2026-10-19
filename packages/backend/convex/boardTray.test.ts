@@ -1,5 +1,6 @@
 import { convexTest } from "convex-test";
 import { expect, it } from "vitest";
+import type { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
@@ -7,7 +8,7 @@ it("sorts by item creation, retains empty continuation pages and scopes search",
   const a = convexTest(schema, modules).withIdentity({ subject: "alice" });
   const labelId = await a.mutation(api.labels.create, { name: "Design" });
   const board = await a.mutation(api.boards.open, { labelId });
-  const ids = [];
+  const ids: Id<"items">[] = [];
   for (let i = 0; i < 4; i++)
     ids.push(
       await a.mutation(api.items.create, {
@@ -54,7 +55,7 @@ it("excludes hidden roles from trays, existing cards, previews, and new placemen
   const a = convexTest(schema, modules).withIdentity({ subject: "alice" });
   const labelId = await a.mutation(api.labels.create, { name: "Resources" });
   const board = await a.mutation(api.boards.open, { labelId });
-  const ids = [];
+  const ids: Id<"items">[] = [];
   for (let i = 0; i < 3; i++) {
     const itemId = await a.mutation(api.items.create, {
       inputType: "text",

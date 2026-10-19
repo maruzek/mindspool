@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { internal } from "./_generated/api";
@@ -69,16 +70,7 @@ export const listLabels = internalQuery({
           name: label.name,
           ...(label.description ? { description: label.description } : {}),
           // One index row proves membership (confirmed or suggested); no counter.
-          hasItems:
-            (await ctx.db
-              .query("itemLabels")
-              .withIndex("by_owner_label_decision", (q) =>
-                q
-                  .eq("ownerId", ownerId)
-                  .eq("labelId", label._id)
-                  .eq("manualDecision", "include"),
-              )
-              .first()) !== null,
+          hasItems: await hasNormalLabelItems(ctx, ownerId, label._id),
         })),
       ),
       continueCursor: page.continueCursor,
@@ -86,6 +78,26 @@ export const listLabels = internalQuery({
     };
   },
 });
+
+/** Bounded membership hint; stale hidden rows never establish normal membership. */
+async function hasNormalLabelItems(
+  ctx: QueryCtx,
+  ownerId: string,
+  labelId: Id<"labels">,
+) {
+  const links = await ctx.db
+    .query("itemLabels")
+    .withIndex("by_owner_role_label_decision", (q) =>
+      q
+        .eq("ownerId", ownerId)
+        .eq("libraryRole", undefined)
+        .eq("labelId", labelId)
+        .eq("manualDecision", "include"),
+    )
+    .take(20);
+  const items = await Promise.all(links.map((link) => ctx.db.get(link.itemId)));
+  return items.some((item) => item?.ownerId === ownerId && isNormalItem(item));
+}
 
 const notFound = (message = "Not found") =>
   new ConvexError({ code: "NOT_FOUND", message });
@@ -146,7 +158,8 @@ export async function withSnippets(
   return Promise.all(
     previews.map(async (preview) => {
       const item = await ctx.db.get(preview._id);
-      if (!item || item.ownerId !== ownerId) throw notFound();
+      if (!item || item.ownerId !== ownerId || !isNormalItem(item))
+        throw notFound();
       const snippet = snippetOf(item.extractedText);
       const count = item.linkedItemStats?.count;
       if (count === undefined)
@@ -321,7 +334,8 @@ async function compactRows(
   return Promise.all(
     previews.map(async (preview) => {
       const item = await ctx.db.get(preview._id);
-      if (!item || item.ownerId !== ownerId) throw notFound();
+      if (!item || item.ownerId !== ownerId || !isNormalItem(item))
+        throw notFound();
       const count = item.linkedItemStats?.count;
       if (count === undefined)
         throw new ConvexError({
@@ -482,8 +496,11 @@ const linkedItem = v.object({
 async function linkedRows(ctx: QueryCtx, itemId: Id<"items">, ownerId: string) {
   return ctx.db
     .query("items")
-    .withIndex("by_owner_from", (q) =>
-      q.eq("ownerId", ownerId).eq("fromItemId", itemId),
+    .withIndex("by_owner_role_from", (q) =>
+      q
+        .eq("ownerId", ownerId)
+        .eq("libraryRole", undefined)
+        .eq("fromItemId", itemId),
     )
     .take(21);
 }
@@ -573,7 +590,8 @@ export const readItem = internalQuery({
   handler: async (ctx, { ownerId, itemId, context, resources }) => {
     const id = ctx.db.normalizeId("items", itemId);
     const item = id ? await ctx.db.get(id) : null;
-    if (!item || item.ownerId !== ownerId) throw notFound();
+    if (!item || item.ownerId !== ownerId || !isNormalItem(item))
+      throw notFound();
     const children = resources ? await linkedRows(ctx, item._id, ownerId) : [];
     const links = context
       ? await ctx.db
