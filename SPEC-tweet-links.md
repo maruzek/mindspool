@@ -1,19 +1,20 @@
 # Spec: Tweet link extraction (`tweet-links`)
 
-Status: approved by request 2026-10-15 ("complete all of this"); implemented on
-branch `feat/tweet-multi-link-extraction`.
+Status: accepted for technical planning by the user's request to make the plan.
+The original feature is implemented; this revision changes its threshold and
+source-item behavior. The implementation plan remains subject to review.
 
 ## Objective
 
-Tweets are often lists of resources ("7 mockup tools every designer should
-bookmark: mocku.com, studio.morflax.com, …"). Today the whole tweet becomes one
-Item and the resources inside it are only text. The owner wants each resource
-saved as its own Item, previewed with its own `og:image`, and saved **once**.
+Tweets often contain useful external resources. The existing feature extracts
+two or more links but also saves the tweet as a normal item. Extend extraction
+to a single external link and retain the tweet as hidden source context. Each
+resource is saved as its own Item with its own `og:image`, and saved **once**.
 
 User stories:
 
-- When I clip a tweet that mentions several links, each link becomes its own
-  library Item next to the tweet, with its page title, description and
+- When I clip a tweet that mentions one or more eligible links, each becomes its own
+  library Item, with its page title, description and
   thumbnail (the existing link enrichment does that).
 - A link already in my library is not saved again, whether it came from an
   earlier tweet, the same tweet clipped twice, or a link I pasted by hand.
@@ -47,9 +48,8 @@ User stories:
      are the same link.
    - The path keeps its case. Example: `https://www.Mocku.com/?utm_source=x` →
      `mocku.com`.
-4. **Threshold.** A tweet is expanded when it has **at least 2** distinct links,
-   per the request ("whether there are multiple URL links"). The threshold is
-   one constant (`MIN_TWEET_LINKS`).
+4. **Threshold.** A tweet is expanded when it has **at least 1** distinct eligible
+   external link. The threshold is one constant (`MIN_TWEET_LINKS`).
 5. **Saving resources.** For each extracted link without an Item with the same
    `urlKey` from the same owner, an Item is inserted through the normal capture
    path (`insertCapture`):
@@ -117,6 +117,83 @@ in.
 - The backfill restores `fromItemId` from older `xlink:<tweetId>:<n>` capture
   keys.
 
+## Source-only tweets (revision proposed 2026-10-19)
+
+### Assumptions for review
+
+- This is one extension of the existing extraction workflow, with retained
+  tweet provenance; it does not introduce a separate tweet library.
+- Tweets with one or more eligible links become source-only. Tweets without
+  eligible links remain normal items.
+- Preserve the full saved tweet text, URL, metadata, and captured images.
+  Reuse the existing “Found in post” card in every newly extracted resource.
+- Keep URL identity, ignored hosts, the 20-link cap, fuller-text fetching,
+  capture retry semantics, and resource enrichment unchanged.
+- Historical conversion is included, confirmed by the user on 2026-10-19.
+  Duplicate-source attribution remains under Open Questions. Do not run a
+  backfill during specification.
+
+### Required behavior
+
+1. After successful extraction, save the tweet as source context rather than a
+   normal library item. This also applies when all eligible URLs already exist
+   and extraction creates zero new resources. Conversion depends on detected
+   eligible links, not the count of newly created items.
+2. Each newly created resource references the saved source tweet. Hiding that
+   tweet must preserve the owner-scoped `fromPost` response, inspector excerpt,
+   and original-post link. Retain the full saved snapshot, independently of
+   whether the external post remains available. Expanding the existing excerpt
+   presentation into a full tweet viewer is outside this revision.
+3. Exclude source-only tweets from Library, Inbox, Needs review, normal text
+   search, source filters, label item lists, board item listings/pickers, and MCP
+   library/search results. Exclude them from normal item and label counts.
+   Pagination and ordering must remain correct when sources are excluded.
+4. Source-only tweets must receive no normal item labels or classification runs
+   and incur no classification AI charges. Automatic and explicit labeling
+   entry points must respect source-only status. Delayed enrichment or labeling
+   completion must not restore labels, visibility, counters, or classification.
+5. When captured text already has eligible links, the tweet must not briefly
+   appear or be labeled as a normal item while extraction runs. If links are
+   discovered only by fetching fuller text, consistently convert the tweet and
+   reconcile its previous normal-item state.
+6. A fetch failure uses captured text. Extraction failure retains the saved
+   snapshot and remains retryable. Resource enrichment failures must not discard
+   the saved resource or its source context.
+7. Repeated captures, scheduled retries, and concurrent extraction must not
+   create duplicate resources, double-count conversion, or lose provenance.
+   Preserve the existing protection against recreating deleted resources when
+   the source text grows. Deleting one resource must not delete source context
+   needed by another. Automatic cleanup after the last resource is outside scope.
+8. Storage design belongs in the technical plan. Keeping a row in `items` is
+   acceptable with an explicit source-only role respected by all normal-item
+   behavior. Preserve owner isolation for source reads and associations.
+9. For an existing resource, the proposed attribution rule is to fill a missing
+   source while retaining any existing source. This revises the current complete
+   skip on deduplication and requires review; multiple sources are not assumed.
+
+### Historical conversion (scope confirmed 2026-10-19)
+
+Provide a bounded, repeat-safe backfill that extracts previously
+skipped single links, converts eligible saved tweets to source-only, preserves
+snapshots and existing resource references, removes normal label/board
+participation, and reconciles search state and counters. It must handle tweets
+already marked `linksExtracted` under the old threshold without recreating
+resources deliberately deleted after previous extraction. No-link tweets remain
+normal. Implementing and testing this backfill does not itself authorize running
+it against production.
+
+### Additional verification
+
+Use backend `convex-test` tests to cover zero/one/many eligible links, all links
+already saved, source ownership, resource deletion, retries, fuller-text failures,
+and concurrent extraction. Exercise scheduled work as well as direct extraction.
+Query/invariant tests cover all normal-item surfaces, pagination, counts, recounts,
+labels, boards, and MCP reads. Delayed jobs must not reintroduce source-only items.
+Inspector tests verify the source card still resolves for every newly created
+resource with a hidden source. Historical conversion tests must cover old
+single-link tweets marked processed, labeled/board tweets, deleted resources,
+and repeated backfills. Preserve existing checks; no new numeric coverage target.
+
 ## Tech Stack
 
 The stack is unchanged: Convex 1.46 (mutations, scheduler, `convex-test`),
@@ -163,9 +240,9 @@ export function urlKey(raw: string): string | null { … }
   example tweets (7, 2 and 5 links), trailing punctuation, `x.com` and `t.co`
   skips, duplicates and the cap. They also cover `urlKey` normalisation.
 - **Backend `convex-test` tests:**
-  - A tweet clip with 2 or more links creates one Item per link, each with a
-    pending enrichment.
-  - A tweet with 1 link creates none.
+  - A tweet clip with 1 or more links creates one normal Item per distinct new
+    link, each with pending enrichment and a retained source reference.
+  - A tweet with no eligible external links remains a normal tweet Item.
   - Clipping a second tweet that shares a link creates only the new links.
   - Pasting an already-saved link returns the existing id.
   - Retry semantics stay the same.
@@ -177,30 +254,40 @@ export function urlKey(raw: string): string | null { … }
 
 ## Boundaries
 
-- **Always:** keep the tweet Item unchanged, route inserts through
+- **Always:** retain the source tweet snapshot, exclude source-only tweets from
+  normal item behavior, route resource inserts through
   `insertCapture` so counters, search state and enrichment stay consistent, and
   keep owner scoping on every lookup.
-- **Ask first:** UI changes (for example, showing "links from this post" in the
-  inspector), changing the 2-link threshold, and merging clip content into an
-  existing plain link.
+- **Ask first:** review schema/index/API choices in the technical plan, resolve
+  duplicate-source attribution below, and approve new
+  dependencies, CI changes, or production migration execution.
 - **Never:** fetch `t.co` or X pages from the server (FxTwitter, as on mobile, is the only post source), fail a tweet save because
   extraction failed, or delete existing duplicates automatically.
 
 ## Success Criteria
 
-- Clipping the Noah tweet saves the tweet plus 7 link Items. The Simoom tweet
-  saves the tweet plus 5. The Palak tweet saves the tweet plus 2.
+- Clipping the Noah tweet creates 7 normal link Items and a hidden saved source
+  tweet. The Simoom tweet creates 5 normal Items, Palak creates 2, and a tweet
+  with one eligible link creates 1. Sources do not count as normal Items.
 - Each link Item starts enrichment, and after a successful fetch it has a
   `thumbnail` asset from `og:image`.
 - Clipping a tweet whose links are already saved adds no new link Items.
   Pasting `https://www.mocku.com/` after `https://mocku.com` returns the same
   Item.
+- Existing saved tweets with eligible external links are converted to hidden
+  source context, and previously skipped single links are extracted. Repeated
+  backfills preserve references and do not duplicate resources or counts.
 - `pnpm check` passes.
 
-## Open Questions (defaults taken)
+## Open Questions
 
-1. Threshold of 2 links (literal reading of the request). A tweet with one
-   resource link is not expanded. Lower it to 1 if wanted.
-2. Resolved: the resources show their source post in the inspector.
-3. A plain pasted tweet URL followed by a full clip of the same tweet still
-   gives two Items (clips keep capture-key identity).
+1. Proposed duplicate-source rule: when an extracted URL already exists, attach
+   this source if it has none; preserve its first source otherwise. Approve this
+   rule or request tracking multiple source tweets per resource.
+
+## Approval Gate
+
+The user requested technical planning after specification. The resulting
+[plan](tasks/plan.md) and [checklist](tasks/todo.md) are ready for review before
+implementation. First-source attribution is the explicit planning assumption;
+the confirmed historical scope includes existing saved tweets.
