@@ -9,7 +9,7 @@ import {
 } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { refreshItemState, sourceKindOf } from "./itemState";
-import { insertCapture } from "./libraryWriters";
+import { insertCapture, promotePendingTweet } from "./libraryWriters";
 import { extractTweetResources } from "./tweetResourceWriters";
 import { urlKey } from "../../schema/src/links";
 
@@ -89,26 +89,41 @@ export const run = internalAction({
   },
 });
 
-/** Keeps the longer text (the clip's own, unless it was cut short), then extracts. */
+/** Finalization re-reads state in one mutation, so recovery and fuller fetch may finish in either order. */
+async function finalizeTweet(
+  ctx: MutationCtx,
+  itemId: Id<"items">,
+  fullText?: string,
+) {
+  const item = await ctx.db.get(itemId);
+  if (!item || !isTweet(item)) return { created: 0 };
+  const previous = item.extractedText;
+  const text = fullText?.trim().slice(0, MAX_TEXT);
+  const grew = !!text && text.length > (previous?.length ?? 0);
+  if (grew) {
+    await ctx.db.patch(itemId, { extractedText: text, updatedAt: Date.now() });
+    await refreshItemState(ctx, itemId);
+  }
+  const created = await extractTweetLinks(
+    ctx,
+    itemId,
+    grew ? (previous ?? "") : undefined,
+  );
+  await promotePendingTweet(ctx, itemId);
+  return { created };
+}
+
 export const apply = internalMutation({
   args: { itemId: v.id("items"), fullText: v.optional(v.string()) },
   returns: v.object({ created: v.number() }),
-  handler: async (ctx, { itemId, fullText }) => {
-    const item = await ctx.db.get(itemId);
-    if (!item) return { created: 0 };
-    const previous = item.extractedText;
-    if (fullText && fullText.length > (previous?.length ?? 0)) {
-      await ctx.db.patch(itemId, {
-        extractedText: fullText,
-        updatedAt: Date.now(),
-      });
-      await refreshItemState(ctx, itemId);
-      return {
-        created: await extractTweetLinks(ctx, itemId, previous ?? ""),
-      };
-    }
-    return { created: await extractTweetLinks(ctx, itemId) };
-  },
+  handler: (ctx, { itemId, fullText }) => finalizeTweet(ctx, itemId, fullText),
+});
+
+/** Bounded delayed fallback: never fetches; a later full-text result can still discover links. */
+export const recover = internalMutation({
+  args: { itemId: v.id("items") },
+  returns: v.object({ created: v.number() }),
+  handler: (ctx, { itemId }) => finalizeTweet(ctx, itemId),
 });
 
 /** Links extracted before `fromItemId` existed carry the tweet's id in their capture key. */

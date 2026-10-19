@@ -1,3 +1,5 @@
+import { extractLinks } from "../../schema/src/links";
+import { extractTweetResources } from "./tweetResourceWriters";
 import { isNormalItem } from "./itemVisibility";
 import { changeLinkedItemStats } from "./linkedItemStats";
 import { invalidateMembership } from "./boardState";
@@ -9,6 +11,7 @@ import { validateCapture, validateClipContent } from "./validators";
 import {
   adjustStats,
   refreshItemState,
+  transitionLibraryRole,
   sourceKindOf,
   linkSearchFields,
 } from "./itemState";
@@ -102,8 +105,19 @@ export async function insertCapture(
     >,
 ) {
   const key = input.inputType === "url" ? urlKey(input.originalInput) : null;
+  const tweetClip =
+    sourceKindOf({
+      inputType: input.inputType,
+      originalUrl: input.originalInput,
+    }) === "x" && !!input.extractedText?.trim();
+  const libraryRole = tweetClip
+    ? extractLinks(input.extractedText!).length
+      ? ("tweet_source" as const)
+      : ("tweet_pending" as const)
+    : undefined;
   const itemId = await ctx.db.insert("items", {
     ...input,
+    libraryRole,
     ownerId,
     ...(input.inputType === "url" ? { originalUrl: input.originalInput } : {}),
     ...(key ? { urlKey: key } : {}),
@@ -121,29 +135,52 @@ export async function insertCapture(
   });
   if (input.fromItemId)
     await changeLinkedItemStats(ctx, ownerId, input.fromItemId, 1);
-  await adjustStats(ctx, ownerId, { total: 1 });
-  // Best effort: an enrichment or labeling problem must never fail the save.
+  await adjustStats(ctx, ownerId, { total: libraryRole ? 0 : 1 });
+  if (tweetClip) {
+    // Preserve the snapshot and partial resource writes if best-effort extraction fails.
+    try {
+      if (libraryRole === "tweet_source")
+        await extractTweetResources(ctx, itemId, insertCapture);
+    } catch {
+      /* Scheduled work retries. */
+    }
+    // Recovery also retries a known source whose initial best-effort writes failed.
+    await ctx.scheduler.runAfter(0, internal.tweetLinks.run, { itemId });
+    await ctx.scheduler.runAfter(30_000, internal.tweetLinks.recover, {
+      itemId,
+    });
+  } else await processNormalCapture(ctx, itemId);
+  await refreshItemState(ctx, itemId);
+  return itemId;
+}
+
+/** Starts the ordinary pipeline once after pending eligibility resolves. */
+export async function promotePendingTweet(
+  ctx: MutationCtx,
+  itemId: Id<"items">,
+) {
+  const item = await ctx.db.get(itemId);
+  if (item?.libraryRole !== "tweet_pending") return;
+  await transitionLibraryRole(ctx, itemId, undefined);
+  await processNormalCapture(ctx, itemId);
+  await refreshItemState(ctx, itemId);
+}
+
+async function processNormalCapture(ctx: MutationCtx, itemId: Id<"items">) {
   try {
     const item = await ctx.db.get(itemId);
-    if (item && input.inputType === "url") {
-      // Labeling waits for the page's title and description (enrichment.complete).
-      await startEnrichment(ctx, item, true);
-    } else if (item) {
+    if (!item || !isNormalItem(item)) return;
+    if (item.inputType === "url") await startEnrichment(ctx, item, true);
+    else {
       const hasLabel = await ctx.db
         .query("labels")
-        .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+        .withIndex("by_owner_name", (q) => q.eq("ownerId", item.ownerId))
         .first();
       if (hasLabel) await startDecisionOrFail(ctx, item, "clef-flash");
     }
-    // A tweet listing resources becomes one Item per resource (tweetLinks.ts).
-    if (item?.sourceKind === "x" && item.extractedText)
-      await ctx.scheduler.runAfter(0, internal.tweetLinks.run, { itemId });
   } catch {
-    // Swallowed on purpose.
+    /* Saving the snapshot is independent of enrichment/classification. */
   }
-  // Not best effort: flags and counters must agree with the stored item.
-  await refreshItemState(ctx, itemId);
-  return itemId;
 }
 
 export async function decideMembership(
