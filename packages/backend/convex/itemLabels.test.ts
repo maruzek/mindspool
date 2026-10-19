@@ -225,6 +225,30 @@ describe("item-label membership", () => {
       ).page.every((label) => !label.isAssigned),
     ).toBe(true);
   });
+
+  it("searches all owned labels by name prefix, retaining assignment and pagination", async () => {
+    const { alice, bob, itemId, labelId } = await fixture();
+    for (let i = 0; i < 12; i++)
+      await alice.mutation(api.labels.create, { name: `Earlier ${i}` });
+    await alice.mutation(api.labels.create, { name: "Recipes to try" });
+    await bob.mutation(api.labels.create, { name: "Recipes private" });
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    const first = await alice.query(api.itemLabels.availableLabels, {
+      itemId,
+      search: "  RECIPES  ",
+      paginationOpts: { numItems: 1, cursor: null },
+    });
+    expect(
+      first.page.map(({ name, isAssigned }) => ({ name, isAssigned })),
+    ).toEqual([{ name: "Recipes", isAssigned: true }]);
+    const next = await alice.query(api.itemLabels.availableLabels, {
+      itemId,
+      search: "recipes",
+      paginationOpts: { numItems: 1, cursor: first.continueCursor },
+    });
+    expect(next.page.map((label) => label.name)).toEqual(["Recipes to try"]);
+    expect(next.isDone).toBe(true);
+  });
 });
 
 describe("item-scoped join clamps", () => {

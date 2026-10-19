@@ -18,77 +18,204 @@ vi.mock(
 beforeEach(resetBackend);
 afterEach(cleanup);
 const itemId = "item1" as never;
-const opt = (id: string, name: string, isAssigned: boolean) => ({
+const opt = (id: string, name: string, isAssigned = false) => ({
   _id: id,
   name,
   isAssigned,
 });
 const open = () =>
-  fireEvent.click(screen.getByRole("button", { name: "Add label" }));
-const box = (name: string) => screen.getByRole("checkbox", { name });
+  fireEvent.click(screen.getByRole("combobox", { name: "Add label" }));
+const option = (name: string) => screen.getByRole("option", { name });
+const search = (text: string) =>
+  fireEvent.change(screen.getByRole("combobox", { name: "Search labels" }), {
+    target: { value: text },
+  });
 
 describe("AddLabelPopover", () => {
-  it("does not subscribe while closed, and does once open", async () => {
-    backend.available = [opt("l1", "Food", false)];
+  it("subscribes only while open and searches all labels through the backend", async () => {
+    backend.available = [opt("l1", "Food")];
     render(<AddLabelPopover itemId={itemId} />);
-    expect(backend.paginatedArgs["itemLabels:availableLabels"]).toBeUndefined();
+    expect(backend.paginatedArgs["itemLabels:availableLabels"]).toBe("skip");
     open();
-    await screen.findByText("Food");
+    await screen.findByRole("option", { name: "Food" });
+    search("  FOOD  ");
     expect(backend.paginatedArgs["itemLabels:availableLabels"]).toEqual({
       itemId,
+      search: "food",
     });
   });
-  it("reflects isAssigned and toggles with attach or remove", async () => {
-    backend.available = [opt("l1", "Food", false), opt("l2", "Dinner", true)];
+
+  it("reflects assignment and toggles labels without closing the picker", async () => {
+    backend.available = [opt("l1", "Food"), opt("l2", "Dinner", true)];
     backend.attachItemLabel.mockResolvedValue(null);
     backend.removeItemLabel.mockResolvedValue(null);
     render(<AddLabelPopover itemId={itemId} />);
     open();
-    await screen.findByText("Food");
-    expect(box("Food").getAttribute("aria-checked")).toBe("false");
-    expect(box("Dinner").getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(box("Food"));
+    await screen.findByRole("option", { name: "Food" });
+    expect(option("Food").getAttribute("aria-selected")).toBe("false");
+    expect(option("Dinner").getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(option("Food"));
     await waitFor(() =>
       expect(backend.attachItemLabel).toHaveBeenCalledWith({
         itemId,
         labelId: "l1",
       }),
     );
-    fireEvent.click(box("Dinner"));
+    await waitFor(() =>
+      expect(option("Dinner").getAttribute("aria-disabled")).not.toBe("true"),
+    );
+    fireEvent.click(option("Dinner"));
     await waitFor(() =>
       expect(backend.removeItemLabel).toHaveBeenCalledWith({
         itemId,
         labelId: "l2",
       }),
     );
+    expect(
+      screen.getByRole("combobox", { name: "Search labels" }),
+    ).toBeTruthy();
   });
-  it("shows the no-labels message", async () => {
+
+  it("offers an empty-state hint and creates and attaches the trimmed search term", async () => {
+    backend.createLabel.mockResolvedValue("new-label");
+    backend.attachItemLabel.mockResolvedValue(null);
     render(<AddLabelPopover itemId={itemId} />);
     open();
     expect(
-      await screen.findByText(
-        "You have no labels yet. Create one from the sidebar.",
-      ),
+      await screen.findByText("Search or type a name to create a label."),
     ).toBeTruthy();
+    search("  Travel  ");
+    fireEvent.click(
+      await screen.findByRole("option", { name: "Create “Travel”" }),
+    );
+    await waitFor(() =>
+      expect(backend.createLabel).toHaveBeenCalledWith({ name: "Travel" }),
+    );
+    await waitFor(() =>
+      expect(backend.attachItemLabel).toHaveBeenCalledWith({
+        itemId,
+        labelId: "new-label",
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("combobox", {
+            name: "Search labels",
+          }) as HTMLInputElement
+        ).value,
+      ).toBe(""),
+    );
   });
+
+  it("does not offer creation for an exact match regardless of case or whitespace", async () => {
+    backend.available = [opt("l1", "Food")];
+    render(<AddLabelPopover itemId={itemId} />);
+    open();
+    search("  fOoD  ");
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+  });
+
+  it("allows creating a distinct name alongside partial matches", async () => {
+    backend.available = [opt("l1", "Food ideas")];
+    render(<AddLabelPopover itemId={itemId} />);
+    open();
+    search("Food");
+    expect(
+      await screen.findByRole("option", { name: "Create “Food”" }),
+    ).toBeTruthy();
+    expect(option("Food ideas")).toBeTruthy();
+  });
+
+  it("does not offer creation for whitespace, overlong names, or while loading", async () => {
+    const view = render(<AddLabelPopover itemId={itemId} />);
+    open();
+    search("   ");
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+    search("x".repeat(81));
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+    expect(
+      screen.getByText("Label names can have up to 80 characters."),
+    ).toBeTruthy();
+    backend.availableStatus = "LoadingFirstPage";
+    view.rerender(<AddLabelPopover itemId={itemId} />);
+    search("Travel");
+    expect(screen.queryByRole("option", { name: /Create/ })).toBeNull();
+  });
+
   it("requests the next page with Show more", async () => {
-    backend.available = [opt("l1", "Food", false)];
+    backend.available = [opt("l1", "Food")];
     backend.availableStatus = "CanLoadMore";
     render(<AddLabelPopover itemId={itemId} />);
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Show more" }));
     expect(backend.loadMoreAvailable).toHaveBeenCalledWith(10);
   });
-  it("announces a failure and keeps the state", async () => {
-    backend.available = [opt("l1", "Food", false)];
+
+  it("announces an assignment failure and keeps server selection", async () => {
+    backend.available = [opt("l1", "Food")];
     backend.attachItemLabel.mockRejectedValue(
       new ConvexError({ code: "NOT_FOUND", message: "Not found" }),
     );
     render(<AddLabelPopover itemId={itemId} />);
     open();
-    await screen.findByText("Food");
-    fireEvent.click(box("Food"));
+    fireEvent.click(await screen.findByRole("option", { name: "Food" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Not found");
-    expect(box("Food").getAttribute("aria-checked")).toBe("false");
+    expect(option("Food").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("keeps the search available for retry when creation fails", async () => {
+    backend.createLabel.mockRejectedValue(new Error("offline"));
+    render(<AddLabelPopover itemId={itemId} />);
+    open();
+    search("Travel");
+    fireEvent.click(
+      await screen.findByRole("option", { name: "Create “Travel”" }),
+    );
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Search labels",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("Travel");
+    expect(backend.attachItemLabel).not.toHaveBeenCalled();
+  });
+
+  it("retains the query and prevents duplicate writes while creating", async () => {
+    let finish!: (id: string) => void;
+    backend.createLabel.mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    backend.attachItemLabel.mockRejectedValue(new Error("offline"));
+    render(<AddLabelPopover itemId={itemId} />);
+    open();
+    search("Travel");
+    const create = await screen.findByRole("option", {
+      name: "Create “Travel”",
+    });
+    fireEvent.click(create);
+    fireEvent.click(create);
+    expect(backend.createLabel).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Search labels",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("Travel");
+    finish("new-label");
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Search labels",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("Travel");
   });
 });
