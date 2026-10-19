@@ -106,7 +106,7 @@ describe("tweet link extraction", () => {
   it("saves one link Item per resource, each being enriched", async () => {
     const { clip, extract, items, links, stats } = setup();
     const tweet = await clip("1", noah);
-    expect(await extract(tweet)).toEqual({ created: 7 });
+    expect(await extract(tweet)).toEqual({ created: 0 });
     expect(await links()).toEqual([
       "https://mocku.com",
       "https://studio.morflax.com",
@@ -125,7 +125,7 @@ describe("tweet link extraction", () => {
   it("expands a tweet with a single eligible link", async () => {
     const { clip, extract, items } = setup();
     const tweet = await clip("1", "Read this: https://example.com/post");
-    expect(await extract(tweet)).toEqual({ created: 1 });
+    expect(await extract(tweet)).toEqual({ created: 0 });
     expect(await items()).toHaveLength(2);
   });
 
@@ -136,12 +136,12 @@ describe("tweet link extraction", () => {
       "1",
       "These two: https://ui.aceternity.com and https://reactbits.dev.",
     );
-    expect(await extract(first)).toEqual({ created: 1 });
+    expect(await extract(first)).toEqual({ created: 0 });
     const second = await clip(
       "2",
       "More: https://ui.aceternity.com, https://reactbits.dev, https://animos.app",
     );
-    expect(await extract(second)).toEqual({ created: 1 });
+    expect(await extract(second)).toEqual({ created: 0 });
     expect(await links()).toEqual([
       "https://www.reactbits.dev/",
       "https://ui.aceternity.com",
@@ -291,7 +291,7 @@ describe('full text of a clip cut short by "Show more"', () => {
     vi.stubGlobal("fetch", fetch);
     const tweet = await clip("9", cut);
     expect(await t.action(internal.tweetLinks.run, { itemId: tweet })).toEqual({
-      created: 10,
+      created: 5,
     });
     expect(fetch).toHaveBeenCalledWith(
       "https://api.fxtwitter.com/someone/status/9",
@@ -307,7 +307,7 @@ describe('full text of a clip cut short by "Show more"', () => {
     const { t, clip, items, links } = setup();
     const tweet = await clip("9", cut);
     expect(await t.action(internal.tweetLinks.run, { itemId: tweet })).toEqual({
-      created: 5,
+      created: 0,
     });
     expect(await links()).toHaveLength(5);
     expect((await items()).find((i) => i._id === tweet)!.extractedText).toBe(

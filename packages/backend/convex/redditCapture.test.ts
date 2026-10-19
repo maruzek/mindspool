@@ -98,6 +98,8 @@ describe("Reddit inspector detail", () => {
         sourceMetadata: { title: "Legacy" },
         extractedText: "Original text",
       });
+      if (url.startsWith("https://x.com/"))
+        await alice.mutation(internal.tweetLinks.apply, { itemId: id });
       const detail = await alice.query(api.items.detail, { id });
       expect(detail).toMatchObject({
         originalInput: url,

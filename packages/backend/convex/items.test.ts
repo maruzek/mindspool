@@ -566,8 +566,12 @@ describe("items.create with extracted content", () => {
   };
 
   it("stores the fields, classifies the source as x and makes the text searchable", async () => {
-    const { alice } = setup();
+    const { t, alice } = setup();
     const id = await alice.mutation(api.items.create, tweet);
+    expect((await t.run((ctx) => ctx.db.get(id)))?.libraryRole).toBe(
+      "tweet_pending",
+    );
+    await t.mutation(internal.tweetLinks.apply, { itemId: id });
     const item = await alice.query(api.items.get, { id });
     expect(item).toMatchObject({
       sourceKind: "x",
@@ -581,22 +585,27 @@ describe("items.create with extracted content", () => {
     });
     expect(found.page.map((i) => i._id)).toEqual([id]);
   });
-  it("starts a labeling run on the stored item when the owner has labels", async () => {
+  it("defers processing until no-link eligibility resolves when the owner has labels", async () => {
     const { t, alice } = setup();
     await alice.mutation(api.labels.create, { name: "Baking" });
-    await alice.mutation(api.items.create, tweet);
+    const itemId = await alice.mutation(api.items.create, tweet);
+    expect(
+      await t.run((ctx) => ctx.db.query("processingRuns").collect()),
+    ).toHaveLength(0);
+    await t.mutation(internal.tweetLinks.apply, { itemId });
     const runs = await t.run((ctx) => ctx.db.query("processingRuns").collect());
     expect(runs).toHaveLength(1);
+    expect(runs[0]?.kind).toBe("enrichment");
   });
   it("returns the stored item unchanged for a repeated key", async () => {
-    const { alice } = setup();
+    const { t, alice } = setup();
     const id = await alice.mutation(api.items.create, tweet);
     const again = await alice.mutation(api.items.create, {
       ...tweet,
       extractedText: "edited later",
     });
     expect(again).toBe(id);
-    expect((await alice.query(api.items.get, { id })).extractedText).toBe(
+    expect((await t.run((ctx) => ctx.db.get(id)))?.extractedText).toBe(
       tweet.extractedText,
     );
   });

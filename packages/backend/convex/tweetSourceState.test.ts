@@ -3,6 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import { expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { transitionLibraryRole } from "./itemState";
 import { modules } from "./test.setup";
 
 it("converts immediately and drains more than one batch of labels and pending runs repeat-safely", async () => {
@@ -18,6 +19,8 @@ it("converts immediately and drains more than one batch of labels and pending ru
       captureSource: "extension",
       captureKey: "source",
     });
+    // Historical normal tweet fixture predates capture-time pending roles.
+    await t.run((ctx) => transitionLibraryRole(ctx, itemId, undefined));
     const resource = await a.mutation(api.items.create, {
       inputType: "text",
       originalInput: "resource",
