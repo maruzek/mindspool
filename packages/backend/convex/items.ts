@@ -1,3 +1,4 @@
+import { itemContribution } from "./itemVisibility";
 import { changeLinkedItemStats } from "./linkedItemStats";
 import { cleanupItemBoards } from "./boardState";
 import { captureItem, insertCapture } from "./libraryWriters";
@@ -222,10 +223,11 @@ export const remove = mutation({
     if (item.fromItemId)
       await changeLinkedItemStats(ctx, ownerId, item.fromItemId, -1);
     await ctx.db.delete(id);
+    const contribution = itemContribution(item);
     await adjustStats(ctx, ownerId, {
-      total: -1,
-      inbox: -Number(item.inbox ?? false),
-      needsReview: -Number(item.needsReview ?? false),
+      total: -contribution.total,
+      inbox: -contribution.inbox,
+      needsReview: -contribution.needsReview,
     });
     await cleanupItemBoards(ctx, ownerId, id);
     await purgeHistory(ctx, ownerId, id);

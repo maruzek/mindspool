@@ -8,6 +8,8 @@ import {
   buildLinkSearchText,
   buildSearchText,
   sourceKindOf,
+  transitionLibraryRole,
+  refreshItemState,
 } from "./itemState";
 import schema from "./schema";
 import { modules } from "./test.setup";
@@ -354,4 +356,75 @@ describe("recountOwnerStats", () => {
     });
     expect((await bobRow())?.inbox).toBe(42);
   });
+});
+
+describe("hidden tweet counter lifecycle", () => {
+  it("recount excludes hidden snapshots and removing them cannot subtract a resource", async () => {
+    const t = convexTest(schema, modules);
+    const alice = t.withIdentity({ subject: OWNER });
+    const hidden = await alice.mutation(api.items.create, {
+      inputType: "text",
+      originalInput: "source snapshot",
+      captureSource: "web",
+      captureKey: "source",
+    });
+    await alice.mutation(api.items.create, {
+      inputType: "text",
+      originalInput: "normal resource",
+      captureSource: "web",
+      captureKey: "resource",
+    });
+    const ownerId = await t.run(async (ctx) => {
+      const row = (await ctx.db.get(hidden))!;
+      await ctx.db.patch(hidden, { libraryRole: "tweet_source" });
+      return row.ownerId;
+    });
+    await t.mutation(internal.itemState.recountOwnerStats, { ownerId });
+    const before = await t.run(async (ctx) => ({
+      item: await ctx.db.get(hidden),
+      stats: await ctx.db.query("ownerStats").first(),
+    }));
+    expect(before.item).toMatchObject({
+      originalInput: "source snapshot",
+      inbox: false,
+      needsReview: false,
+    });
+    expect(before.stats).toMatchObject({ total: 1, inbox: 1, needsReview: 0 });
+    await alice.mutation(api.items.remove, { id: hidden });
+    expect(
+      await t.run((ctx) => ctx.db.query("ownerStats").first()),
+    ).toMatchObject({ total: 1, inbox: 1 });
+  });
+});
+
+it("transitions normal, pending, source and back once per contribution", async () => {
+  const t = convexTest(schema, modules);
+  const id = await t
+    .withIdentity({ subject: OWNER })
+    .mutation(api.items.create, {
+      inputType: "text",
+      originalInput: "snapshot",
+      captureSource: "web",
+      captureKey: "transition",
+    });
+  for (const role of [
+    "tweet_pending",
+    "tweet_pending",
+    "tweet_source",
+    "tweet_source",
+    undefined,
+    undefined,
+  ] as const) {
+    await t.run(async (ctx) => {
+      await transitionLibraryRole(ctx, id, role);
+      await refreshItemState(ctx, id);
+    });
+    expect(
+      await t.run((ctx) => ctx.db.query("ownerStats").first()),
+    ).toMatchObject({
+      total: role ? 0 : 1,
+      inbox: role ? 0 : 1,
+      needsReview: 0,
+    });
+  }
 });

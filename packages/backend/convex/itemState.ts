@@ -1,3 +1,8 @@
+import {
+  isNormalItem,
+  itemContribution,
+  type LibraryRole,
+} from "./itemVisibility";
 import { internal } from "./_generated/api";
 import { UNSURE_THRESHOLD } from "./decisionProvider";
 import { internalMutation } from "./_generated/server";
@@ -199,8 +204,8 @@ async function computeItemState(ctx: MutationCtx, item: Doc<"items">) {
   return {
     sourceKind: sourceKindOf(item),
     searchText: buildSearchText(item),
-    inbox: flags.inbox,
-    needsReview: flags.needsReview,
+    inbox: isNormalItem(item) && flags.inbox,
+    needsReview: isNormalItem(item) && flags.needsReview,
   };
 }
 
@@ -235,6 +240,26 @@ export async function refreshItemState(
   await adjustStats(ctx, item.ownerId, {
     inbox: Number(next.inbox) - Number(item.inbox ?? false),
     needsReview: Number(next.needsReview) - Number(item.needsReview ?? false),
+  });
+}
+
+/** Atomically changes visibility and counters; retries have no additional contribution. */
+export async function transitionLibraryRole(
+  ctx: MutationCtx,
+  itemId: Id<"items">,
+  libraryRole: LibraryRole | undefined,
+): Promise<void> {
+  const item = await ctx.db.get(itemId);
+  if (!item || item.libraryRole === libraryRole) return;
+  const before = itemContribution(item);
+  const next = { ...item, libraryRole };
+  const state = await computeItemState(ctx, next);
+  const after = itemContribution({ ...next, ...state });
+  await ctx.db.patch(itemId, { libraryRole, ...state });
+  await adjustStats(ctx, item.ownerId, {
+    total: after.total - before.total,
+    inbox: after.inbox - before.inbox,
+    needsReview: after.needsReview - before.needsReview,
   });
 }
 
@@ -398,7 +423,7 @@ export const recountOwnerStats = internalMutation({
         await ctx.db.patch(item._id, next);
         acc.itemsRepaired++;
       }
-      acc.total++;
+      acc.total += itemContribution(item).total;
       acc.inbox += Number(next.inbox);
       acc.needsReview += Number(next.needsReview);
     }
