@@ -15,7 +15,9 @@ export function isTweetPending(item: RoleItem): boolean {
 }
 
 /** Every counter path uses the same zero contribution for hidden snapshots. */
-export function itemContribution(item: RoleItem & { inbox?: boolean; needsReview?: boolean }) {
+export function itemContribution(
+  item: RoleItem & { inbox?: boolean; needsReview?: boolean },
+) {
   return {
     total: Number(isNormalItem(item)),
     inbox: Number(isNormalItem(item) && !!item.inbox),

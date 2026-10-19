@@ -532,8 +532,15 @@ it("traverses stale hidden label rows without losing later normal resources", as
     const found: Id<"items">[] = [];
     let pages = 0;
     do {
-      const args = { labelId, paginationOpts: opts(5, cursor) };
-      const page = search
+      const args: {
+        labelId: Id<"labels">;
+        paginationOpts: { numItems: number; cursor: string | null };
+      } = { labelId, paginationOpts: opts(5, cursor) };
+      const page: {
+        page: { _id: Id<"items"> }[];
+        isDone: boolean;
+        continueCursor: string;
+      } = search
         ? await alice.query(api.itemLabels.searchItemsForLabel, {
             ...args,
             query: "resource",
