@@ -462,3 +462,52 @@ describe("label-scoped list and search", () => {
     expect(new Set([...ids(first), ...ids(next)]).size).toBe(12);
   });
 });
+
+it("paginates normal rows before hidden sources for every list and search filter", async () => {
+  const { t, alice, save } = await setup();
+  const normal = await save(alice, "resource normal");
+  const hidden: Id<"items">[] = [];
+  for (let i = 0; i < 25; i++)
+    hidden.push(await save(alice, `resource hidden ${i}`));
+  await t.run(async (ctx) => {
+    for (const id of [normal, ...hidden])
+      await ctx.db.patch(id, {
+        sourceKind: "x",
+        inbox: true,
+        needsReview: true,
+        ...(id !== normal
+          ? { libraryRole: id === hidden[0] ? "tweet_pending" : "tweet_source" }
+          : {}),
+      });
+  });
+  for (const filter of [
+    {},
+    { source: "x" as const },
+    { inbox: true },
+    { needsReview: true },
+    { source: "x" as const, inbox: true },
+    { source: "x" as const, needsReview: true },
+  ]) {
+    const page = await alice.query(api.items.list, {
+      paginationOpts: opts(1),
+      ...filter,
+    });
+    expect(ids(page)).toEqual([normal]);
+    expect(page.isDone).toBe(true);
+    const search = await alice.query(api.items.search, {
+      query: "resource",
+      paginationOpts: opts(1),
+      ...filter,
+    });
+    expect(ids(search)).toEqual([normal]);
+    expect(search.isDone).toBe(true);
+  }
+  await expect(alice.query(api.items.get, { id: hidden[0]! })).rejects.toThrow(
+    "Not found",
+  );
+  expect(await alice.query(api.items.detail, { id: hidden[0]! })).toBeNull();
+  await t.run((ctx) => ctx.db.patch(normal, { fromItemId: hidden[0] }));
+  expect(
+    (await alice.query(api.items.detail, { id: normal }))?.fromPost?._id,
+  ).toBe(hidden[0]);
+});

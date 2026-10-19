@@ -1,4 +1,4 @@
-import { itemContribution } from "./itemVisibility";
+import { isNormalItem, itemContribution } from "./itemVisibility";
 import { changeLinkedItemStats } from "./linkedItemStats";
 import { cleanupItemBoards } from "./boardState";
 import { captureItem, insertCapture } from "./libraryWriters";
@@ -135,7 +135,8 @@ export const get = query({
   returns: itemDoc,
   handler: async (ctx, { id }) => {
     const ownerId = await requireOwner(ctx);
-    return requireOwned(await ctx.db.get(id), ownerId);
+    const item = requireOwned(await ctx.db.get(id), ownerId);
+    return requireOwned(isNormalItem(item) ? item : null, ownerId);
   },
 });
 
@@ -154,7 +155,7 @@ export async function itemDetailFor(
 ) {
   const itemId = ctx.db.normalizeId("items", id);
   const item = itemId ? await ctx.db.get(itemId) : null;
-  if (!item || item.ownerId !== ownerId) return null;
+  if (!item || item.ownerId !== ownerId || !isNormalItem(item)) return null;
   const images = await imageUrls(ctx, item, DETAIL_IMAGES);
   return {
     _id: item._id,
@@ -313,31 +314,44 @@ export async function listItemsPage(
   const page = await (
     needsReview
       ? source
-        ? items.withIndex("by_owner_review_source", (q) =>
+        ? items.withIndex("by_owner_role_review_source", (q) =>
             q
               .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
               .eq("needsReview", true)
               .eq("sourceKind", source),
           )
-        : items.withIndex("by_owner_review", (q) =>
-            q.eq("ownerId", ownerId).eq("needsReview", true),
+        : items.withIndex("by_owner_role_review", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
+              .eq("needsReview", true),
           )
       : inbox
         ? source
-          ? items.withIndex("by_owner_inbox_source", (q) =>
+          ? items.withIndex("by_owner_role_inbox_source", (q) =>
               q
                 .eq("ownerId", ownerId)
+                .eq("libraryRole", undefined)
                 .eq("inbox", true)
                 .eq("sourceKind", source),
             )
-          : items.withIndex("by_owner_inbox", (q) =>
-              q.eq("ownerId", ownerId).eq("inbox", true),
+          : items.withIndex("by_owner_role_inbox", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("libraryRole", undefined)
+                .eq("inbox", true),
             )
         : source
-          ? items.withIndex("by_owner_source", (q) =>
-              q.eq("ownerId", ownerId).eq("sourceKind", source),
+          ? items.withIndex("by_owner_role_source", (q) =>
+              q
+                .eq("ownerId", ownerId)
+                .eq("libraryRole", undefined)
+                .eq("sourceKind", source),
             )
-          : items.withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+          : items.withIndex("by_owner_role", (q) =>
+              q.eq("ownerId", ownerId).eq("libraryRole", undefined),
+            )
   )
     .order("desc")
     .paginate(opts);
@@ -375,7 +389,10 @@ export async function searchItemsPage(
   const page = await ctx.db
     .query("items")
     .withSearchIndex("search_text", (q) => {
-      let found = q.search("searchText", text).eq("ownerId", ownerId);
+      let found = q
+        .search("searchText", text)
+        .eq("ownerId", ownerId)
+        .eq("libraryRole", undefined);
       if (source) found = found.eq("sourceKind", source);
       if (needsReview) found = found.eq("needsReview", true);
       if (inbox) found = found.eq("inbox", true);
@@ -452,80 +469,82 @@ export async function previewItems(
   items: Doc<"items">[],
 ) {
   return Promise.all(
-    items.map(async (item) => {
-      const included = await ctx.db
-        .query("itemLabels")
-        .withIndex("by_owner_item_decision", (q) =>
-          q
-            .eq("ownerId", ownerId)
-            .eq("itemId", item._id)
-            .eq("manualDecision", "include"),
-        )
-        .take(PREVIEW_LABELS + 1);
-      // Unsure labels come first so a row never hides the ones that need a decision.
-      const unsureLinks = await ctx.db
-        .query("itemLabels")
-        .withIndex("by_owner_item_unsure", (q) =>
-          q
-            .eq("ownerId", ownerId)
-            .eq("itemId", item._id)
-            .eq("manualDecision", "include")
-            .eq("unsure", true),
-        )
-        .take(PREVIEW_LABELS + 1);
-      const unsureIds = new Set(unsureLinks.map((link) => link._id));
-      const links = [
-        ...unsureLinks,
-        ...included.filter((link) => !unsureIds.has(link._id)),
-      ];
-      const found = await Promise.all(
-        links.slice(0, PREVIEW_LABELS).map(async (link) => ({
-          link,
-          label: await ctx.db.get(link.labelId),
-        })),
-      );
-      const labels = found.flatMap(({ link, label }) =>
-        label && label.ownerId === ownerId
-          ? [
-              {
-                _id: label._id,
-                name: label.name,
-                ...(isUnsureLink(link) && {
-                  unsure: true,
-                  ...(link.confidence !== undefined && {
-                    confidence: link.confidence,
+    items
+      .filter((item) => item.ownerId === ownerId && isNormalItem(item))
+      .map(async (item) => {
+        const included = await ctx.db
+          .query("itemLabels")
+          .withIndex("by_owner_item_decision", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("itemId", item._id)
+              .eq("manualDecision", "include"),
+          )
+          .take(PREVIEW_LABELS + 1);
+        // Unsure labels come first so a row never hides the ones that need a decision.
+        const unsureLinks = await ctx.db
+          .query("itemLabels")
+          .withIndex("by_owner_item_unsure", (q) =>
+            q
+              .eq("ownerId", ownerId)
+              .eq("itemId", item._id)
+              .eq("manualDecision", "include")
+              .eq("unsure", true),
+          )
+          .take(PREVIEW_LABELS + 1);
+        const unsureIds = new Set(unsureLinks.map((link) => link._id));
+        const links = [
+          ...unsureLinks,
+          ...included.filter((link) => !unsureIds.has(link._id)),
+        ];
+        const found = await Promise.all(
+          links.slice(0, PREVIEW_LABELS).map(async (link) => ({
+            link,
+            label: await ctx.db.get(link.labelId),
+          })),
+        );
+        const labels = found.flatMap(({ link, label }) =>
+          label && label.ownerId === ownerId
+            ? [
+                {
+                  _id: label._id,
+                  name: label.name,
+                  ...(isUnsureLink(link) && {
+                    unsure: true,
+                    ...(link.confidence !== undefined && {
+                      confidence: link.confidence,
+                    }),
+                    ...(link.provider && { provider: link.provider }),
+                    ...(link.model !== undefined && { model: link.model }),
                   }),
-                  ...(link.provider && { provider: link.provider }),
-                  ...(link.model !== undefined && { model: link.model }),
-                }),
-              },
-            ]
-          : [],
-      );
-      const unsureCount = unsureLinks.filter(isUnsureLink).length;
-      const images = await imageUrls(ctx, item, DETAIL_IMAGES);
-      // A few recent runs are enough to tell whether labeling is in flight.
-      const runs = await ctx.db
-        .query("processingRuns")
-        .withIndex("by_owner_item", (q) =>
-          q.eq("ownerId", ownerId).eq("itemId", item._id),
-        )
-        .order("desc")
-        .take(PREVIEW_RUNS);
-      const labeling = runs.some(
-        (run) => run.kind === "decision" && run.status === "pending",
-      );
-      return {
-        ...previewItem(item),
-        labels,
-        labelCount: links.length,
-        ...(images[0] && {
-          thumbnailUrl: images[0],
-          imageCount: images.length,
-        }),
-        ...(unsureCount > 0 && { unsureCount }),
-        ...(labeling && { labeling }),
-      };
-    }),
+                },
+              ]
+            : [],
+        );
+        const unsureCount = unsureLinks.filter(isUnsureLink).length;
+        const images = await imageUrls(ctx, item, DETAIL_IMAGES);
+        // A few recent runs are enough to tell whether labeling is in flight.
+        const runs = await ctx.db
+          .query("processingRuns")
+          .withIndex("by_owner_item", (q) =>
+            q.eq("ownerId", ownerId).eq("itemId", item._id),
+          )
+          .order("desc")
+          .take(PREVIEW_RUNS);
+        const labeling = runs.some(
+          (run) => run.kind === "decision" && run.status === "pending",
+        );
+        return {
+          ...previewItem(item),
+          labels,
+          labelCount: links.length,
+          ...(images[0] && {
+            thumbnailUrl: images[0],
+            imageCount: images.length,
+          }),
+          ...(unsureCount > 0 && { unsureCount }),
+          ...(labeling && { labeling }),
+        };
+      }),
   );
 }
