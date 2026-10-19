@@ -238,9 +238,11 @@ export async function refreshItemState(
   if (!differs(item, next)) return;
   await ctx.db.patch(itemId, next);
   if (item.searchText !== next.searchText) await fanOutLinkText(ctx, itemId);
+  const before = itemContribution(item);
+  const after = itemContribution({ ...item, ...next });
   await adjustStats(ctx, item.ownerId, {
-    inbox: Number(next.inbox) - Number(item.inbox ?? false),
-    needsReview: Number(next.needsReview) - Number(item.needsReview ?? false),
+    inbox: after.inbox - before.inbox,
+    needsReview: after.needsReview - before.needsReview,
   });
 }
 

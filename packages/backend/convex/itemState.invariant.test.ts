@@ -428,3 +428,30 @@ it("transitions normal, pending, source and back once per contribution", async (
     });
   }
 });
+
+it("repairs stale hidden flags without subtracting visible-item contributions", async () => {
+  const t = convexTest(schema, modules);
+  const a = t.withIdentity({ subject: OWNER });
+  await a.mutation(api.items.create, {
+    inputType: "text",
+    originalInput: "visible",
+    captureSource: "web",
+    captureKey: "visible",
+  });
+  const hidden = await a.mutation(api.items.create, {
+    inputType: "text",
+    originalInput: "hidden",
+    captureSource: "web",
+    captureKey: "hidden",
+  });
+  await t.run((ctx) => transitionLibraryRole(ctx, hidden, "tweet_source"));
+  await t.run(async (ctx) => {
+    await ctx.db.patch(hidden, { inbox: true, needsReview: true });
+    await refreshItemState(ctx, hidden);
+  });
+  expect(await a.query(api.items.stats, {})).toEqual({
+    total: 1,
+    inbox: 1,
+    needsReview: 0,
+  });
+});
