@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { edgeByKey, setConnection } from "./boardConnections";
 import { columnChildren, layoutColumns } from "./boardColumns";
 import { ConvexError, v } from "convex/values";
@@ -213,6 +214,7 @@ export const apply = mutation({
         finite(op.x, -1e6, 1e6);
         finite(op.y, -1e6, 1e6);
         const item = requireOwned(await ctx.db.get(op.itemId), board.ownerId);
+        if (!isNormalItem(item)) invalid("Element unavailable");
         const imageHeight = item.visualCapture
           ? Math.max(
               80,
@@ -295,7 +297,11 @@ export const apply = mutation({
         if (!element && op.data.type === "item" && op.type !== "restore")
           invalid("Element unavailable");
         if (op.data.type === "item") {
-          requireOwned(await ctx.db.get(op.data.itemId), board.ownerId);
+          const item = requireOwned(
+            await ctx.db.get(op.data.itemId),
+            board.ownerId,
+          );
+          if (!isNormalItem(item)) invalid("Element unavailable");
           if (
             (element &&
               (element.data.type !== "item" ||

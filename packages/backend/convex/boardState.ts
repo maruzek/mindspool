@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
@@ -10,7 +11,8 @@ export async function validElement(
 ) {
   if (element.data.type !== "item") return true;
   const item = await ctx.db.get(element.data.itemId);
-  if (!item || item.ownerId !== board.ownerId) return false;
+  if (!item || item.ownerId !== board.ownerId || !isNormalItem(item))
+    return false;
   const link = await ctx.db
     .query("itemLabels")
     .withIndex("by_owner_pair", (q) =>

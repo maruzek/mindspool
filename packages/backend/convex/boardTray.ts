@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server";
@@ -41,6 +42,7 @@ export const browse = query({
           let found = q
             .search("searchText", text)
             .eq("ownerId", board.ownerId)
+            .eq("libraryRole", undefined)
             .eq("labelId", labelId)
             .eq("manualDecision", "include");
           if (args.source) found = found.eq("sourceKind", args.source);
@@ -55,7 +57,9 @@ export const browse = query({
         ...page,
         page: await Promise.all(
           found.flatMap((item) =>
-            item?.ownerId === board.ownerId ? [previewItem(ctx, item)] : [],
+            item?.ownerId === board.ownerId && isNormalItem(item)
+              ? [previewItem(ctx, item)]
+              : [],
           ),
         ),
       };
@@ -65,31 +69,42 @@ export const browse = query({
       ? items.withSearchIndex("search_text", (q) => {
           let found = q
             .search("searchText", validateSearchQuery(args.query!))
-            .eq("ownerId", board.ownerId);
+            .eq("ownerId", board.ownerId)
+            .eq("libraryRole", undefined);
           if (args.source) found = found.eq("sourceKind", args.source);
           if (args.needsReview) found = found.eq("needsReview", true);
           return found;
         })
       : (!labelId && args.needsReview
           ? args.source
-            ? items.withIndex("by_owner_review_source", (q) =>
+            ? items.withIndex("by_owner_role_review_source", (q) =>
                 q
                   .eq("ownerId", board.ownerId)
+                  .eq("libraryRole", undefined)
                   .eq("needsReview", true)
                   .eq("sourceKind", args.source!),
               )
-            : items.withIndex("by_owner_review", (q) =>
-                q.eq("ownerId", board.ownerId).eq("needsReview", true),
+            : items.withIndex("by_owner_role_review", (q) =>
+                q
+                  .eq("ownerId", board.ownerId)
+                  .eq("libraryRole", undefined)
+                  .eq("needsReview", true),
               )
           : args.source
-            ? items.withIndex("by_owner_source", (q) =>
-                q.eq("ownerId", board.ownerId).eq("sourceKind", args.source!),
+            ? items.withIndex("by_owner_role_source", (q) =>
+                q
+                  .eq("ownerId", board.ownerId)
+                  .eq("libraryRole", undefined)
+                  .eq("sourceKind", args.source!),
               )
-            : items.withIndex("by_owner", (q) => q.eq("ownerId", board.ownerId))
+            : items.withIndex("by_owner_role", (q) =>
+                q.eq("ownerId", board.ownerId).eq("libraryRole", undefined),
+              )
         ).order(args.sort === "oldest" ? "asc" : "desc");
     const page = await candidate.paginate(opts);
     const eligible = await Promise.all(
       page.page.map(async (item) => {
+        if (!isNormalItem(item)) return false;
         if (!labelId) return true;
         const link = await ctx.db
           .query("itemLabels")
