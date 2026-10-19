@@ -129,7 +129,10 @@ A missing/deleted resource previously extracted from the same tweet must stay
 deleted. Distinguish initial discovery from replay with a versioned extraction
 marker (`tweetLinksVersion`, current version 2), alongside the legacy
 `linksExtracted`. Snapshot the previous effective link set before fuller-text
-updates and create only newly discovered URLs on later extraction.
+updates and create only newly discovered URLs on later extraction. Per-URL
+`tweetLinkReceipts` persist successful operations before final completion,
+protecting deletion history after caught errors and omitted/reintroduced URLs;
+legacy effective sets seed these receipts before text expansion.
 
 ### 5. Guard every classification boundary
 

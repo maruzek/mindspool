@@ -29,7 +29,7 @@ snapshot-seeded development rehearsal remain open.
   retains its existing appearance.
 
 Checkpoint D passed 642 backend tests. T12 focused checks passed 47 tests.
-Final repository gate and final review results are recorded below when complete.
+Final repository gate results are recorded below when complete.
 No test timeout or assertion was weakened. Limiting `VITEST_MAX_WORKERS=1` avoids
 contention on this shared host. The public-schema audit now loads its module
 inventory in a dedicated test worker, away from scheduled capture fixtures.
@@ -75,7 +75,11 @@ may resolve up to 20 large resources. Both pages have a 1 MiB read bound. No
 historical post is fetched. New pending clips use their own recovery lifecycle.
 Conversion updates role and normal counter contribution immediately; label/run
 cleanup and board cleanup continue through separate bounded scheduled mutations.
-A source snapshot remains even after its last resource is removed.
+A source snapshot remains even after its last resource is removed. The additive
+`tweetLinkReceipts` table records owner/source/URL identities per successful
+resource operation. These small indexed receipts preserve deletion history
+across caught partial writes and later texts that omit/reintroduce a URL. Legacy
+completion markers seed receipts before accepting a text expansion.
 
 ## Target selection, approval and backup
 
@@ -220,4 +224,18 @@ the production preview/recovery evidence and request the separate approval.
 
 ## Final gate and review
 
-Pending the final `pnpm check`, diff review, and browser/development prerequisites.
+A fresh-context review by GPT-6-Astra found a deletion-history defect: an item
+written before a caught extraction error could be deleted and then recreated on
+retry; omitted/reintroduced URLs also lost history. Both cases now have durable
+receipts and regressions that failed first, then passed. A stale-hidden-flag
+repair regression also failed first and now passes with role-aware contribution
+deltas. No review finding remains deferred.
+
+MCP read fixtures now hold dormant capture jobs with fake timers and clear them
+on teardown. This prevents background jobs from crossing convex-test databases;
+real scheduled behavior is exercised in capture tests. The original five-second
+timeout and all MCP assertions remain in place. Focused fix verification passed
+112 tests and backend typecheck. The final `pnpm check` rerun is pending.
+
+The review did not certify live browser/extension capture, real deployment search
+behavior, or a snapshot-seeded rehearsal. Those remain open prerequisites.
