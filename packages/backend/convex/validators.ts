@@ -346,6 +346,8 @@ export const runFields = {
   costUsd: v.optional(v.number()),
   /** Neurons held against today's budget until the run settles or fails. */
   reservedNeurons: v.optional(v.number()),
+  /** Actual usage recorded once, including a provider result arriving after cancellation. */
+  actualInputTokens: v.optional(v.number()),
   finishedAt: v.optional(v.number()),
 };
 export const runDoc = v.object({
