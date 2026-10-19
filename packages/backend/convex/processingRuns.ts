@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { paginationResultValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
@@ -55,6 +56,7 @@ export const start = internalMutation({
   returns: v.id("processingRuns"),
   handler: async (ctx, args) => {
     const item = await workerItem(ctx, args.itemId);
+    requireOwned(isNormalItem(item) ? item : null, item.ownerId);
     bounded(args.questionVersion, 128);
     bounded(args.rubricVersion, 128);
     bounded(args.model, 128);
@@ -162,6 +164,9 @@ export async function finishRun(
   const run = requireOwned(await ctx.db.get(runId), item.ownerId);
   if (run.itemId !== itemId)
     throw new ConvexError({ code: "NOT_FOUND", message: "Not found" });
+  if (!isNormalItem(item) && run.status !== "pending") return { item, run };
+  if (!isNormalItem(item) && run.kind === "decision")
+    result = { status: "failed", error: "Source context is not classified" };
   if (run.status !== "pending")
     throw new ConvexError({
       code: "CONFLICT",
@@ -241,7 +246,7 @@ export const listForItem = query({
     // A deleted or foreign item reads as empty so a live subscription
     // outliving the item does not throw.
     const item = await ctx.db.get(itemId);
-    if (!item || item.ownerId !== ownerId)
+    if (!item || item.ownerId !== ownerId || !isNormalItem(item))
       return { page: [], isDone: true, continueCursor: "" };
     const page = await ctx.db
       .query("processingRuns")

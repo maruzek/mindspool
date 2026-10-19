@@ -393,3 +393,24 @@ describe("enrichment merge", () => {
     expect(found.page.map((i) => i._id)).toContain(itemId);
   });
 });
+
+it("refuses generic processing starts for hidden snapshots", async () => {
+  const t = convexTest(schema, modules);
+  const a = t.withIdentity({ subject: "alice" });
+  const itemId = await a.mutation(api.items.create, {
+    inputType: "text",
+    originalInput: "snapshot",
+    captureSource: "web",
+    captureKey: "hidden",
+  });
+  await t.run((ctx) => ctx.db.patch(itemId, { libraryRole: "tweet_pending" }));
+  for (const kind of ["decision", "enrichment"] as const)
+    await expect(
+      t.mutation(internal.processingRuns.start, {
+        itemId,
+        kind,
+        modality: "text",
+        questionVersion: "v1",
+      }),
+    ).rejects.toThrow("Not found");
+});

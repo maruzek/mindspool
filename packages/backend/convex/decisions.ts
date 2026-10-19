@@ -274,6 +274,45 @@ export const complete = internalMutation({
       ...rest
     },
   ) => {
+    // A cancelled run may still report paid work. Record it once without restoring labels.
+    const current = await ctx.db.get(itemId);
+    const currentRun = await ctx.db.get(runId);
+    if (current && !isNormalItem(current)) {
+      requireOwned(currentRun, current.ownerId);
+      if (
+        !currentRun ||
+        currentRun.itemId !== itemId ||
+        currentRun.kind !== "decision"
+      )
+        throw new ConvexError({ code: "NOT_FOUND", message: "Not found" });
+      await finishRun(ctx, {
+        runId,
+        itemId,
+        result: { status: "failed", error: "Source context is not classified" },
+      });
+      const provider = currentRun.provider;
+      if (
+        inputTokens !== undefined &&
+        currentRun.actualInputTokens === undefined &&
+        currentRun.status !== "succeeded" &&
+        (provider === "clef" || provider === "clef-flash")
+      ) {
+        await settle(
+          ctx,
+          current.ownerId,
+          utcDay(currentRun._creationTime),
+          0,
+          neuronsFor(provider, inputTokens),
+          inputTokens,
+        );
+        await ctx.db.patch(runId, {
+          actualInputTokens: inputTokens,
+          ...rest,
+          ...(model !== undefined && { model }),
+        });
+      }
+      return null;
+    }
     const { item, run } = await finishRun(ctx, {
       runId,
       itemId,
@@ -306,6 +345,7 @@ export const complete = internalMutation({
     }
     await ctx.db.patch(runId, {
       reservedNeurons: undefined,
+      ...(inputTokens !== undefined && { actualInputTokens: inputTokens }),
       ...(model !== undefined && { model }),
       ...(labelsAsked !== undefined && { labelsAsked }),
       ...(labelsTotal !== undefined && { labelsTotal }),

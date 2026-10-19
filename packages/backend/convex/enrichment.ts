@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import { internal } from "./_generated/api";
@@ -234,7 +235,7 @@ async function settle(
           .take(20)
       : [];
     const labeling = recent.some((r) => r.kind === "decision");
-    if (item && hasLabel && !labeling)
+    if (item && isNormalItem(item) && hasLabel && !labeling)
       await startDecisionOrFail(ctx, item, "clef-flash");
   } catch {
     // Swallowed on purpose.

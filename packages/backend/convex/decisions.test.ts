@@ -180,3 +180,33 @@ it("refuses both hidden roles before inserting a run or reserving budget", async
     expect(await t.run((ctx) => ctx.db.query("aiUsage").collect())).toEqual([]);
   }
 });
+
+it("suppresses late labels and accounts for already-performed provider work exactly once", async () => {
+  const { t, alice, itemId, labels } = await fixture();
+  const runId = await alice.mutation(api.decisions.classify, {
+    itemId,
+    model: "clef-flash",
+  });
+  await t.run((ctx) => ctx.db.patch(itemId, { libraryRole: "tweet_source" }));
+  const args = {
+    runId,
+    itemId,
+    suggestions: [{ labelId: labels.recipes, confidence: 0.9 }],
+    inputTokens: 1234,
+  };
+  await t.mutation(internal.processingRuns.finish, {
+    runId,
+    itemId,
+    result: { status: "failed", error: "Converted" },
+  });
+  await t.mutation(internal.decisions.complete, args);
+  const once = await t.run((ctx) => ctx.db.query("aiUsage").first());
+  expect(once).toMatchObject({ reserved: 0, inputTokens: 1234, runs: 1 });
+  expect(once!.neurons).toBeGreaterThan(0);
+  await t.mutation(internal.decisions.complete, args);
+  await t.mutation(internal.decisions.expire, { runId, itemId });
+  expect(await t.run((ctx) => ctx.db.query("aiUsage").first())).toEqual(once);
+  expect(await t.run((ctx) => ctx.db.query("itemLabels").collect())).toEqual(
+    [],
+  );
+});
