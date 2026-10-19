@@ -142,7 +142,14 @@ export const visualAttemptFields = {
   state: v.union(v.literal("open"), v.literal("closed"), v.literal("attached")),
   storageId: v.optional(v.id("_storage")),
 };
+export const libraryRole = v.union(
+  v.literal("tweet_pending"),
+  v.literal("tweet_source"),
+);
+
 export const itemFields = {
+  libraryRole: v.optional(libraryRole),
+  tweetLinksVersion: v.optional(v.number()),
   ownerId: v.string(),
   captureKey: v.string(),
   captureSource,
@@ -283,6 +290,7 @@ export const suggestion = v.object({
   confidence: v.optional(v.number()),
 });
 export const itemLabelFields = {
+  libraryRole: v.optional(libraryRole),
   boardGeneration: v.optional(v.number()),
   ownerId: v.string(),
   itemId: v.id("items"),

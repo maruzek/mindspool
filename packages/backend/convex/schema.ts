@@ -76,9 +76,31 @@ export default defineSchema({
     .index("by_owner_review_source", ["ownerId", "needsReview", "sourceKind"])
     .index("by_owner_inbox", ["ownerId", "inbox"])
     .index("by_owner_inbox_source", ["ownerId", "inbox", "sourceKind"])
+    .index("by_owner_role", ["ownerId", "libraryRole"])
+    .index("by_owner_role_source", ["ownerId", "libraryRole", "sourceKind"])
+    .index("by_owner_role_review", ["ownerId", "libraryRole", "needsReview"])
+    .index("by_owner_role_review_source", [
+      "ownerId",
+      "libraryRole",
+      "needsReview",
+      "sourceKind",
+    ])
+    .index("by_owner_role_inbox", ["ownerId", "libraryRole", "inbox"])
+    .index("by_owner_role_inbox_source", [
+      "ownerId",
+      "libraryRole",
+      "inbox",
+      "sourceKind",
+    ])
     .searchIndex("search_text", {
       searchField: "searchText",
-      filterFields: ["ownerId", "sourceKind", "needsReview", "inbox"],
+      filterFields: [
+        "ownerId",
+        "libraryRole",
+        "sourceKind",
+        "needsReview",
+        "inbox",
+      ],
     }),
   labels: defineTable(labelFields).index("by_owner_name", [
     "ownerId",
@@ -113,10 +135,39 @@ export default defineSchema({
       "unsure",
       "sourceKind",
     ])
+    .index("by_owner_role_label_decision", [
+      "ownerId",
+      "libraryRole",
+      "labelId",
+      "manualDecision",
+    ])
+    .index("by_owner_role_label_source", [
+      "ownerId",
+      "libraryRole",
+      "labelId",
+      "manualDecision",
+      "sourceKind",
+    ])
+    .index("by_owner_role_label_unsure", [
+      "ownerId",
+      "libraryRole",
+      "labelId",
+      "manualDecision",
+      "unsure",
+    ])
+    .index("by_owner_role_label_unsure_source", [
+      "ownerId",
+      "libraryRole",
+      "labelId",
+      "manualDecision",
+      "unsure",
+      "sourceKind",
+    ])
     .searchIndex("search_link", {
       searchField: "searchText",
       filterFields: [
         "ownerId",
+        "libraryRole",
         "labelId",
         "manualDecision",
         "sourceKind",
