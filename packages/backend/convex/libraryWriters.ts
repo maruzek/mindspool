@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { changeLinkedItemStats } from "./linkedItemStats";
 import { invalidateMembership } from "./boardState";
 import { ConvexError } from "convex/values";
@@ -152,6 +153,7 @@ export async function decideMembership(
   manualDecision: "include" | "exclude",
 ) {
   const item = requireOwned(await ctx.db.get(itemId), ownerId);
+  requireOwned(isNormalItem(item) ? item : null, ownerId);
   requireOwned(await ctx.db.get(labelId), ownerId);
   const existing = await ctx.db
     .query("itemLabels")

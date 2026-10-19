@@ -511,3 +511,62 @@ it("paginates normal rows before hidden sources for every list and search filter
     (await alice.query(api.items.detail, { id: normal }))?.fromPost?._id,
   ).toBe(hidden[0]);
 });
+
+it("traverses stale hidden label rows without losing later normal resources", async () => {
+  const { t, alice, save, label } = await setup();
+  const labelId = await label(alice, "resources");
+  const normal = await save(alice, "resource normal");
+  await alice.mutation(api.itemLabels.attach, { itemId: normal, labelId });
+  const sources: Id<"items">[] = [];
+  for (let i = 0; i < 23; i++) {
+    const itemId = await save(alice, `resource source ${i}`);
+    await alice.mutation(api.itemLabels.attach, { itemId, labelId });
+    sources.push(itemId);
+  }
+  await t.run(async (ctx) => {
+    for (const id of sources)
+      await ctx.db.patch(id, { libraryRole: "tweet_source" });
+  });
+  for (const search of [false, true]) {
+    let cursor: string | null = null;
+    const found: Id<"items">[] = [];
+    let pages = 0;
+    do {
+      const args = { labelId, paginationOpts: opts(5, cursor) };
+      const page = search
+        ? await alice.query(api.itemLabels.searchItemsForLabel, {
+            ...args,
+            query: "resource",
+          })
+        : await alice.query(api.itemLabels.listItemsForLabel, args);
+      found.push(...ids(page));
+      pages++;
+      if (page.isDone) break;
+      expect(page.continueCursor).not.toBe(cursor);
+      cursor = page.continueCursor;
+    } while (pages < 15);
+    expect(found).toEqual([normal]);
+    expect(pages).toBeLessThan(15);
+  }
+  const pair = { itemId: sources[0]!, labelId };
+  await expect(alice.mutation(api.itemLabels.attach, pair)).rejects.toThrow(
+    "Not found",
+  );
+  await expect(alice.mutation(api.itemLabels.confirm, pair)).rejects.toThrow(
+    "Not found",
+  );
+  await expect(
+    alice.mutation(api.itemLabels.restoreSuggestion, {
+      ...pair,
+      confidence: 0.5,
+    }),
+  ).rejects.toThrow("Not found");
+  expect(
+    (
+      await alice.query(api.itemLabels.listForItem, {
+        itemId: sources[0]!,
+        paginationOpts: opts(),
+      })
+    ).page,
+  ).toEqual([]);
+});

@@ -1,3 +1,4 @@
+import { isNormalItem } from "./itemVisibility";
 import { decideMembership } from "./libraryWriters";
 import { paginationResultValidator } from "convex/server";
 import { v } from "convex/values";
@@ -56,7 +57,8 @@ export const confirm = mutation({
   returns: v.null(),
   handler: async (ctx, { itemId, labelId }) => {
     const ownerId = await requireOwner(ctx);
-    requireOwned(await ctx.db.get(itemId), ownerId);
+    const item = requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(isNormalItem(item) ? item : null, ownerId);
     requireOwned(await ctx.db.get(labelId), ownerId);
     const link = await ctx.db
       .query("itemLabels")
@@ -91,6 +93,7 @@ export const restoreSuggestion = mutation({
   handler: async (ctx, { itemId, labelId, confidence, provider, model }) => {
     const ownerId = await requireOwner(ctx);
     const item = requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(isNormalItem(item) ? item : null, ownerId);
     requireOwned(await ctx.db.get(labelId), ownerId);
     const link = await ctx.db
       .query("itemLabels")
@@ -129,7 +132,7 @@ export const listForItem = query({
     // A deleted or foreign item reads as empty so a live subscription
     // outliving the item does not throw.
     const item = await ctx.db.get(itemId);
-    if (!item || item.ownerId !== ownerId)
+    if (!item || item.ownerId !== ownerId || !isNormalItem(item))
       return { page: [], isDone: true, continueCursor: "" };
     const page = await ctx.db
       .query("itemLabels")
@@ -174,7 +177,7 @@ async function itemsOfLinks(
   // A deleted item's links are purged in the background; skip any still left.
   const found = await Promise.all(links.map((link) => ctx.db.get(link.itemId)));
   const items = found.flatMap((item) =>
-    item ? [requireOwned(item, ownerId)] : [],
+    item && item.ownerId === ownerId && isNormalItem(item) ? [item] : [],
   );
   return previewItems(ctx, ownerId, items);
 }
@@ -208,32 +211,36 @@ export async function listLabelItemsPage(
   const page = await (
     needsReview
       ? source
-        ? links.withIndex("by_owner_label_unsure_source", (q) =>
+        ? links.withIndex("by_owner_role_label_unsure_source", (q) =>
             q
               .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
               .eq("labelId", labelId)
               .eq("manualDecision", "include")
               .eq("unsure", true)
               .eq("sourceKind", source),
           )
-        : links.withIndex("by_owner_label_unsure", (q) =>
+        : links.withIndex("by_owner_role_label_unsure", (q) =>
             q
               .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
               .eq("labelId", labelId)
               .eq("manualDecision", "include")
               .eq("unsure", true),
           )
       : source
-        ? links.withIndex("by_owner_label_source", (q) =>
+        ? links.withIndex("by_owner_role_label_source", (q) =>
             q
               .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
               .eq("labelId", labelId)
               .eq("manualDecision", "include")
               .eq("sourceKind", source),
           )
-        : links.withIndex("by_owner_label_decision", (q) =>
+        : links.withIndex("by_owner_role_label_decision", (q) =>
             q
               .eq("ownerId", ownerId)
+              .eq("libraryRole", undefined)
               .eq("labelId", labelId)
               .eq("manualDecision", "include"),
           )
@@ -280,6 +287,7 @@ export async function searchLabelItemsPage(
       let found = q
         .search("searchText", text)
         .eq("ownerId", ownerId)
+        .eq("libraryRole", undefined)
         .eq("labelId", labelId)
         .eq("manualDecision", "include");
       if (source) found = found.eq("sourceKind", source);
@@ -303,7 +311,8 @@ export const availableLabels = query({
   ),
   handler: async (ctx, { itemId, paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
-    requireOwned(await ctx.db.get(itemId), ownerId);
+    const item = requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(isNormalItem(item) ? item : null, ownerId);
     validatePagination(paginationOpts);
     const page = await ctx.db
       .query("labels")

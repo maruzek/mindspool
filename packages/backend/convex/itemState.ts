@@ -159,6 +159,7 @@ export async function adjustStats(
 /** The link-row copies of item facts; the writer adds `unsure` for the link's own state. */
 export function linkSearchFields(item: Doc<"items">) {
   return {
+    libraryRole: item.libraryRole,
     sourceKind: sourceKindOf(item),
     searchText: buildLinkSearchText(item),
   };
@@ -285,6 +286,7 @@ export async function fanOutLinkText(ctx: MutationCtx, itemId: Id<"items">) {
       q.or(
         q.neq(q.field("searchText"), fields.searchText),
         q.neq(q.field("sourceKind"), fields.sourceKind),
+        q.neq(q.field("libraryRole"), fields.libraryRole),
       ),
     )
     .take(FANOUT_BATCH);
@@ -326,6 +328,7 @@ async function repairLinksPage(
   for (const link of links) {
     const unsure = isUnsureLink(link);
     if (
+      link.libraryRole !== fields.libraryRole ||
       link.sourceKind !== fields.sourceKind ||
       link.searchText !== fields.searchText ||
       (link.unsure ?? false) !== unsure
