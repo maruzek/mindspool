@@ -9,53 +9,20 @@ import {
 } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { refreshItemState, sourceKindOf } from "./itemState";
-import { findLink, insertCapture } from "./libraryWriters";
-import { extractLinks, MIN_TWEET_LINKS, urlKey } from "../../schema/src/links";
+import { insertCapture } from "./libraryWriters";
+import { extractTweetResources } from "./tweetResourceWriters";
+import { urlKey } from "../../schema/src/links";
 
 const isTweet = (item: Doc<"items">) =>
   (item.sourceKind ?? sourceKindOf(item)) === "x";
 
-/** Links that were turned into Items from this text (none when below the threshold). */
-function extractedKeys(text: string | undefined) {
-  const links = text ? extractLinks(text) : [];
-  return new Set(
-    links.length >= MIN_TWEET_LINKS ? links.map((link) => urlKey(link)) : [],
-  );
-}
-
-/**
- * Saves each resource a tweet lists as its own link Item, which then gets
- * enriched (title, description, og:image) like any pasted link. Links the
- * owner already has are skipped. Runs once per tweet; when the tweet's text
- * later grows (`previousText`), only links new to that text are considered, so
- * a resource the owner deleted is never re-created.
- */
+/** Shared extraction is also used before a new capture enters ordinary processing. */
 export async function extractTweetLinks(
   ctx: MutationCtx,
   itemId: Id<"items">,
   previousText?: string,
 ) {
-  const tweet = await ctx.db.get(itemId);
-  if (!tweet || !isTweet(tweet) || !tweet.extractedText) return 0;
-  if (tweet.linksExtracted && previousText === undefined) return 0;
-  const done = tweet.linksExtracted ? extractedKeys(previousText) : new Set();
-  await ctx.db.patch(itemId, { linksExtracted: true });
-  const links = extractLinks(tweet.extractedText);
-  if (links.length < MIN_TWEET_LINKS) return 0;
-  let created = 0;
-  for (const [n, link] of links.entries()) {
-    if (done.has(urlKey(link))) continue;
-    if (await findLink(ctx, tweet.ownerId, link)) continue;
-    await insertCapture(ctx, tweet.ownerId, {
-      originalInput: link,
-      inputType: "url",
-      captureSource: tweet.captureSource,
-      captureKey: `xlink:${itemId}:${n}`,
-      fromItemId: itemId,
-    });
-    created++;
-  }
-  return created;
+  return extractTweetResources(ctx, itemId, insertCapture, previousText);
 }
 
 const STATUS =
@@ -97,6 +64,7 @@ const MAX_TEXT = 100_000;
 
 export const tweet = internalQuery({
   args: { itemId: v.id("items") },
+  returns: v.union(v.string(), v.null()),
   handler: async (ctx, { itemId }) => {
     const item = await ctx.db.get(itemId);
     return item && isTweet(item) ? (item.originalUrl ?? null) : null;

@@ -119,14 +119,14 @@ describe("tweet link extraction", () => {
     const saved = (await items()).filter((i) => i.sourceKind === "web");
     expect(saved.every((i) => i.enrichmentStatus === "pending")).toBe(true);
     expect(saved.every((i) => i.captureSource === "extension")).toBe(true);
-    expect((await stats()).total).toBe(8);
+    expect((await stats()).total).toBe(7);
   });
 
-  it("does not expand a tweet with a single link", async () => {
+  it("expands a tweet with a single eligible link", async () => {
     const { clip, extract, items } = setup();
     const tweet = await clip("1", "Read this: https://example.com/post");
-    expect(await extract(tweet)).toEqual({ created: 0 });
-    expect(await items()).toHaveLength(1);
+    expect(await extract(tweet)).toEqual({ created: 1 });
+    expect(await items()).toHaveLength(2);
   });
 
   it("skips links already saved, from pastes or other tweets", async () => {
@@ -360,12 +360,13 @@ describe("the post a link was found in", () => {
     });
   });
 
-  it("is not set on a link that was already saved", async () => {
+  it("fills missing provenance on a link that was already saved", async () => {
     const { clip, paste, extract, items } = setup();
     const pasted = await paste("https://mocku.com");
-    await extract(await clip("1", noah));
+    const source = await clip("1", noah);
+    await extract(source);
     expect((await items()).find((i) => i._id === pasted)?.fromItemId).toBe(
-      undefined,
+      source,
     );
   });
 
@@ -402,20 +403,20 @@ it("maintains lightweight parent counts across extraction, deletion and retries"
     "https://example.org/one https://example.org/two",
   );
   await extract(post);
-  expect(
-    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
-  ).toBe(2);
+  expect((await t.run((ctx) => ctx.db.get(post)))!.linkedItemStats?.count).toBe(
+    2,
+  );
   const child = (await items()).find((item) => item.fromItemId === post)!;
   await alice.mutation(api.items.remove, { id: child._id });
   await extract(post);
-  expect(
-    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
-  ).toBe(1);
+  expect((await t.run((ctx) => ctx.db.get(post)))!.linkedItemStats?.count).toBe(
+    1,
+  );
   await t.run((ctx) => ctx.db.patch(post, { linkedItemStats: undefined }));
   await t.action(internal.mcpDiscovery.rebuildResourceCount, { itemId: post });
-  expect(
-    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
-  ).toBe(1);
+  expect((await t.run((ctx) => ctx.db.get(post)))!.linkedItemStats?.count).toBe(
+    1,
+  );
 });
 
 it("refuses stale backfill counts when children change during migration", async () => {
@@ -440,10 +441,51 @@ it("refuses stale backfill counts when children change during migration", async 
     }),
   ).toBe(false);
   expect(
-    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
+    (await t.run((ctx) => ctx.db.get(post)))!.linkedItemStats?.count,
   ).toBeUndefined();
   await t.action(internal.mcpDiscovery.rebuildResourceCount, { itemId: post });
+  expect((await t.run((ctx) => ctx.db.get(post)))!.linkedItemStats?.count).toBe(
+    1,
+  );
+});
+
+it("hides all-duplicate sources and preserves the first source including dangling references", async () => {
+  const { t, alice, clip, paste, extract, items, stats } = setup();
+  const first = await clip("1", "https://example.org/a");
+  const resource = await paste("https://example.org/a");
+  await Promise.all([extract(first), extract(first)]);
+  expect((await items()).find((row) => row._id === resource)?.fromItemId).toBe(
+    first,
+  );
+  expect((await stats()).total).toBe(1);
+  await alice.mutation(api.items.remove, { id: first });
+  const second = await clip("2", "https://example.org/a");
+  expect(await extract(second)).toEqual({ created: 0 });
+  expect((await items()).find((row) => row._id === resource)?.fromItemId).toBe(
+    first,
+  );
+  expect((await t.run((ctx) => ctx.db.get(second)))?.libraryRole).toBe(
+    "tweet_source",
+  );
+});
+
+it("handles reordered growing text without reusing capture keys or recreating deleted resources", async () => {
+  const { t, alice, clip, extract, items } = setup();
+  const source = await clip("1", "https://example.org/a https://example.org/b");
+  await extract(source);
+  const removed = (await items()).find(
+    (row) => row.originalInput === "https://example.org/a",
+  )!;
+  await alice.mutation(api.items.remove, { id: removed._id });
+  await t.mutation(internal.tweetLinks.apply, {
+    itemId: source,
+    fullText:
+      "New discovery https://example.org/b https://example.org/c https://example.org/a",
+  });
   expect(
-    (await alice.query(api.items.get, { id: post })).linkedItemStats?.count,
-  ).toBe(1);
+    (await items())
+      .filter((row) => row.fromItemId === source)
+      .map((row) => row.originalInput),
+  ).toEqual(["https://example.org/b", "https://example.org/c"]);
+  expect((await t.run((ctx) => ctx.db.get(source)))?.tweetLinksVersion).toBe(2);
 });

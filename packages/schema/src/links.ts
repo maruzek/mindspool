@@ -1,7 +1,7 @@
 /** Most links one tweet can turn into Items. */
 export const MAX_TWEET_LINKS = 20;
 /** A tweet is expanded into its links only when it mentions at least this many. */
-export const MIN_TWEET_LINKS = 2;
+export const MIN_TWEET_LINKS = 1;
 const MAX_LINK_LENGTH = 2048;
 
 const LINK = /https?:\/\/[^\s"'<>`]+/gi;
