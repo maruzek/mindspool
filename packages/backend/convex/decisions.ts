@@ -1,3 +1,5 @@
+import { isNormalItem } from "./itemVisibility";
+import { sourceMetadata } from "./validators";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -60,6 +62,7 @@ async function begin(
   provider: ClefProvider,
   onLimit: "throw" | "fail",
 ) {
+  requireOwned(isNormalItem(item) ? item : null, item.ownerId);
   const labels = await ctx.db
     .query("labels")
     .withIndex("by_owner_name", (q) => q.eq("ownerId", item.ownerId))
@@ -142,6 +145,7 @@ export const classify = mutation({
   handler: async (ctx, { itemId, model }) => {
     const ownerId = await requireOwner(ctx);
     const item = requireOwned(await ctx.db.get(itemId), ownerId);
+    requireOwned(isNormalItem(item) ? item : null, ownerId);
     const recent = await ctx.db
       .query("processingRuns")
       .withIndex("by_owner_item", (q) =>
@@ -178,10 +182,36 @@ export const expire = internalMutation({
 /** What the action may read: the run's own item and that owner's labels only. */
 export const input = internalQuery({
   args: { runId: v.id("processingRuns"), itemId: v.id("items") },
+  returns: v.object({
+    asked: v.number(),
+    total: v.number(),
+    labels: v.array(
+      v.object({
+        _id: v.id("labels"),
+        _creationTime: v.number(),
+        name: v.string(),
+        description: v.optional(v.string()),
+      }),
+    ),
+    item: v.object({
+      originalInput: v.string(),
+      originalUrl: v.optional(v.string()),
+      canonicalUrl: v.optional(v.string()),
+      extractedText: v.optional(v.string()),
+      sourceMetadata,
+    }),
+  }),
   handler: async (ctx, { runId, itemId }) => {
     const item = await ctx.db.get(itemId);
     const run = await ctx.db.get(runId);
-    if (!item || !run || run.ownerId !== item.ownerId || run.itemId !== itemId)
+    if (
+      !item ||
+      !isNormalItem(item) ||
+      !run ||
+      run.status !== "pending" ||
+      run.ownerId !== item.ownerId ||
+      run.itemId !== itemId
+    )
       throw new ConvexError({ code: "NOT_FOUND", message: "Not found" });
     const labels = await ctx.db
       .query("labels")

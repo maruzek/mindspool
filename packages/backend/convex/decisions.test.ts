@@ -166,3 +166,17 @@ describe("decisions.complete", () => {
     );
   });
 });
+
+it("refuses both hidden roles before inserting a run or reserving budget", async () => {
+  const { t, alice, itemId } = await fixture();
+  for (const libraryRole of ["tweet_pending", "tweet_source"] as const) {
+    await t.run((ctx) => ctx.db.patch(itemId, { libraryRole }));
+    await expect(
+      alice.mutation(api.decisions.classify, { itemId, model: "clef-flash" }),
+    ).rejects.toThrow("Not found");
+    expect(
+      await t.run((ctx) => ctx.db.query("processingRuns").collect()),
+    ).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("aiUsage").collect())).toEqual([]);
+  }
+});

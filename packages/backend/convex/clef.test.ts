@@ -279,3 +279,22 @@ describe("decisions.classify and automatic run", () => {
     expect(await count()).toHaveLength(1);
   });
 });
+
+it("does not call a provider when a queued decision's item becomes hidden", async () => {
+  const { t, itemId } = await fixture();
+  const run = await t.run((ctx) => ctx.db.query("processingRuns").first());
+  const fetchMock = mockFetch(() => json(okBody({})));
+  await t.run((ctx) => ctx.db.patch(itemId, { libraryRole: "tweet_source" }));
+  await t.action(internal.clef.run, {
+    itemId,
+    runId: run!._id,
+    provider: "clef-flash",
+  });
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(await t.run((ctx) => ctx.db.query("itemLabels").collect())).toEqual(
+    [],
+  );
+  expect(
+    (await t.run((ctx) => ctx.db.query("aiUsage").first()))?.reserved,
+  ).toBe(0);
+});
