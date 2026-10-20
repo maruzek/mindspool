@@ -1,6 +1,7 @@
 # Implementation Plan: Single-link tweets with hidden source context
 
-Status: **T1–T12 implemented and locally verified; inspector/live-browser acceptance and final verification in progress.**
+Status: **Implementation, local verification and independent review complete.
+Live browser acceptance and development migration rehearsal await target authorization.**
 
 Spec: [SPEC-tweet-links.md](../SPEC-tweet-links.md).
 Execution checklist: [todo.md](todo.md).

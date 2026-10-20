@@ -1,9 +1,8 @@
 # Spec: Tweet link extraction (`tweet-links`)
 
-Status: implementation authorized by the user's request to execute the plan.
-T1–T12 are implemented and locally verified. Inspector regression, final checks
-and independent review are in progress; live browser acceptance and migration
-rehearsal require an authorized development environment.
+Status: implementation authorized and locally verified, including independent
+review fixes and the full repository gate. Live browser capture acceptance and a
+snapshot-seeded development rehearsal remain open pending target authorization.
 
 ## Objective
 

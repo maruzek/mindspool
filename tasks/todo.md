@@ -1,6 +1,8 @@
 # Tasks: Single-link tweets with hidden source context
 
-Status: **T1–T12 implemented and locally verified. T13 unit checks pass; live browser acceptance needs development configuration. T14 verification/review in progress.**
+Status: **Implementation, local checks and independent review complete. T13 live
+browser acceptance and the deployment rehearsal remain open pending authorization
+for the development target.**
 
 Read [the plan](plan.md) and [the spec](../SPEC-tweet-links.md) before execution.
 The user authorized moving the unfinished Visual Web Clipper checklist to
@@ -428,22 +430,22 @@ session and must not be inferred solely from unit tests.
 
 ## T14: Record integrated verification and migration instructions
 
-- [ ] Complete T14.
+- [x] Complete T14 (local verification and runbook; T13 live acceptance remains open).
 
 **Description:** Complete regression evidence and write a reviewable runbook for
 converting existing tweets after deployment approval.
 
 **Acceptance criteria:**
 
-- [ ] `pnpm check` passes with no skipped tests, weakened checks, or suppressed
+- [x] `pnpm check` passes with no skipped tests, weakened checks, or suppressed
       errors. Existing extension/mobile tweet text expansion, Reddit, plain URL
       dedupe, visual capture, board, MCP, and AI-limit regressions remain covered.
-- [ ] Report maps the revised spec to evidence. Runbook names internal preview
+- [x] Report maps the revised spec to evidence. Runbook names internal preview
       and apply functions with full executable commands matching the implemented
       validators, target classification, continuation/progress, and before/after
       counts. Include a development rehearsal and backup/recovery notes before
       any approved production conversion; do not promise reversibility of cleanup.
-- [ ] Update feature/task status only to the verified scope, record limitations,
+- [x] Update feature/task status only to the verified scope, record limitations,
       and complete code review. No live data migration, production deployment,
       dependency additions, or changes to archived unfinished work are implied.
 

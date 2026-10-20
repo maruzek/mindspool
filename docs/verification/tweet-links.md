@@ -1,6 +1,7 @@
 # Hidden tweet sources: verification and migration
 
 Implementation branch: `feature/hidden-tweet-sources`. Version: 2.
+Local gate completed 2026-10-20; source implementation and review fixes committed.
 No live deployment or migration was executed. Browser capture acceptance and a
 snapshot-seeded development rehearsal remain open.
 
@@ -219,6 +220,11 @@ the production preview/recovery evidence and request the separate approval.
   permits one paginated query per mutation, including a migration caller.
 - The shared extraction helper receives the resource writer as an argument to
   avoid a runtime capture/action import cycle.
+- Migration processes one tweet per extraction transaction to bound reads of up
+  to 20 full resources; this trades more continuation calls for predictable work.
+- URL receipts add one indexed table to preserve deletion history without an
+  ever-growing source document. State repair and deletion use the same counter
+  and hold contribution rules as role conversion.
 - Recovery uses captured text after 30 seconds; a later longer fetch can convert
   the promoted item. Repeated finalization re-reads state and starts the ordinary
   pipeline once.
@@ -238,10 +244,17 @@ MCP read fixtures now hold dormant capture jobs with fake timers and clear them
 on teardown. This prevents background jobs from crossing convex-test databases;
 real scheduled behavior is exercised in capture tests. The original five-second
 timeout and all MCP assertions remain in place. Focused fix verification passed
-112 tests and backend typecheck. The final `pnpm check` rerun is pending. A final deletion-race regression also
+112 tests and backend typecheck. The final `VITEST_MAX_WORKERS=1 pnpm check` passed formatting, all package
+tests, six workspace typechecks and three builds (including Android export).
+Its backend stage passed 646 tests; after the final deletion-race change the
+complete backend suite was rerun and passed 647 tests across 52 files. The other
+suites passed 49 schema, 329 web, 171 extension and 119 mobile tests. This gives
+1,315 passing tests for the final code across the package suites. A final deletion-race regression also
 found that removing a source before scheduled cleanup could retain its decision
 hold. Bounded history deletion now releases that remaining reservation in the
 same transaction; the regression and 53 related checks pass.
+
+Fresh `git diff --check` and final documentation formatting checks also pass.
 
 The review did not certify live browser/extension capture, real deployment search
 behavior, or a snapshot-seeded rehearsal. Those remain open prerequisites.
