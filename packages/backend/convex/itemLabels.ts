@@ -302,21 +302,33 @@ export async function searchLabelItemsPage(
   return { ...page, page: await itemsOfLinks(ctx, ownerId, page.page) };
 }
 
-// Joining only the requested page keeps checkbox state accurate even when an
-// Item's assigned Labels span several pages.
+// Search the owner's name index before paginating so the picker finds labels
+// beyond its initial page. Join only that page to retain assignment state.
 export const availableLabels = query({
-  args: { itemId: v.id("items"), paginationOpts: paginationOptsValidator },
+  args: {
+    itemId: v.id("items"),
+    search: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+  },
   returns: paginationResultValidator(
     v.object({ ...labelDoc.fields, isAssigned: v.boolean() }),
   ),
-  handler: async (ctx, { itemId, paginationOpts }) => {
+  handler: async (ctx, { itemId, search, paginationOpts }) => {
     const ownerId = await requireOwner(ctx);
     const item = requireOwned(await ctx.db.get(itemId), ownerId);
     requireOwned(isNormalItem(item) ? item : null, ownerId);
     validatePagination(paginationOpts);
+    const prefix = search?.trim().toLowerCase() ?? "";
     const page = await ctx.db
       .query("labels")
-      .withIndex("by_owner_name", (q) => q.eq("ownerId", ownerId))
+      .withIndex("by_owner_name", (q) =>
+        prefix
+          ? q
+              .eq("ownerId", ownerId)
+              .gte("normalizedName", prefix)
+              .lt("normalizedName", `${prefix}\uffff`)
+          : q.eq("ownerId", ownerId),
+      )
       .paginate(clampPage(paginationOpts));
     return {
       ...page,

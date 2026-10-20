@@ -454,11 +454,17 @@ describe("item inspector frame", () => {
     it("keeps the panel open when Escape closes the add-label popover", async () => {
       media(true);
       const router = await setup();
-      fireEvent.click(await screen.findByRole("button", { name: "Add label" }));
-      const popup = await screen.findByText(/no labels yet/);
+      fireEvent.click(
+        await screen.findByRole("combobox", { name: "Add label" }),
+      );
+      const popup = await screen.findByRole("combobox", {
+        name: "Search labels",
+      });
       fireEvent.keyDown(popup, { key: "Escape" });
       await vi.waitFor(() =>
-        expect(screen.queryByText(/no labels yet/)).toBeNull(),
+        expect(
+          screen.queryByRole("combobox", { name: "Search labels" }),
+        ).toBeNull(),
       );
       expect(router.state.location.search).toMatchObject({ item: "a" });
     });
