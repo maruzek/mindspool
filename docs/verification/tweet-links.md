@@ -39,7 +39,10 @@ inventory in a dedicated test worker, away from scheduled capture fixtures.
 On 2026-10-19 the T3 collaborative browser opened this worktree at
 `http://127.0.0.1:5199/library`. It rendered **“Sign-in is not configured”**.
 The worktree has example environment files only. No authorized development
-backend or extension-capable authenticated session was available. This proves
+backend or extension-capable authenticated session was available in this worktree.
+The original checkout has test-mode Clerk configuration and development target
+`dev:graceful-stork-346`; using it for this revision requires the separately
+authorized development deployment. This proves
 only the local app shell starts; it does not prove capture behavior in a browser.
 
 After configuring and authorizing a development backend, record:
@@ -235,7 +238,10 @@ MCP read fixtures now hold dormant capture jobs with fake timers and clear them
 on teardown. This prevents background jobs from crossing convex-test databases;
 real scheduled behavior is exercised in capture tests. The original five-second
 timeout and all MCP assertions remain in place. Focused fix verification passed
-112 tests and backend typecheck. The final `pnpm check` rerun is pending.
+112 tests and backend typecheck. The final `pnpm check` rerun is pending. A final deletion-race regression also
+found that removing a source before scheduled cleanup could retain its decision
+hold. Bounded history deletion now releases that remaining reservation in the
+same transaction; the regression and 53 related checks pass.
 
 The review did not certify live browser/extension capture, real deployment search
 behavior, or a snapshot-seeded rehearsal. Those remain open prerequisites.
