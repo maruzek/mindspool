@@ -1,3 +1,5 @@
+import { release } from "./aiUsage";
+import { utcDay } from "./aiBudget";
 import { isNormalItem, itemContribution } from "./itemVisibility";
 import { changeLinkedItemStats } from "./linkedItemStats";
 import { cleanupItemBoards } from "./boardState";
@@ -254,6 +256,16 @@ async function purgeHistory(
       q.eq("ownerId", ownerId).eq("itemId", itemId),
     )
     .take(DELETE_BATCH);
+  // Removal may win the race with source cleanup or expiry. Deleting the run
+  // consumes its remaining reservation atomically, so later jobs cannot leak it.
+  for (const run of runs)
+    if (run.kind === "decision" && run.reservedNeurons !== undefined)
+      await release(
+        ctx,
+        ownerId,
+        utcDay(run._creationTime),
+        run.reservedNeurons,
+      );
   for (const row of [...links, ...runs]) await ctx.db.delete(row._id);
   if (links.length === DELETE_BATCH || runs.length === DELETE_BATCH)
     await ctx.scheduler.runAfter(0, internal.items.purgeRemovedItem, {
