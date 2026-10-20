@@ -111,6 +111,25 @@ Historical migration execution remains separate. Before production conversion,
 rehearse the migration below on a snapshot-seeded development deployment and
 record counts, cleanup completion, cursor recovery and repeated-run results.
 
+### Frontend/backend version mismatch
+
+A subsequent user report exposed an older frontend still running at
+`http://localhost:5173` from worktree `t3-0428c573`. Its source card uses an
+internal Library item link, so the updated backend correctly returns unavailable
+for that hidden source and the old UI shows “Not found”. Retrying capture cannot
+repair an old frontend link. The matching frontend is this branch's server at
+`http://localhost:5199`; its source card links externally to the original X post.
+The installed source modules served by both ports were checked directly, and the
+current inspector regression suite passed 29/29 again. Backend and frontend must
+be rolled out together for this interaction; backend deployment alone does not
+update a separately running web checkout.
+
+The reported ID `j971k9gwrqvnyrfrhtz6xaddsn8gmsxt` is a retained hidden source for
+`https://x.com/kail_designs/status/2112531422884114539`. Its normal resource
+`j97d01mddaav720ybakwesf7498gmb51` is
+`https://backgrounds.supply/gradient-lab`, and remains available through normal
+detail. The user's older server and its checkout were left intact.
+
 ## Migration contract
 
 The only new migration entry point is the **internal** mutation
