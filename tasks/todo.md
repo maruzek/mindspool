@@ -1,8 +1,8 @@
 # Tasks: Single-link tweets with hidden source context
 
-Status: **Implementation, local checks and independent review complete. T13 live
-browser acceptance awaits sign-in. The approved development deployment succeeded;
-the snapshot-seeded migration rehearsal remains open.**
+Status: **T1–T14 complete. Local checks, independent review, approved development
+deployment and real extension/browser acceptance passed. Historical migration
+execution and its snapshot-seeded rehearsal remain separate.**
 
 Read [the plan](plan.md) and [the spec](../SPEC-tweet-links.md) before execution.
 The user authorized moving the unfinished Visual Web Clipper checklist to
@@ -400,7 +400,7 @@ and bounded source/reference repair, using existing saved tweet text.
 
 ## T13: Verify the existing source-post inspector
 
-- [ ] Complete T13.
+- [x] Complete T13.
 
 **Description:** Prove resources retain their source presentation after the
 source becomes hidden, without adding a new tweet viewer.
@@ -411,7 +411,7 @@ source becomes hidden, without adding a new tweet viewer.
       from the hidden source; resources with no source keep existing presentation.
 - [x] Foreign or missing source data is omitted safely. Source-only rows cannot
       be opened as ordinary library detail; original-post links still work.
-- [ ] A real development-browser check records one-link capture, resource detail,
+- [x] A real development-browser check records one-link capture, resource detail,
       source absence from Library/labels/search, and no source classification.
       If browser/auth prerequisites are unavailable, leave this criterion open.
 
@@ -430,7 +430,7 @@ session and must not be inferred solely from unit tests.
 
 ## T14: Record integrated verification and migration instructions
 
-- [x] Complete T14 (local verification and runbook; T13 live acceptance remains open).
+- [x] Complete T14 (integrated verification, live capture evidence and runbook).
 
 **Description:** Complete regression evidence and write a reviewable runbook for
 converting existing tweets after deployment approval.
@@ -463,7 +463,7 @@ become separately scoped tested follow-ups before rerunning the relevant gate.
 
 ### Checkpoint E: Outcome ready for review
 
-- [ ] T12–T14 pass; new capture and historical conversion are proven, source
+- [x] T12–T14 pass; new capture and historical conversion are proven, source
       snapshots survive, normal surfaces/counters agree, and source AI work is prevented.
 - [ ] Human reviews the outcome and migration preview/runbook. Apply any live
       migration only in the separately authorized deployment step.
