@@ -1,8 +1,9 @@
 # Spec: Tweet link extraction (`tweet-links`)
 
 Status: implementation authorized and locally verified, including independent
-review fixes and the full repository gate. Live browser capture acceptance and a
-snapshot-seeded development rehearsal remain open pending target authorization.
+review fixes and the full repository gate. Deployed to approved development target
+`dev:graceful-stork-346`. Live browser capture acceptance awaits sign-in; a
+snapshot-seeded development rehearsal remains open.
 
 ## Objective
 

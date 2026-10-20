@@ -2,8 +2,9 @@
 
 Implementation branch: `feature/hidden-tweet-sources`. Version: 2.
 Local gate completed 2026-10-20; source implementation and review fixes committed.
-No live deployment or migration was executed. Browser capture acceptance and a
-snapshot-seeded development rehearsal remain open.
+Development deployment completed 2026-10-20 with explicit user approval.
+Browser capture acceptance and a snapshot-seeded development rehearsal remain
+open. No live historical migration was executed.
 
 ## Evidence
 
@@ -46,7 +47,26 @@ The original checkout has test-mode Clerk configuration and development target
 authorized development deployment. This proves
 only the local app shell starts; it does not prove capture behavior in a browser.
 
-After configuring and authorizing a development backend, record:
+On 2026-10-20 the user authorized deployment to `dev:graceful-stork-346`.
+`convex dev --once --env-file` using the original checkout's backend configuration
+completed successfully against that exact development target. Convex typechecking
+passed, the role indexes/search filters and receipt index were installed, and
+functions became ready. Code generation added only the two helper modules to
+`_generated/api.d.ts`.
+
+A bounded read-only inline query on that deployment selected an existing owner's
+legacy rows using `libraryRole === undefined`: the ordinary index returned 20
+normal rows and the search index returned four normal rows. No owner identifiers
+or saved content were emitted. This verifies the deployed indexes accept absent
+role equality; it does not certify a new extension capture.
+
+The local web app now uses the existing public development configuration. The T3
+default browser profile at `http://127.0.0.1:5199/library` renders the Clerk
+development sign-in modal, with no console errors. It has no authenticated
+session. User sign-in is required before authenticated browser checks can proceed;
+extension capture still requires an extension-capable session.
+
+After sign-in, record:
 
 1. Clip a one-link X post in the extension; repeat with a second capture client
    when available. Save the returned snapshot ID and resource ID.
@@ -256,5 +276,6 @@ same transaction; the regression and 53 related checks pass.
 
 Fresh `git diff --check` and final documentation formatting checks also pass.
 
-The review did not certify live browser/extension capture, real deployment search
-behavior, or a snapshot-seeded rehearsal. Those remain open prerequisites.
+The review did not certify live browser/extension capture or a snapshot-seeded
+rehearsal. Those remain open prerequisites. The subsequent read-only deployment
+check above covers absent-role index/search execution on existing data only.

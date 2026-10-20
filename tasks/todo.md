@@ -1,8 +1,8 @@
 # Tasks: Single-link tweets with hidden source context
 
 Status: **Implementation, local checks and independent review complete. T13 live
-browser acceptance and the deployment rehearsal remain open pending authorization
-for the development target.**
+browser acceptance awaits sign-in. The approved development deployment succeeded;
+the snapshot-seeded migration rehearsal remains open.**
 
 Read [the plan](plan.md) and [the spec](../SPEC-tweet-links.md) before execution.
 The user authorized moving the unfinished Visual Web Clipper checklist to

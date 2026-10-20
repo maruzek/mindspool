@@ -1,7 +1,8 @@
 # Implementation Plan: Single-link tweets with hidden source context
 
 Status: **Implementation, local verification and independent review complete.
-Live browser acceptance and development migration rehearsal await target authorization.**
+Deployed to approved development target `dev:graceful-stork-346`.
+Live browser acceptance awaits sign-in; migration rehearsal remains open.**
 
 Spec: [SPEC-tweet-links.md](../SPEC-tweet-links.md).
 Execution checklist: [todo.md](todo.md).
