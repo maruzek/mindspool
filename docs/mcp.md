@@ -1,7 +1,11 @@
 # MindSpool MCP
 
-The enabled development endpoint serves read-only access to saved clips. Production
-has not been enabled or deployed by this work. Open **Integrations** in the sidebar
+The production endpoint is enabled at
+`https://fleet-eel-131.eu-west-1.convex.site/mcp`; metadata and authorization
+initiation are verified. The first authenticated production library read remains
+to be verified. Development has been verified with read-only access to saved
+clips. See [production activation setup](deploy.md#enable-mcp-in-production).
+Open **Integrations** in the sidebar
 (`/settings/integrations`) for the canonical endpoint and connection controls.
 
 ## Connect
@@ -9,12 +13,23 @@ has not been enabled or deployed by this work. Open **Integrations** in the side
 Read permission shares your saved content, labels, and source links with the client
 you authorize. Never paste an access token into a command, issue, or chat.
 
-For Codex, add this section to `~/.codex/config.toml`, replacing any existing
+For Codex, copy the command from Integrations and finish browser sign-in:
+
+```sh
+codex mcp add mindspool --url 'https://fleet-eel-131.eu-west-1.convex.site/mcp'
+```
+
+This syntax is documented in the [official OpenAI MCP setup instructions](https://developers.openai.com/learn/docs-mcp)
+and checked against installed Codex CLI 0.166.0. Review the permissions on the
+consent screen: automatic OAuth can request advertised scopes.
+
+For explicit read-only authorization, expand **Manual read-only setup** in
+Integrations. Add this section to `~/.codex/config.toml`, replacing any existing
 `mindspool` section. Copy the actual URL from Integrations:
 
 ```toml
 [mcp_servers.mindspool]
-url = "https://<development-deployment>.convex.site/mcp"
+url = "https://fleet-eel-131.eu-west-1.convex.site/mcp"
 ```
 
 Then request explicit read permission:
@@ -31,7 +46,7 @@ See the [official Codex MCP documentation](https://learn.chatgpt.com/docs/extend
 For Claude Code, copy the command from Integrations:
 
 ```sh
-claude mcp add --transport http --scope user mindspool 'https://<development-deployment>.convex.site/mcp'
+claude mcp add --transport http --scope user mindspool 'https://fleet-eel-131.eu-west-1.convex.site/mcp'
 ```
 
 Run `/mcp`, select `mindspool`, and authenticate in the browser. `--scope user`
@@ -168,7 +183,8 @@ Provider errors and disabled accounts retain revocation state. The temporary
 
 Current evidence, real-client results and unverified cases are recorded in
 [discovery verification](verification/mcp-discovery.md) and
-[access verification](verification/mcp-access.md). Development verification is
+[access verification](verification/mcp-access.md). Production setup status is
+recorded in [production activation](verification/mcp-production.md). Development verification is
 recorded for both modules, including CLI-agent limitations. Human launch review
 and any production deployment require separate approval.
 

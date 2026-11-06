@@ -27,6 +27,7 @@ export function ClientSetup({ resourceUrl }: { resourceUrl: string | null }) {
   if (!url) return <p role="status">Connection setup is unavailable.</p>;
   // `mcp add` automatically starts OAuth using advertised scopes. A config
   // block plus explicit login keeps the requested permission read only.
+  const codexAdd = `codex mcp add mindspool --url ${quote(url)}`;
   const codexConfig = `[mcp_servers.mindspool]\nurl = ${JSON.stringify(url)}`;
   const codex = "codex mcp login mindspool --scopes mindspool:read";
   const claude = `claude mcp add --transport http --scope user mindspool ${quote(url)}`;
@@ -54,28 +55,47 @@ export function ClientSetup({ resourceUrl }: { resourceUrl: string | null }) {
       </p>
       <div className="space-y-2">
         <h3 className="font-semibold">Codex</h3>
+        <pre className="overflow-x-auto border bg-muted p-3 text-xs">
+          <code>{codexAdd}</code>
+        </pre>
+        <Button
+          variant="outline"
+          onClick={() => void copy(codexAdd, "Codex command")}
+        >
+          Copy Codex command
+        </Button>
         <p className="text-sm text-muted-foreground">
-          Add this section to ~/.codex/config.toml (replace an existing
-          mindspool section), then sign in with explicit read scope.
+          Run this command and finish signing in through your browser. Codex can
+          request advertised permissions automatically; review the consent
+          screen. To request only read access, use the manual setup below.
         </p>
-        <pre className="overflow-x-auto border bg-muted p-3 text-xs">
-          <code>{codexConfig}</code>
-        </pre>
-        <Button
-          variant="outline"
-          onClick={() => void copy(codexConfig, "Codex configuration")}
-        >
-          Copy Codex configuration
-        </Button>
-        <pre className="overflow-x-auto border bg-muted p-3 text-xs">
-          <code>{codex}</code>
-        </pre>
-        <Button
-          variant="outline"
-          onClick={() => void copy(codex, "Codex commands")}
-        >
-          Copy Codex commands
-        </Button>
+        <details className="space-y-2 text-sm">
+          <summary className="cursor-pointer font-semibold">
+            Manual read-only setup
+          </summary>
+          <p className="mt-2 text-muted-foreground">
+            Add this section to ~/.codex/config.toml (replace an existing
+            mindspool section), then sign in with explicit read scope.
+          </p>
+          <pre className="overflow-x-auto border bg-muted p-3 text-xs">
+            <code>{codexConfig}</code>
+          </pre>
+          <Button
+            variant="outline"
+            onClick={() => void copy(codexConfig, "Codex configuration")}
+          >
+            Copy Codex configuration
+          </Button>
+          <pre className="overflow-x-auto border bg-muted p-3 text-xs">
+            <code>{codex}</code>
+          </pre>
+          <Button
+            variant="outline"
+            onClick={() => void copy(codex, "Codex commands")}
+          >
+            Copy Codex commands
+          </Button>
+        </details>
       </div>
       <div className="space-y-2">
         <h3 className="font-semibold">Claude Code</h3>
